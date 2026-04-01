@@ -309,6 +309,59 @@
   /* ── FEEDBACK TEXTAREA ── */
   .form-textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); font-size: 13px; margin-bottom: 8px; display: block; resize: vertical; font-family: inherit; }
   .form-select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); font-size: 13px; margin-bottom: 8px; display: block; cursor: pointer; }
+
+  /* ── MOBILE SIDEBAR OVERLAY ── */
+  #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 149; }
+  #sidebar-overlay.show { display: block; }
+
+  /* ── ONBOARDING STEPS ── */
+  .founder-type-btn:hover { border-color: var(--green) !important; background: var(--accent-bg) !important; }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media(max-width:700px){
+    body { overflow: auto; }
+    #sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 150; transform: translateX(-100%); transition: transform .25s; width: 268px !important; min-width: 268px !important; overflow-y: auto; }
+    #sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.2); }
+    #sidebar.collapsed { transform: translateX(-100%); width: 268px !important; min-width: 268px !important; overflow: hidden; }
+    #main { width: 100%; min-width: 0; }
+    .topbar { padding: 0 10px; gap: 6px; }
+    .topbar-title { font-size: 12px; }
+    .theme-btn { display: none; }
+    #page { padding: 12px; }
+    .grid2 { grid-template-columns: 1fr !important; }
+    .grid3 { grid-template-columns: 1fr !important; }
+    .grid4 { grid-template-columns: 1fr 1fr !important; }
+    .hotspot-grid { grid-template-columns: 1fr 1fr !important; }
+    .vc-grid { grid-template-columns: 1fr 1fr !important; }
+    .trend-grid { grid-template-columns: 1fr !important; }
+    .entry-grid { grid-template-columns: 1fr !important; }
+    .milestone-grid { grid-template-columns: 1fr !important; }
+    .funding-row { grid-template-columns: 1fr 1fr !important; }
+    .seg-grid { grid-template-columns: 1fr !important; }
+    .crop-grid { grid-template-columns: 1fr !important; }
+    .crop-stats { grid-template-columns: 1fr 1fr !important; }
+    .opp-grid { grid-template-columns: 1fr !important; }
+    .mini-grid { grid-template-columns: 1fr !important; }
+    .overlay { align-items: flex-end; padding: 0; }
+    .modal { border-radius: 18px 18px 0 0 !important; max-width: 100% !important; width: 100% !important; max-height: 88vh; overflow-y: auto; margin: 0; }
+    .stat-val { font-size: 20px; }
+    .page-hdr h1 { font-size: 17px; }
+    .fab { padding: 8px 12px; font-size: 11px; right: 10px; bottom: 10px; }
+    .event-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .doc-row { flex-wrap: wrap; }
+    .inv-table th, .inv-table td { padding: 6px 7px; font-size: 11px; }
+    .admin-table th, .admin-table td { padding: 6px 8px; font-size: 11px; }
+    .tabs-nav { gap: 1px; }
+    .tab-btn { padding: 6px 9px; font-size: 11px; }
+    .sidebar-footer .book-btn { font-size: 11px; }
+    .go-mobile-close { display: block !important; }
+  }
+  @media(max-width:400px){
+    .grid4 { grid-template-columns: 1fr !important; }
+    .hotspot-grid { grid-template-columns: 1fr !important; }
+    .vc-grid { grid-template-columns: 1fr !important; }
+    .funding-row { grid-template-columns: 1fr !important; }
+  }
 </style>
 </head>
 <body>
@@ -318,8 +371,8 @@
     <div class="sidebar-logo">
       <div class="logo-icon">🌾</div>
       <div>
-        <div class="logo-text">Global AgTech</div>
-        <div class="logo-sub">Founder Dashboard</div>
+        <div class="logo-text">Founder Ops Center</div>
+        <div class="logo-sub">founderopscenter.com</div>
       </div>
     </div>
     <div class="sidebar-tagline">Tools, data, and insights for agricultural technology founders worldwide.</div>
@@ -364,8 +417,8 @@
 
 <div id="main">
   <div class="topbar">
-    <button class="toggle-btn" onclick="document.getElementById('sidebar').classList.toggle('collapsed')">☰</button>
-    <div class="topbar-title">Global AgTech Founder Dashboard</div>
+    <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title">Founder Ops Center</div>
     <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">🌙 Dark</button>
     <button class="signin-btn" id="topbar-user-btn" onclick="openModal('signin-modal')">→ Sign In</button>
   </div>
@@ -468,6 +521,62 @@
   </div>
 </div>
 
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ONBOARDING MODAL -->
+<div class="overlay" id="onboard-modal">
+  <div class="modal" style="max-width:460px;text-align:center;padding:28px 24px">
+    <!-- Step 1: Welcome -->
+    <div id="onboard-s1">
+      <div style="font-size:52px;margin-bottom:12px">🌾</div>
+      <h3 style="font-size:20px;margin-bottom:8px">Welcome to Founder Ops Center</h3>
+      <p style="margin-bottom:6px">The all-in-one intelligence platform for AgTech founders — built by founders, for founders.</p>
+      <p style="font-size:12px;color:var(--text-faint);margin-bottom:20px">🇨🇦 Canada-focused now · Global expansion coming soon</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:22px;text-align:left">
+        <div style="background:var(--hover);border-radius:9px;padding:11px 12px"><div style="font-size:18px;margin-bottom:4px">🌐</div><div style="font-size:12px;font-weight:700;color:var(--text)">Market Intel</div><div style="font-size:11px;color:var(--text-muted)">Live stats & trends</div></div>
+        <div style="background:var(--hover);border-radius:9px;padding:11px 12px"><div style="font-size:18px;margin-bottom:4px">🚀</div><div style="font-size:12px;font-weight:700;color:var(--text)">Founder Journey</div><div style="font-size:11px;color:var(--text-muted)">Idea to Series A</div></div>
+        <div style="background:var(--hover);border-radius:9px;padding:11px 12px"><div style="font-size:18px;margin-bottom:4px">💰</div><div style="font-size:12px;font-weight:700;color:var(--text)">Funding Sources</div><div style="font-size:11px;color:var(--text-muted)">VCs, grants & programs</div></div>
+        <div style="background:var(--hover);border-radius:9px;padding:11px 12px"><div style="font-size:18px;margin-bottom:4px">📚</div><div style="font-size:12px;font-weight:700;color:var(--text)">Resources</div><div style="font-size:11px;color:var(--text-muted)">Templates & tools</div></div>
+      </div>
+      <button onclick="onboardStep(2)" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px">Get Started →</button>
+      <button onclick="dismissOnboard()" style="width:100%;padding:8px;background:none;border:none;font-size:12px;color:var(--text-faint);cursor:pointer">Skip for now</button>
+    </div>
+    <!-- Step 2: Who are you -->
+    <div id="onboard-s2" style="display:none">
+      <div style="font-size:42px;margin-bottom:12px">👋</div>
+      <h3 style="font-size:18px;margin-bottom:6px">Who are you?</h3>
+      <p style="margin-bottom:18px;font-size:13px;color:var(--text-muted)">Help us personalise your experience</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px">
+        <button onclick="setFounderType('Early-Stage Founder')" class="founder-type-btn" style="padding:15px 10px;background:var(--hover);border:2px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;transition:all .15s">
+          <div style="font-size:24px;margin-bottom:5px">🌱</div><div style="font-size:12px;font-weight:700;color:var(--text)">Early-Stage</div><div style="font-size:11px;color:var(--text-muted)">Idea to MVP</div>
+        </button>
+        <button onclick="setFounderType('Growth-Stage Founder')" class="founder-type-btn" style="padding:15px 10px;background:var(--hover);border:2px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;transition:all .15s">
+          <div style="font-size:24px;margin-bottom:5px">📈</div><div style="font-size:12px;font-weight:700;color:var(--text)">Growth-Stage</div><div style="font-size:11px;color:var(--text-muted)">Revenue & scaling</div>
+        </button>
+        <button onclick="setFounderType('Investor / Advisor')" class="founder-type-btn" style="padding:15px 10px;background:var(--hover);border:2px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;transition:all .15s">
+          <div style="font-size:24px;margin-bottom:5px">💼</div><div style="font-size:12px;font-weight:700;color:var(--text)">Investor / Advisor</div><div style="font-size:11px;color:var(--text-muted)">Supporting founders</div>
+        </button>
+        <button onclick="setFounderType('Researcher / Educator')" class="founder-type-btn" style="padding:15px 10px;background:var(--hover);border:2px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;transition:all .15s">
+          <div style="font-size:24px;margin-bottom:5px">🔬</div><div style="font-size:12px;font-weight:700;color:var(--text)">Researcher</div><div style="font-size:11px;color:var(--text-muted)">Academia & R&D</div>
+        </button>
+      </div>
+      <button onclick="dismissOnboard()" style="width:100%;padding:8px;background:none;border:none;font-size:12px;color:var(--text-faint);cursor:pointer">Skip this step</button>
+    </div>
+    <!-- Step 3: Sign up -->
+    <div id="onboard-s3" style="display:none">
+      <div style="font-size:42px;margin-bottom:12px">🔑</div>
+      <h3 style="font-size:18px;margin-bottom:6px">Save your progress</h3>
+      <p style="margin-bottom:18px;font-size:13px;color:var(--text-muted)">Create a free account to unlock all features and track your journey</p>
+      <button onclick="signIn('google');dismissOnboard()" style="width:100%;padding:11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text);margin-bottom:10px">🔵 Continue with Google</button>
+      <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:0 0 10px">— OR —</div>
+      <input type="email" id="onboard-email" placeholder="Enter your email" class="form-input">
+      <button onclick="onboardSignup()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:10px">Create Free Account →</button>
+      <button onclick="dismissOnboard()" style="width:100%;padding:8px;background:none;border:none;font-size:12px;color:var(--text-faint);cursor:pointer">Skip — browse as guest</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -555,6 +664,61 @@ const LINKS = {
 function lnk(text, url){
   if(!url) return text;
   return `<a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--green)">${text}&nbsp;<span style="font-size:9px;opacity:.7">🔗</span></a>`;
+}
+
+// ── MOBILE SIDEBAR ────────────────────────────────────────────────
+function openSidebar(){
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.add('mobile-open');
+  sb.classList.remove('collapsed');
+  if(ov) ov.classList.add('show');
+}
+function closeSidebar(){
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.remove('mobile-open');
+  if(ov) ov.classList.remove('show');
+}
+function toggleSidebar(){
+  if(window.innerWidth <= 700){
+    const sb = document.getElementById('sidebar');
+    sb.classList.contains('mobile-open') ? closeSidebar() : openSidebar();
+  } else {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+}
+// Close sidebar when nav item tapped on mobile
+document.addEventListener('click', e => {
+  if(window.innerWidth <= 700 && e.target.closest('.nav-item')){
+    setTimeout(closeSidebar, 120);
+  }
+});
+
+// ── ONBOARDING ─────────────────────────────────────────────────────
+function showOnboarding(){
+  document.getElementById('onboard-modal').classList.add('open');
+}
+function dismissOnboard(){
+  localStorage.setItem('foc_onboarded','1');
+  document.getElementById('onboard-modal').classList.remove('open');
+}
+function onboardStep(n){
+  ['onboard-s1','onboard-s2','onboard-s3'].forEach(id=>{
+    document.getElementById(id).style.display='none';
+  });
+  document.getElementById('onboard-s'+n).style.display='block';
+}
+function setFounderType(type){
+  localStorage.setItem('foc_founder_type', type);
+  toast('👋 Welcome, '+type+'!');
+  onboardStep(3);
+}
+function onboardSignup(){
+  const email = document.getElementById('onboard-email').value.trim();
+  if(!email){ toast('Please enter your email'); return; }
+  signIn('signup');
+  dismissOnboard();
 }
 
 // ── THEME ─────────────────────────────────────────────────────────
@@ -1480,6 +1644,11 @@ function render(page){
 
 // ── INIT ──────────────────────────────────────────────────────────
 render('overview');
+
+// Show onboarding for first-time visitors
+if(!localStorage.getItem('foc_onboarded')){
+  setTimeout(showOnboarding, 900);
+}
 </script>
 </body>
 </html>
