@@ -410,6 +410,13 @@
     <button class="nav-item" onclick="go('resources',this)"><span class="nav-icon">📚</span> Resources &amp; Support</button>
   </div>
   <div class="sidebar-footer">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px;padding:2px 2px">
+      <img src="Russell.jpeg" alt="Russell Cole" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid var(--green);flex-shrink:0" onerror="this.style.display='none'">
+      <div style="min-width:0">
+        <div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Russell Cole</div>
+        <a href="https://www.linkedin.com/in/russellcole/" target="_blank" rel="noopener" style="font-size:10px;color:var(--green);text-decoration:none">LinkedIn ↗</a>
+      </div>
+    </div>
     <button class="book-btn" onclick="openModal('book-modal')">📞 Book a Call with Russell</button>
     <button style="width:100%;margin-top:8px;padding:7px 12px;background:none;border:1px solid var(--border);border-radius:7px;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px" onclick="goAdmin()">🔐 Admin Panel</button>
   </div>
@@ -483,7 +490,13 @@
 <div class="overlay" id="book-modal" onclick="if(event.target===this)closeModal('book-modal')">
   <div class="modal" style="max-width:390px">
     <button class="modal-close" onclick="closeModal('book-modal')">✕</button>
-    <h3>📞 Book a Call with Russell</h3>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+      <img src="Russell.jpeg" alt="Russell Cole" style="width:62px;height:62px;border-radius:50%;object-fit:cover;border:2px solid var(--green);flex-shrink:0" onerror="this.style.display='none'">
+      <div>
+        <h3 style="margin-bottom:2px">Book a Call with Russell</h3>
+        <a href="https://www.linkedin.com/in/russellcole/" target="_blank" rel="noopener" style="font-size:11px;color:var(--green);text-decoration:none;font-weight:600">🔗 linkedin.com/in/russellcole</a>
+      </div>
+    </div>
     <p>Schedule a 30-minute discovery call to discuss your AgTech venture, funding strategy, or how this platform can support your journey.</p>
     <p style="margin-top:10px;font-size:12px;color:var(--text-muted)">What we can cover:</p>
     <ul style="font-size:12px;color:var(--text-muted);padding-left:16px;margin:6px 0 14px;line-height:1.7">
