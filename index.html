@@ -2458,8 +2458,23 @@ function pgAdmin(){
 
   const filterBtn = (id, label, count) => `<button class="admin-filter-btn ${adminFilter===id?'active':''}" onclick="adminFilter='${id}';render('admin')">${label}${count !== undefined ? ` (${count})` : ''}</button>`;
 
+  // If connections tab is selected, delegate to pgConnections
+  if (adminTab === 'connections') {
+    return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
+    <p>Ecosystem intelligence — see who's using the platform and make great connections.</p></div>
+    <div style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border)">
+      <button onclick="adminTab='directory';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px">👥 User Directory</button>
+      <button onclick="adminTab='connections';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--green);border-bottom:2px solid var(--green);margin-bottom:-2px">🧠 Smart Connections</button>
+    </div>` + pgConnections();
+  }
+
   return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
   <p>Ecosystem intelligence — see who's using the platform and make great connections.</p></div>
+
+  <div style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border)">
+    <button onclick="adminTab='directory';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--green);border-bottom:2px solid var(--green);margin-bottom:-2px">👥 User Directory</button>
+    <button onclick="adminTab='connections';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px">🧠 Smart Connections</button>
+  </div>
 
   <div class="admin-stat-row">
     <div class="admin-mini-stat"><div class="ams-val">${total}</div><div class="ams-lbl">Total Users</div></div>
@@ -2524,6 +2539,261 @@ function adminExportCSV() {
   a.download = 'agtech_users_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
   toast('📥 CSV exported with ' + profiles.length + ' users');
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUTONOMOUS MATCHING ENGINE
+// ══════════════════════════════════════════════════════════════
+let _introductions = [];
+let adminTab = 'directory'; // 'directory' | 'connections' | 'activity'
+
+async function loadIntroductions() {
+  const { data, error } = await _supabase.from('introductions').select('*').order('created_at', { ascending: false });
+  if (error) { console.error('loadIntros error:', error); return []; }
+  return data || [];
+}
+
+async function createIntroduction(personA, personB, score, reasons) {
+  const { data, error } = await _supabase.from('introductions').insert({
+    person_a: personA, person_b: personB, match_score: score, match_reasons: reasons, status: 'suggested'
+  }).select().single();
+  if (error) { console.error('createIntro error:', error); return null; }
+  return data;
+}
+
+async function updateIntroStatus(introId, status, notes) {
+  const update = { status };
+  if (notes !== undefined) update.admin_notes = notes;
+  if (status === 'introduced') update.introduced_at = new Date().toISOString();
+  if (status === 'connected') update.connected_at = new Date().toISOString();
+  const { error } = await _supabase.from('introductions').update(update).eq('id', introId);
+  if (error) { console.error('updateIntro error:', error); toast('Error updating'); return; }
+  toast(status === 'introduced' ? '🤝 Marked as introduced' : status === 'connected' ? '✅ Connection confirmed!' : '📝 Updated');
+  _introductions = await loadIntroductions();
+  render('admin');
+}
+
+// ── SCORING ALGORITHM ──
+function computeMatches(profiles) {
+  const active = profiles.filter(p => !p.blocked && p.onboarding_complete);
+  const matches = [];
+
+  for (let i = 0; i < active.length; i++) {
+    for (let j = i + 1; j < active.length; j++) {
+      const a = active[i], b = active[j];
+      const result = scoreMatch(a, b);
+      if (result.score >= 20) {
+        matches.push({ a, b, score: result.score, reasons: result.reasons });
+      }
+    }
+  }
+  return matches.sort((x, y) => y.score - x.score);
+}
+
+function scoreMatch(a, b) {
+  let score = 0;
+  const reasons = [];
+
+  // Founder + Investor (high value)
+  if ((a.persona === 'founder' && b.persona === 'investor') || (a.persona === 'investor' && b.persona === 'founder')) {
+    const founder = a.persona === 'founder' ? a : b;
+    const investor = a.persona === 'investor' ? a : b;
+    score += 30;
+    reasons.push('Founder-Investor match');
+    if ((founder.biggest_needs || []).includes('Funding')) { score += 20; reasons.push('Founder actively seeking funding'); }
+    const fStage = founder.company_stage;
+    const iStages = (investor.investment_stages || []).map(s => s.toLowerCase());
+    if (fStage === 'idea' && iStages.some(s => s.includes('pre-seed'))) { score += 15; reasons.push('Stage alignment: Pre-Seed'); }
+    if (fStage === 'mvp' && iStages.some(s => s.includes('seed'))) { score += 15; reasons.push('Stage alignment: Seed'); }
+    if (fStage === 'revenue' && iStages.some(s => s.includes('series a'))) { score += 15; reasons.push('Stage alignment: Series A'); }
+    if (fStage === 'scaling' && iStages.some(s => s.includes('series b') || s.includes('growth'))) { score += 15; reasons.push('Stage alignment: Growth'); }
+  }
+
+  // Founder + Farmer (pilot opportunity)
+  if ((a.persona === 'founder' && b.persona === 'farmer') || (a.persona === 'farmer' && b.persona === 'founder')) {
+    const founder = a.persona === 'founder' ? a : b;
+    const farmer = a.persona === 'farmer' ? a : b;
+    score += 25;
+    reasons.push('Founder-Farmer pilot opportunity');
+    if (farmer.open_to_collab) { score += 20; reasons.push('Farmer open to piloting'); }
+    if ((founder.biggest_needs || []).includes('Customers / Pilots')) { score += 15; reasons.push('Founder needs pilots'); }
+    if ((farmer.biggest_needs || []).includes('Trying new technology')) { score += 10; reasons.push('Farmer wants new tech'); }
+  }
+
+  // Founder + Advisor
+  if ((a.persona === 'founder' && b.persona === 'advisor') || (a.persona === 'advisor' && b.persona === 'founder')) {
+    const founder = a.persona === 'founder' ? a : b;
+    const advisor = a.persona === 'advisor' ? a : b;
+    score += 20;
+    reasons.push('Founder-Advisor match');
+    if ((founder.biggest_needs || []).includes('Mentorship')) { score += 15; reasons.push('Founder seeking mentorship'); }
+    // Check expertise overlap with needs
+    const expertiseToNeed = {
+      'Finance & Fundraising': 'Funding',
+      'Marketing & Growth': 'Go-to-Market Strategy',
+      'Legal & IP': 'Regulatory Guidance'
+    };
+    for (const [exp, need] of Object.entries(expertiseToNeed)) {
+      if ((advisor.expertise_areas || []).includes(exp) && (founder.biggest_needs || []).includes(need)) {
+        score += 10;
+        reasons.push(`Expertise match: ${exp}`);
+      }
+    }
+  }
+
+  // Founder + Service Provider
+  if ((a.persona === 'founder' && b.persona === 'service_provider') || (a.persona === 'service_provider' && b.persona === 'founder')) {
+    score += 15;
+    reasons.push('Founder-Service Provider match');
+    const sp = a.persona === 'service_provider' ? a : b;
+    if (sp.startup_experience) { score += 10; reasons.push('Service provider has startup experience'); }
+  }
+
+  // Investor + Farmer (due diligence / market validation)
+  if ((a.persona === 'investor' && b.persona === 'farmer') || (a.persona === 'farmer' && b.persona === 'investor')) {
+    score += 10;
+    reasons.push('Investor-Farmer market insight');
+  }
+
+  // Researcher + Founder (tech transfer)
+  if ((a.persona === 'researcher' && b.persona === 'founder') || (a.persona === 'founder' && b.persona === 'researcher')) {
+    const researcher = a.persona === 'researcher' ? a : b;
+    score += 15;
+    reasons.push('Research-Founder tech transfer');
+    if (researcher.open_to_collab) { score += 10; reasons.push('Researcher open to collaboration'); }
+  }
+
+  // AgTech focus overlap (bonus for any pair)
+  const aFocus = new Set(a.agtech_focus || []);
+  const bFocus = new Set(b.agtech_focus || []);
+  const overlap = [...aFocus].filter(f => bFocus.has(f));
+  if (overlap.length > 0) {
+    score += Math.min(overlap.length * 5, 15);
+    reasons.push(`Shared focus: ${overlap.slice(0,3).join(', ')}`);
+  }
+
+  // Location match (bonus)
+  if (a.location && b.location && a.location.toLowerCase().includes(b.location.split(',')[0].toLowerCase().trim())) {
+    score += 5;
+    reasons.push('Same region');
+  }
+
+  return { score: Math.min(score, 100), reasons };
+}
+
+// ── SMART CONNECTIONS PAGE ──
+function pgConnections() {
+  if (!_allProfiles.length) {
+    loadAllProfiles().then(p => { _allProfiles = p; return loadIntroductions(); }).then(i => { _introductions = i; render('admin'); });
+    return `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Analyzing ecosystem connections...</p></div>`;
+  }
+
+  const matches = computeMatches(_allProfiles);
+  const existingPairs = new Set(_introductions.map(i => [i.person_a, i.person_b].sort().join('|')));
+
+  // Split into new suggestions vs already tracked
+  const newMatches = matches.filter(m => !existingPairs.has([m.a.id, m.b.id].sort().join('|')));
+  const trackedIntros = _introductions;
+
+  const statusIcon = { suggested:'💡', pending:'⏳', introduced:'🤝', connected:'✅', declined:'❌' };
+  const statusColor = { suggested:'var(--text-faint)', pending:'#f59e0b', introduced:'#3b82f6', connected:'var(--green)', declined:'#ef4444' };
+
+  // Top suggestions
+  const suggestionCards = newMatches.slice(0, 15).map(m => {
+    const aName = m.a.full_name || m.a.email;
+    const bName = m.b.full_name || m.b.email;
+    return `<div class="admin-user-card" style="padding:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span class="admin-tag tag-${m.a.persona}">${personaIcon(m.a.persona)} ${aName}</span>
+            <span style="color:var(--text-faint)">↔</span>
+            <span class="admin-tag tag-${m.b.persona}">${personaIcon(m.b.persona)} ${bName}</span>
+          </div>
+        </div>
+        <div style="background:${m.score>=60?'var(--green)':m.score>=40?'#f59e0b':'var(--text-faint)'};color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">${m.score}%</div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:8px">${m.reasons.map(r=>`<span style="display:inline-block;margin:1px 4px 1px 0;padding:2px 8px;background:var(--hover);border-radius:10px;font-size:10px">${r}</span>`).join('')}</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="event.stopPropagation();makeIntro('${m.a.id}','${m.b.id}',${m.score},${JSON.stringify(m.reasons).replace(/"/g,'&quot;')})" style="padding:5px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🤝 Introduce</button>
+        <button onclick="event.stopPropagation();saveIntroLater('${m.a.id}','${m.b.id}',${m.score},${JSON.stringify(m.reasons).replace(/"/g,'&quot;')})" style="padding:5px 14px;background:var(--hover);color:var(--text-muted);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">📌 Save for later</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Tracked introductions
+  const introCards = trackedIntros.map(intro => {
+    const pA = _allProfiles.find(p => p.id === intro.person_a);
+    const pB = _allProfiles.find(p => p.id === intro.person_b);
+    if (!pA || !pB) return '';
+    const aName = pA.full_name || pA.email;
+    const bName = pB.full_name || pB.email;
+    const si = statusIcon[intro.status] || '❓';
+    const sc = statusColor[intro.status] || 'var(--text-muted)';
+
+    return `<div class="admin-user-card" style="padding:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="flex:1">
+          <span class="admin-tag tag-${pA.persona}">${personaIcon(pA.persona)} ${aName}</span>
+          <span style="color:var(--text-faint);margin:0 4px">↔</span>
+          <span class="admin-tag tag-${pB.persona}">${personaIcon(pB.persona)} ${bName}</span>
+        </div>
+        <span style="color:${sc};font-size:12px;font-weight:700">${si} ${intro.status.charAt(0).toUpperCase()+intro.status.slice(1)}</span>
+        <span style="background:var(--hover);padding:2px 8px;border-radius:10px;font-size:10px;color:var(--text-faint)">${intro.match_score}%</span>
+      </div>
+      ${intro.admin_notes ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-style:italic">"${intro.admin_notes}"</div>` : ''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${intro.status==='suggested'?`<button onclick="updateIntroStatus('${intro.id}','introduced')" style="padding:4px 12px;background:var(--green);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">🤝 Mark Introduced</button>`:''}
+        ${intro.status==='introduced'?`<button onclick="updateIntroStatus('${intro.id}','connected')" style="padding:4px 12px;background:#3b82f6;color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">✅ Confirm Connected</button>`:''}
+        ${intro.status!=='declined'&&intro.status!=='connected'?`<button onclick="updateIntroStatus('${intro.id}','declined')" style="padding:4px 12px;background:var(--hover);color:var(--text-muted);border:1px solid var(--border);border-radius:5px;font-size:10px;cursor:pointer">Skip</button>`:''}
+        <span style="font-size:9px;color:var(--text-faint);padding:4px 0">${new Date(intro.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Stats
+  const totalIntros = trackedIntros.length;
+  const introduced = trackedIntros.filter(i=>i.status==='introduced'||i.status==='connected').length;
+  const connected = trackedIntros.filter(i=>i.status==='connected').length;
+  const pending = trackedIntros.filter(i=>i.status==='suggested'||i.status==='pending').length;
+
+  return `
+  <div class="admin-stat-row" style="margin-bottom:16px">
+    <div class="admin-mini-stat"><div class="ams-val">${newMatches.length}</div><div class="ams-lbl">AI Suggestions</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${totalIntros}</div><div class="ams-lbl">Tracked Intros</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${introduced}</div><div class="ams-lbl">Introduced</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${connected}</div><div class="ams-lbl">Connected</div></div>
+  </div>
+
+  <div class="card">
+    <h3>🧠 AI-Suggested Connections</h3>
+    <div class="sub" style="margin-bottom:14px">Automatically scored based on persona fit, stage alignment, shared focus areas, needs, and location. Higher scores = higher value introductions.</div>
+    ${newMatches.length ? suggestionCards : '<div style="text-align:center;padding:24px;color:var(--text-faint)"><p>Need more users to generate suggestions. Share the platform to grow the network!</p></div>'}
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>📋 Introduction Tracker</h3>
+    <div class="sub" style="margin-bottom:14px">All introductions you've made or saved — track from suggestion through to confirmed connection.</div>
+    ${introCards || '<div style="text-align:center;padding:24px;color:var(--text-faint)"><p>No introductions tracked yet. Use the suggestions above to start connecting people!</p></div>'}
+  </div>`;
+}
+
+async function makeIntro(aId, bId, score, reasons) {
+  const intro = await createIntroduction(aId, bId, score, typeof reasons === 'string' ? JSON.parse(reasons) : reasons);
+  if (intro) {
+    _introductions.unshift(intro);
+    toast('🤝 Introduction created! Now go make the connection.');
+    render('admin');
+  }
+}
+
+async function saveIntroLater(aId, bId, score, reasons) {
+  const intro = await createIntroduction(aId, bId, score, typeof reasons === 'string' ? JSON.parse(reasons) : reasons);
+  if (intro) {
+    _introductions.unshift(intro);
+    toast('📌 Saved for later');
+    render('admin');
+  }
 }
 
 // ── ROUTER ────────────────────────────────────────────────────────
