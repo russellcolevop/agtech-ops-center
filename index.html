@@ -1306,27 +1306,28 @@ function openBookingEmail(){
 // ── DOCUMENT DOWNLOAD ─────────────────────────────────────────────
 // Files live at https://founderopscenter.com/docs/<filename>
 // Add a filename here once you upload the file to the /docs folder in GitHub.
+const DOC_BASE = 'https://russellcolevop.github.io/agtech-ops-center/docs/';
 const DOC_URLS = {
   // Investor Materials
   'Pitch Deck Template':                  null,
   'SAFE Agreement':                       null,
-  'Cap Table (Excel)':                    null,
+  'Cap Table (Excel)':                    DOC_BASE + '05_Cap_Table_Template.docx',
   'Financial Model (Excel)':              null,
   'Data Room Organization Template':      null,
   'Competitive Evaluation (SWOT Excel)':  null,
   // Founder & Team Agreements
-  'Confidentiality Agreement (NDA)':      null,
+  'Confidentiality Agreement (NDA)':      DOC_BASE + '01_Mutual_NDA_Template.docx',
   'IP Assignment Agreement':              null,
   'Vesting Schedule Template':            null,
-  'Advisory Board Agreement':             null,
-  'Independent Contractor Agreement':     null,
+  'Advisory Board Agreement':             DOC_BASE + '00_FAST_Advisor_Agreement.docx',
+  'Independent Contractor Agreement':     DOC_BASE + '02_Independent_Contractor_Agreement.docx',
   // Customer & Pilot
-  'Pilot Agreement Template':             null,
+  'Pilot Agreement Template':             DOC_BASE + '03_AgTech_Pilot_Agreement.docx',
   'SaaS Subscription Agreement':          null,
   'Master Service Agreement (MSA)':       null,
   'Statement of Work (SOW) Template':     null,
   // Operations & Growth
-  'Customer Discovery Call Script':       null,
+  'Customer Discovery Call Script':       DOC_BASE + '04_Customer_Discovery_Call_Script.docx',
   'OKR Planning Template':               null,
   'Board Meeting Deck Template':          null,
   'Hiring & Interview Scorecard':         null,
@@ -1352,6 +1353,26 @@ function dlDoc(name){
   a.click();
   document.body.removeChild(a);
   toast('⬇️ Downloading ' + name + '...');
+}
+
+
+async function submitDocRequest(){
+  const txt = document.getElementById('doc-request-text')?.value?.trim();
+  if(!txt){ toast('Please describe the document you need.'); return; }
+  try {
+    const { error } = await _supabase.from('introductions').insert({
+      from_user: currentUser.id, to_user: currentUser.id,
+      status: 'doc_request', notes: 'DOC REQUEST: ' + txt,
+      created_at: new Date().toISOString()
+    });
+    if(error) throw error;
+    document.getElementById('doc-request-text').value = '';
+    toast('Thanks! Your document request has been submitted.');
+  } catch(e) {
+    window.open('mailto:russellcolevop@gmail.com?subject=Document%20Request&body=' + encodeURIComponent('Doc request from ' + (currentUser.email||'user') + ':\n\n' + txt), '_blank');
+    document.getElementById('doc-request-text').value = '';
+    toast('Request sent via email!');
+  }
 }
 
 // ── STAT MODAL ────────────────────────────────────────────────────
@@ -1834,6 +1855,21 @@ ${d('OKR Planning Template','Objectives and key results framework for quarterly 
 ${d('Board Meeting Deck Template','Monthly board update format — metrics, wins, asks, and financials.')}
 ${d('Hiring & Interview Scorecard','Structured interview evaluation to reduce bias and improve hiring quality.')}
 </div>`,'⚙️')}
+</div>
+<div class="card" style="margin-top:16px">
+  <h3 style="margin:0 0 4px">Need a specific document?</h3>
+  <div class="sub" style="margin-bottom:14px">Tell us what template or agreement would help your startup.</div>
+  ${signedIn ? `
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <textarea id="doc-request-text" rows="3" placeholder="Describe the document you need..." style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);resize:vertical;box-sizing:border-box"></textarea>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button onclick="submitDocRequest()" style="padding:10px 24px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Submit Request</button>
+      <span style="font-size:11px;color:var(--text-muted)">We review requests weekly and prioritize by demand.</span>
+    </div>
+  </div>` : `
+  <div style="text-align:center;padding:16px">
+    <button onclick="openModal('signin-modal')" style="padding:10px 24px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Sign In to Request Documents</button>
+  </div>`}
 </div>`;
 }
 
