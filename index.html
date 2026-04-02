@@ -562,6 +562,7 @@
     </div>
     <button class="book-btn" onclick="openModal('book-modal')">📞 Book a Call with Russell</button>
     <button id="nav-profile-btn" style="display:none" onclick="go('profile',this)"></button>
+    <button id="nav-roadmap-btn" style="display:none;width:100%;margin-top:6px;padding:7px 12px;background:none;border:1px solid var(--green-mid);border-radius:7px;font-size:11px;font-weight:600;color:var(--green);cursor:pointer;align-items:center;justify-content:center;gap:5px" onclick="go('roadmap',this)">🗺️ Product Roadmap</button>
     <button id="nav-admin-btn" style="display:none;width:100%;margin-top:6px;padding:7px 12px;background:none;border:1px solid var(--border);border-radius:7px;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;align-items:center;justify-content:center;gap:5px" onclick="goAdmin()">🔐 Admin Panel</button>
   </div>
 </aside>
@@ -773,9 +774,10 @@ _supabase.auth.onAuthStateChange((event, session) => {
     currentUser = null; isAdmin = false; _userProfile = null; _allProfiles = [];
     const btn = document.getElementById('topbar-user-btn');
     if (btn) { btn.textContent = '→ Sign In'; btn.onclick = () => openModal('signin-modal'); }
-    // Hide profile/admin nav buttons
+    // Hide profile/admin/roadmap nav buttons
     const pb = document.getElementById('nav-profile-btn'); if (pb) pb.style.display = 'none';
     const ab = document.getElementById('nav-admin-btn'); if (ab) ab.style.display = 'none';
+    const rb = document.getElementById('nav-roadmap-btn'); if (rb) rb.style.display = 'none';
     // Show clean full-screen signed-out landing
     showSignedOutPage();
   }
@@ -805,8 +807,10 @@ function applyUser(user, isNew) {
   // Show nav buttons
   const profileBtn = document.getElementById('nav-profile-btn');
   const adminBtn = document.getElementById('nav-admin-btn');
+  const roadmapBtn = document.getElementById('nav-roadmap-btn');
   if (profileBtn) profileBtn.style.display = 'flex';
   if (adminBtn && isAdmin) adminBtn.style.display = 'flex';
+  if (roadmapBtn && isAdmin) roadmapBtn.style.display = 'flex';
 
   // Track & notify on new users
   const seenKey = 'foc_seen_' + user.id;
@@ -829,6 +833,11 @@ function applyUser(user, isNew) {
     if (profile && profile.blocked) {
       showBlockedScreen();
       return;
+    }
+    // Show roadmap nav for users granted access
+    if (profile && (profile.admin_tags||[]).includes('roadmap_access')) {
+      const rmBtn = document.getElementById('nav-roadmap-btn');
+      if (rmBtn) rmBtn.style.display = 'flex';
     }
     if (!profile || !profile.onboarding_complete) {
       setTimeout(() => showWizard(), 800);
@@ -2706,7 +2715,14 @@ function pgAdmin(){
           <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-faint);display:block;margin-bottom:4px">📝 Admin Notes (only you can see this)</label>
           <textarea class="admin-notes-area" id="notes-${p.id}" onblur="saveNotes('${p.id}')">${p.admin_notes||''}</textarea>
         </div>
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-faint)">Feature Access:</span>
+          ${((p.admin_tags||[]).includes('roadmap_access'))
+            ? `<button onclick="event.stopPropagation();revokeRoadmapAccess('${p.id}')" style="padding:4px 12px;background:var(--accent-bg);color:var(--green);border:1px solid var(--green-mid);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">🗺️ Roadmap ✓</button>`
+            : `<button onclick="event.stopPropagation();grantRoadmapAccess('${p.id}')" style="padding:4px 12px;background:var(--hover);color:var(--text-muted);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">🗺️ Roadmap</button>`
+          }
+        </div>
+        <div style="margin-top:8px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
           <div style="font-size:10px;color:var(--text-faint)">Joined: ${new Date(p.created_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Last updated: ${new Date(p.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
           ${p.email !== RUSSELL_EMAIL ? (p.blocked
             ? `<div style="display:flex;align-items:center;gap:8px">
@@ -2735,23 +2751,33 @@ function pgAdmin(){
 
   const filterBtn = (id, label, count) => `<button class="admin-filter-btn ${adminFilter===id?'active':''}" onclick="adminFilter='${id}';render('admin')">${label}${count !== undefined ? ` (${count})` : ''}</button>`;
 
+  // Admin tab bar helper
+  const adminTabBar = (active) => `<div style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border);flex-wrap:wrap">
+    ${['directory','connections','roadmap'].map(t => {
+      const labels = {directory:'👥 User Directory', connections:'🧠 Smart Connections', roadmap:'🗺️ Product Roadmap'};
+      const isActive = active === t;
+      return `<button onclick="adminTab='${t}';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:${isActive?'var(--green)':'var(--text-muted)'};border-bottom:2px solid ${isActive?'var(--green)':'transparent'};margin-bottom:-2px">${labels[t]}</button>`;
+    }).join('')}
+  </div>`;
+
   // If connections tab is selected, delegate to pgConnections
   if (adminTab === 'connections') {
     return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
     <p>Ecosystem intelligence — see who's using the platform and make great connections.</p></div>
-    <div style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border)">
-      <button onclick="adminTab='directory';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px">👥 User Directory</button>
-      <button onclick="adminTab='connections';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--green);border-bottom:2px solid var(--green);margin-bottom:-2px">🧠 Smart Connections</button>
-    </div>` + pgConnections();
+    ${adminTabBar('connections')}` + pgConnections();
+  }
+
+  // Roadmap tab
+  if (adminTab === 'roadmap') {
+    return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
+    <p>Ecosystem intelligence — see who's using the platform and make great connections.</p></div>
+    ${adminTabBar('roadmap')}` + pgRoadmap();
   }
 
   return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
   <p>Ecosystem intelligence — see who's using the platform and make great connections.</p></div>
 
-  <div style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border)">
-    <button onclick="adminTab='directory';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--green);border-bottom:2px solid var(--green);margin-bottom:-2px">👥 User Directory</button>
-    <button onclick="adminTab='connections';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px">🧠 Smart Connections</button>
-  </div>
+  ${adminTabBar('directory')}
 
   <div class="admin-stat-row">
     <div class="admin-mini-stat"><div class="ams-val">${total}</div><div class="ams-lbl">Total Users</div></div>
@@ -2819,10 +2845,116 @@ function adminExportCSV() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// PRODUCT ROADMAP (Admin + Granted Users)
+// ══════════════════════════════════════════════════════════════
+
+function pgRoadmap() {
+  const roadmapUsers = _allProfiles.filter(p => p.admin_tags && p.admin_tags.includes('roadmap_access'));
+  const accessList = roadmapUsers.length
+    ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${roadmapUsers.map(p => `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--accent-bg);border:1px solid var(--green-mid);border-radius:16px;font-size:11px;color:var(--green);font-weight:600">${p.full_name||p.email} <button onclick="revokeRoadmapAccess('${p.id}')" style="background:none;border:none;color:var(--text-faint);font-size:14px;cursor:pointer;padding:0 2px;line-height:1" title="Revoke access">×</button></span>`).join('')}</div>`
+    : '<p style="font-size:12px;color:var(--text-faint);margin-top:6px">No users granted access yet. Use the toggle on any user profile in the Directory tab.</p>';
+
+  return `
+  <div class="card" style="background:linear-gradient(135deg, rgba(34,197,94,.06), rgba(34,197,94,.02));border:1px solid var(--green-mid)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="width:44px;height:44px;border-radius:12px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff">🗺️</div>
+      <div>
+        <h3 style="margin:0">Product Roadmap — Confidential</h3>
+        <div class="sub" style="margin:2px 0 0">Strategic feature initiatives for FounderOps Center. Admin-only unless shared.</div>
+      </div>
+    </div>
+    <div style="padding:6px 12px;background:var(--hover);border-radius:8px;margin-bottom:18px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px">Users With Roadmap Access</div>
+      ${accessList}
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;border-left:4px solid var(--green)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🏗️</span><h3 style="margin:0">Phase 1 — Multi-Ecosystem CRM</h3></div>
+    <span class="badge b-yellow" style="margin-bottom:12px">Priority Initiative</span>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Transform FounderOps Center from an intelligence platform into the operating system for AgTech ecosystem managers. Each ecosystem node (accelerator, incubator, tech validator, regional hub) gets a private workspace with their own startup pipeline, relationship tracking, and document management — replacing the patchwork of Airtable, Google Drive, and generic CRMs.</p>
+
+    <div style="margin-top:16px">
+      <h4 style="font-size:13px;margin:0 0 10px;color:var(--text)">Core Capabilities</h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📋 Private Pipeline Management</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Each ecosystem manager gets a Kanban-style pipeline for their startups. Custom stages (Application → Assessment → Active → Alumni), notes, tags, and status tracking. Replaces Airtable.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🤝 Relationship Tracker</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Log interactions, track introductions made, meeting notes, follow-ups. Full CRM for managing relationships with startups, investors, mentors, and partners.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📁 Document Vault</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Upload and organize process docs, assessment templates, pitch deck reviews, due diligence checklists. Per-ecosystem document library. Replaces Google Drive chaos.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔄 Opt-In Cross-Ecosystem Sharing</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Ecosystem managers can choose to share pipeline data with partner organizations. See when a startup is also being tracked by another ecosystem — coordinate instead of competing.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📊 Ecosystem Analytics</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Dashboard showing pipeline velocity, conversion rates, sector distribution, funding outcomes. Data each ecosystem manager can use for reporting and strategy.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🎯 Goal Tracking</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Each ecosystem defines its goals — validate X technologies, enroll Y startups in accelerator, facilitate Z introductions. Platform tracks progress and surfaces opportunities to hit targets.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+      <h4 style="font-size:13px;margin:0 0 8px;color:var(--text)">Why This Wins</h4>
+      <div style="font-size:12px;line-height:1.8;color:var(--text-muted)">
+        <strong>For ecosystem managers:</strong> One tool replaces 4–5 (Airtable + Google Drive + email + spreadsheets + generic CRM). Purpose-built for AgTech — understands personas, sectors, and funding stages natively.<br>
+        <strong>For the platform:</strong> Each ecosystem manager brings their entire network of startups onto the platform. 10 ecosystem managers × 50 startups each = 500 warm users with rich profiles — all generating proprietary deal flow data.<br>
+        <strong>For the thesis-driven fund:</strong> This creates the data moat. Every startup tracked, every introduction made, every pipeline conversion becomes intelligence that informs investment decisions. No other fund will have this level of ecosystem-wide visibility.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;border-left:4px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🔮</span><h3 style="margin:0">Phase 2 — Intelligence Layer</h3></div>
+    <span class="badge b-blue" style="margin-bottom:12px">Future</span>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Once multiple ecosystem nodes are active, aggregate anonymized insights across the network. Identify sector-wide trends, emerging startups appearing across multiple pipelines, funding gaps, and collaboration opportunities. This is where FounderOps Center becomes the Bloomberg Terminal for AgTech.</p>
+  </div>
+
+  <div class="card" style="margin-top:16px;border-left:4px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">💰</span><h3 style="margin:0">Phase 3 — Revenue Model</h3></div>
+    <span class="badge b-purple" style="margin-bottom:12px">Long-term</span>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Free tier: ecosystem intelligence platform (current features). Pro tier: CRM workspace for ecosystem managers ($X/month per seat). Fund: thesis-driven investments powered by proprietary deal flow generated by the entire network. The platform pays for itself through data-driven investment returns.</p>
+  </div>`;
+}
+
+async function grantRoadmapAccess(userId) {
+  const p = _allProfiles.find(x => x.id === userId);
+  if (!p) return;
+  const tags = (p.admin_tags || []).filter(t => t !== 'roadmap_access');
+  tags.push('roadmap_access');
+  const { error } = await _supabase.from('profiles').update({ admin_tags: tags }).eq('id', userId);
+  if (error) { console.error('grantRoadmap error:', error); toast('Error granting access'); return; }
+  p.admin_tags = tags;
+  toast('🗺️ Roadmap access granted to ' + (p.full_name || p.email));
+  render('admin');
+}
+
+async function revokeRoadmapAccess(userId) {
+  const p = _allProfiles.find(x => x.id === userId);
+  if (!p) return;
+  const tags = (p.admin_tags || []).filter(t => t !== 'roadmap_access');
+  const { error } = await _supabase.from('profiles').update({ admin_tags: tags }).eq('id', userId);
+  if (error) { console.error('revokeRoadmap error:', error); toast('Error revoking access'); return; }
+  p.admin_tags = tags;
+  toast('🔒 Roadmap access revoked for ' + (p.full_name || p.email));
+  render('admin');
+}
+
+// ══════════════════════════════════════════════════════════════
 // AUTONOMOUS MATCHING ENGINE
 // ══════════════════════════════════════════════════════════════
 let _introductions = [];
-let adminTab = 'directory'; // 'directory' | 'connections' | 'activity'
+let adminTab = 'directory'; // 'directory' | 'connections' | 'roadmap'
 
 async function loadIntroductions() {
   const { data, error } = await _supabase.from('introductions').select('*').order('created_at', { ascending: false });
@@ -3074,11 +3206,19 @@ async function saveIntroLater(aId, bId, score, reasons) {
 }
 
 // ── ROUTER ────────────────────────────────────────────────────────
+function pgRoadmapStandalone() {
+  // For non-admin users with roadmap access
+  if (!currentUser) return guestGateCard('roadmap');
+  const hasAccess = isAdmin || (_userProfile && (_userProfile.admin_tags||[]).includes('roadmap_access'));
+  if (!hasAccess) return `<div style="text-align:center;padding:60px 24px"><div style="font-size:48px;margin-bottom:16px">🔒</div><h2>Roadmap Access Required</h2><p style="color:var(--text-muted)">This section is invite-only. Contact Russell if you'd like access.</p></div>`;
+  return `<div class="page-hdr"><h1>🗺️ Product Roadmap</h1><p>Strategic feature initiatives for FounderOps Center.</p></div>` + pgRoadmap();
+}
+
 const pages = {
   overview: pgOverview, journey: pgJourney, glossary: pgGlossary,
   documents: pgDocuments, media: pgMedia, ecosystem: pgEcosystem,
   segments: pgSegments, crops: pgCrops, resources: pgResources,
-  admin: pgAdmin, profile: pgProfile
+  admin: pgAdmin, profile: pgProfile, roadmap: pgRoadmapStandalone
 };
 
 // Pages guests can see in full
