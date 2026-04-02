@@ -363,6 +363,7 @@
     .funding-row { grid-template-columns: 1fr !important; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -594,6 +595,92 @@
 <div id="toast"></div>
 
 <script>
+// ── SUPABASE AUTH ──────────────────────────────────────────────────
+const _supabase = supabase.createClient(
+  'https://odvwxgxhacotiuyjyqtk.supabase.co',
+  'sb_publishable_YpJNsFLhMw1Xhsloy9V0ng_XXGLtPFY'
+);
+
+// Handle OAuth redirect on page load
+(async () => {
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (session?.user) applyUser(session.user, false);
+})();
+
+// Listen for auth state changes
+_supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session?.user) {
+    applyUser(session.user, event === 'SIGNED_IN');
+  } else if (event === 'SIGNED_OUT') {
+    currentUser = null; isAdmin = false;
+    const btn = document.getElementById('topbar-user-btn');
+    if (btn) { btn.textContent = '→ Sign In'; btn.onclick = () => openModal('signin-modal'); }
+  }
+});
+
+function applyUser(user, isNew) {
+  const email = user.email || '';
+  const name = user.user_metadata?.full_name || email.split('@')[0];
+  const avatar = user.user_metadata?.avatar_url || null;
+  currentUser = { id: user.id, email, name, avatar, method: 'google' };
+  isAdmin = isUserAdmin(email);
+
+  // Update topbar button
+  const btn = document.getElementById('topbar-user-btn');
+  if (btn) {
+    btn.innerHTML = avatar
+      ? `<img src="${avatar}" alt="${name}" style="width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid var(--green)" title="${email}" onclick="openSignOutMenu()">`
+      : avatarHtml(email, 'google');
+    btn.onclick = null;
+  }
+  closeModal('signin-modal');
+  dismissOnboard();
+
+  // Track & notify on new users
+  const seenKey = 'foc_seen_' + user.id;
+  if (!localStorage.getItem(seenKey)) {
+    localStorage.setItem(seenKey, '1');
+    notifyNewUser(name, email);
+  }
+  const logins = getLogins();
+  const existing = logins.find(l => l.id === user.id);
+  if (!existing) {
+    logins.unshift({ id: user.id, email, name, method: 'google', ts: new Date().toISOString(), pages: [] });
+    saveLogins(logins);
+  }
+  const msg = isAdmin ? '✅ Welcome back, Admin!' : '✅ Welcome, ' + name + '!';
+  toast(msg);
+}
+
+function notifyNewUser(name, email) {
+  // Opens a pre-filled email to Russell when a brand-new user signs in
+  const subject = encodeURIComponent('🆕 New Founder Ops Center signup: ' + name);
+  const body = encodeURIComponent(
+    'A new user just signed in to Founder Ops Center!\n\n' +
+    'Name: ' + name + '\n' +
+    'Email: ' + email + '\n' +
+    'Time: ' + new Date().toLocaleString() + '\n\n' +
+    'View all users in the admin panel at founderopscenter.com'
+  );
+  // Silent notification — opens mailto in background tab
+  const a = document.createElement('a');
+  a.href = 'mailto:russellcolevop@gmail.com?subject=' + subject + '&body=' + body;
+  a.target = '_blank';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => a.remove(), 1000);
+}
+
+function openSignOutMenu() {
+  if (confirm('Sign out of Founder Ops Center?')) signOut();
+}
+
+async function signOut() {
+  await _supabase.auth.signOut();
+  toast('👋 Signed out');
+}
+
 // ── LINKS REGISTRY ────────────────────────────────────────────────
 const LINKS = {
   // Media Outlets
@@ -1476,31 +1563,26 @@ function avatarHtml(email, method){
   return `<div style="width:28px;height:28px;border-radius:50%;background:${bg};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border:2px solid rgba(255,255,255,.3);flex-shrink:0" title="${email}" onclick="openModal('signin-modal')">${icon}</div>`;
 }
 
-function signIn(method){
-  let email = '';
-  if(method === 'email' || method === 'signup'){
-    email = (document.getElementById('signin-email')||{}).value || '';
-    if(!email){ toast('Please enter your email address'); return; }
-    if(!/\S+@\S+\.\S+/.test(email)){ toast('Please enter a valid email address'); return; }
-  } else if(method === 'google'){
-    email = prompt('Google Sign-In (preview mode)\nEnter your Gmail address:') || '';
-    if(!email){ return; }
-    if(!/\S+@\S+\.\S+/.test(email)){ toast('Please enter a valid Gmail address'); return; }
+async function signIn(method){
+  if(method === 'google'){
+    const { error } = await _supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+    if(error) toast('Sign in error: ' + error.message);
+    return;
   }
-  const logins = getLogins();
-  const entry = { id: Date.now(), email, method, ts: new Date().toISOString(), pages:[] };
-  logins.push(entry);
-  saveLogins(logins);
-  currentUser = entry;
-  isAdmin = isUserAdmin(email);
+  // Email magic link fallback
+  const email = (document.getElementById('signin-email')||{}).value?.trim() ||
+                (document.getElementById('onboard-email')||{}).value?.trim() || '';
+  if(!email){ toast('Please enter your email address'); return; }
+  if(!/\S+@\S+\.\S+/.test(email)){ toast('Please enter a valid email address'); return; }
+  const { error } = await _supabase.auth.signInWithOtp({
+    email, options: { emailRedirectTo: window.location.origin }
+  });
+  if(error){ toast('Error: ' + error.message); return; }
+  toast('✅ Magic link sent! Check your email to sign in.');
   closeModal('signin-modal');
-  const btn = document.getElementById('topbar-user-btn');
-  if(btn){ btn.innerHTML = avatarHtml(email, method); btn.onclick = null; }
-  // Hide email field in feedback form if signed in
-  const fbWrap = document.getElementById('fb-email-wrap');
-  if(fbWrap) fbWrap.style.display = 'none';
-  const msg = isAdmin ? '✅ Signed in as admin — ' + email : '✅ Welcome, ' + email.split('@')[0] + '!';
-  toast(msg);
 }
 
 function trackPage(page){
