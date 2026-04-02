@@ -1210,6 +1210,13 @@ function onboardSignup(){
 function toggleTheme(){
   const dark = document.documentElement.classList.toggle('dark');
   document.getElementById('theme-btn').textContent = dark ? '☀️ Light' : '🌙 Dark';
+  try { localStorage.setItem('foc-theme', dark ? 'dark' : 'light'); } catch(e){}
+}
+function restoreTheme(){
+  try {
+    const t = localStorage.getItem('foc-theme');
+    if(t === 'dark'){ document.documentElement.classList.add('dark'); document.getElementById('theme-btn').textContent = '☀️ Light'; }
+  } catch(e){}
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────
@@ -1234,6 +1241,7 @@ function personLink(name, platform){
 let currentPage = 'overview';
 function go(page, btn){
   currentPage = page;
+  try { localStorage.setItem('foc-page', page); } catch(e){}
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   render(page);
@@ -3530,13 +3538,22 @@ function guestGateCard(page) {
 // App elements are hidden by default to prevent flash of content
 (async () => {
   const { data: { session } } = await _supabase.auth.getSession();
+  restoreTheme();
   if (session?.user) {
     // User is signed in — show the app
     document.getElementById('sidebar').style.display = '';
     document.getElementById('main').style.display = '';
     document.querySelector('.fab').style.display = '';
     applyUser(session.user, false);
-    render('overview');
+    const savedPage = (() => { try { return localStorage.getItem('foc-page'); } catch(e){ return null; } })();
+    const validPages = ['overview','segments','resources','journey','documents','admin','customize','roadmap','glossary','media','ecosystem','crops'];
+    const startPage = savedPage && validPages.includes(savedPage) ? savedPage : 'overview';
+    currentPage = startPage;
+    render(startPage);
+    // Highlight the correct nav button
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    const navBtn = document.querySelector(`.nav-item[onclick*="go('${startPage}'"]`);
+    if(navBtn) navBtn.classList.add('active');
   } else {
     // Not signed in — show landing page (app stays hidden)
     showLandingPage(false);
