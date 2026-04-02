@@ -670,8 +670,7 @@
       <li>Accelerator and program fit</li>
       <li>Platform feedback and feature requests</li>
     </ul>
-    <button onclick="openBookingEmail()" style="width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:10px">📅 Email Russell Your Availability</button>
-    <p style="text-align:center;font-size:11px;color:var(--text-muted)">Sends a pre-filled email to <strong>russellcolevop@gmail.com</strong></p>
+    <button onclick="openBookingEmail()" style="width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">📅 Email Russell Your Availability</button>
   </div>
 </div>
 
@@ -680,7 +679,7 @@
   <div class="modal" style="max-width:410px">
     <button class="modal-close" onclick="closeModal('feedback-modal')">✕</button>
     <h3>🎯 Share Your Feedback</h3>
-    <p style="margin-bottom:14px">Your input directly shapes the AgTech Founder Ops Center. Feedback is sent to Russell.</p>
+    <p style="margin-bottom:14px">Your input directly shapes the AgTech Founder Ops Center.</p>
     <select class="form-select" id="fb-type">
       <option value="General Feedback">Select feedback type...</option>
       <option>Overall experience</option>
@@ -691,11 +690,7 @@
       <option>Other</option>
     </select>
     <textarea class="form-textarea" rows="4" id="fb-msg" placeholder="Tell us what you think, what's missing, or what could be better..."></textarea>
-    <div id="fb-email-wrap" style="margin-bottom:8px">
-      <input type="email" id="fb-email" placeholder="Your email (so Russell can follow up)" class="form-input" style="margin-bottom:0">
-    </div>
-    <button onclick="submitFeedback()" style="width:100%;padding:10px;background:#ea580c;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">📧 Send Feedback to Russell</button>
-    <p style="font-size:10px;color:var(--text-faint);text-align:center;margin-top:8px">Opens your email client with feedback pre-filled · Sent to russellcolevop@gmail.com</p>
+    <button onclick="submitFeedback()" style="width:100%;padding:10px;background:#ea580c;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">📧 Send Feedback</button>
   </div>
 </div>
 
@@ -1047,16 +1042,25 @@ const LINKS = {
   'Vertical Farming Podcast':'https://verticalfarming.net/podcast',
   'Groundbreakers':'https://www.syngenta.com/en/innovation-agriculture/groundbreakers-podcast',
   'AgFunder Network':'https://www.youtube.com/@AgFunder',
-  // Thought Leaders (verified LinkedIn URLs)
-  'Vonnie Estes':'https://www.linkedin.com/in/vonnieestes/',
-  'Louisa Burwood-Taylor':'https://www.linkedin.com/in/louisa-burwood-taylor/',
-  'Sarah Nolet':'https://www.linkedin.com/in/svnolet/',
-  'Rob Trice':'https://www.linkedin.com/in/robtrice/',
-  'David Friedberg':'https://theproductionboard.com',
-  'Walt Duflock':'https://www.linkedin.com/in/waltduflock/',
-  'Michael Gilbert':'https://www.semios.com',
-  'Kimberly Zerkel':'https://www.linkedin.com/in/kimberlyzerkel/',
+  // Thought Leaders (verified LinkedIn URLs — alphabetical)
+  'Darren Anderson':'https://ca.linkedin.com/in/darrenjamesanderson',
+  'Sylvain Charlebois':'https://ca.linkedin.com/in/thefoodprofessor',
+  'Ranveer Chandra':'https://www.linkedin.com/in/ranveer-chandra-79bb9b',
   'John Cornelius':'https://www.linkedin.com/in/johncornelius/',
+  'Walt Duflock':'https://www.linkedin.com/in/waltduflock/',
+  'Vonnie Estes':'https://www.linkedin.com/in/vonnieestes/',
+  'David Friedberg':'https://theproductionboard.com',
+  'Michael Gilbert':'https://www.semios.com',
+  'Karen Schuett':'https://www.linkedin.com/in/karen-schuett/',
+  'Kimbal Musk':'https://www.linkedin.com/in/kimbal',
+  'Sara Menker':'https://www.linkedin.com/in/sara-menker',
+  'Evan Nisselson':'https://www.linkedin.com/in/nisselson',
+  'Sarah Nolet':'https://www.linkedin.com/in/svnolet/',
+  'Robert Saik':'https://ca.linkedin.com/in/robertsaik',
+  'Matt Stevens':'https://www.linkedin.com/in/gogomatt/',
+  'Louisa Burwood-Taylor':'https://www.linkedin.com/in/louisa-burwood-taylor/',
+  'Rob Trice':'https://www.linkedin.com/in/robtrice/',
+  'Kimberly Zerkel':'https://www.linkedin.com/in/kimberlyzerkel/',
   // Accelerators & Programs
   'SVG Ventures | THRIVE':'https://svgventures.com/thrive',
   'Creative Destruction Lab (CDL)':'https://creativedestructionlab.com',
@@ -1070,19 +1074,19 @@ const LINKS = {
   'North Forge':'https://northforge.ca',
   'Bioenterprise':'https://bioenterprise.ca',
   // Grants & Funding
-  'Sustainable CAP':'https://agriculture.canada.ca/en/sustainable-canadian-agricultural-partnership',
-  'AgriInnovate':'https://agriculture.canada.ca/en/agricultural-programs-and-services/agri-innovate-program',
+  'Sustainable CAP':'https://agriculture.canada.ca/en/department/initiatives/sustainable-canadian-agricultural-partnership',
+  'AgriInnovate':'https://agriculture.canada.ca/en/programs/agriinnovate',
   'Protein Industries Canada':'https://proteinindustries.com',
   'SDTC':'https://nrc.canada.ca/en/support-technology-innovation',  // SDTC wound down 2024 → NRC IRAP
   'Farm Credit Canada':'https://www.fcc-fac.ca',
   'BDC Capital':'https://www.bdc.ca/en/bdc-capital',
   // Industry Networks & Research
-  'CFIN (Canadian Food Innovation Network)':'https://cfin-rcai.ca',
-  'Pan-Canadian Smart Farm Network':'https://agriculture.canada.ca/en/sector/research-innovation/smart-farm-network',
+  'CFIN (Canadian Food Innovation Network)':'https://www.cfin-rcia.ca/home',
+  'Pan-Canadian Smart Farm Network':'https://www.oldscollege.ca/smart-farm-research/pan-canadian-smart-farm-network.html',
   'SVG Ventures THRIVE':'https://svgventures.com',
   'Olds College Smart Farm':'https://www.oldscollege.ca/academics/programs/agriculture/smart-farm',
   'University of Saskatchewan':'https://www.usask.ca',
-  'Glacier Farm':'https://aginmotion.ca/glacier-farm',
+  'Glacier FarmMedia':'https://farmmedia.com',
   'Assiniboine Community College':'https://assiniboine.net',
   'Agriculture and Agri-Food Canada (AAFC)':'https://agriculture.canada.ca',
   'University of Guelph':'https://www.uoguelph.ca',
@@ -1246,16 +1250,19 @@ function switchTab(gid,idx,btn){
 
 // ── BOOKING EMAIL ─────────────────────────────────────────────────
 function openBookingEmail(){
+  const fromName = currentUser ? currentUser.name : '';
   const subject = encodeURIComponent('Sharing my availability to book a meeting with Russell Cole');
   const body = encodeURIComponent(
     'Hi Russell,\n\n' +
     'Purpose of call: \n\n' +
     'Times available this week and next week below:\n\n' +
     '- \n- \n- \n\n' +
-    'Looking forward to connecting!'
+    'Looking forward to connecting!\n\n' +
+    (fromName ? fromName : '')
   );
-  window.location.href = 'mailto:russellcolevop@gmail.com?subject=' + subject + '&body=' + body;
+  window.open('mailto:russellcolevop@gmail.com?subject=' + subject + '&body=' + body, '_blank');
   closeModal('book-modal');
+  toast('📅 Email client opened — send your availability to Russell');
 }
 
 // ── DOCUMENT DOWNLOAD ─────────────────────────────────────────────
@@ -1757,20 +1764,29 @@ ${tabs('media',[
     {n:'American Farm Bureau',d:'National agricultural organization providing policy insights and farmer perspectives.',tags:['b-blue:USA','b-yellow:Advocacy']},
   ].map(m=>`<div class="media-card"><h4>${lnk(m.n,LINKS[m.n])}</h4><div class="mc-sub">${m.d}</div>
   <div class="tag-row">${m.tags.map(t=>{const[cl,lbl]=t.split(':');return`<span class="badge ${cl}">${lbl}</span>`;}).join('')}</div></div>`).join('')},
-  {label:'Thought Leaders',content:[
-    {n:'Vonnie Estes',r:'VP of Innovation, IFPA',f:'Fresh Produce',d:'Leading voice on food tech, supply chain innovation, and fresh produce technology trends.',lk:'LinkedIn Profile'},
-    {n:'Louisa Burwood-Taylor',r:'Head of Media, AgFunder',f:'Investment',d:'Expert on agri-food tech investment trends, venture capital, and startup ecosystems.',lk:'LinkedIn Profile'},
-    {n:'Sarah Nolet',r:'Co-founder, AgThentic',f:'Strategy',d:'Innovation strategy, adoption barriers, and practical AgTech implementation insights.',lk:'LinkedIn Profile'},
-    {n:'Rob Trice',r:'Founder, Better Food Ventures',f:'VC / Investor',d:'Early-stage AgTech investor focused on sustainable food systems and technology adoption.',lk:'LinkedIn Profile'},
-    {n:'David Friedberg',r:'CEO, The Production Board',f:'Biotech',d:'Climate tech and agricultural biotechnology investor, founder of Climate Corporation.',lk:'LinkedIn Profile'},
-    {n:'Walt Duflock',r:'Founder, HarvestProfit',f:'SaaS / Founder',d:'AgTech entrepreneur and vocal advocate for farm profitability, data sovereignty, and sustainable business models.',lk:'Twitter/X Profile'},
-    {n:'Michael Gilbert',r:'Founder, Semios',f:'IoT / Founder',d:'Pioneer in agricultural IoT and precision irrigation, building scalable agtech platforms.',lk:'LinkedIn Profile'},
-    {n:'Kimberly Zerkel',r:'Director, Mixing Bowl Hub',f:'Community',d:'Building agri-food tech communities, connecting founders with resources and networks.',lk:'LinkedIn Profile'},
-    {n:'John Cornelius',r:'Co-founder, Grainwise & AgTech Advisor',f:'Operations',d:'Former startup founder turned advisor helping AgTech companies navigate from idea to commercialization.',lk:'LinkedIn Profile'},
-  ].map(p=>`<div class="person-row"><div class="avatar">${p.n[0]}</div>
+  {label:'Thought Leaders',content:`<div style="margin-bottom:14px;padding:12px 16px;background:var(--accent-bg);border:1px solid var(--green-mid);border-radius:10px;font-size:12px;color:var(--green);display:flex;align-items:center;gap:8px"><span style="font-size:16px">🌱</span> This directory is growing — new leaders are being added regularly. Know someone who should be here? <a href="mailto:russellcolevop@gmail.com?subject=Thought%20Leader%20Suggestion" style="color:var(--green);font-weight:700;text-decoration:underline;margin-left:4px">Suggest a name</a></div>` + [
+    {n:'Darren Anderson',r:'Co-Founder & CEO, Vive Crop Protection',f:'Biotech',d:'Canadian founder of nanotechnology-based crop protection products with 100+ patents granted.'},
+    {n:'Louisa Burwood-Taylor',r:'Head of Media, AgFunder',f:'Investment',d:'Expert on agri-food tech investment trends, venture capital, and startup ecosystems.'},
+    {n:'Ranveer Chandra',r:'VP & CTO Agri-Food, Microsoft',f:'AI / IoT',d:'Led Microsoft FarmBeats initiative; named one of Newsweek\'s 50 Most Disruptive Innovators.'},
+    {n:'Sylvain Charlebois',r:'Director, Agri-Food Analytics Lab, Dalhousie',f:'Policy',d:'Canadian food systems researcher and author of Canada\'s Food Price Report; frequent policy commentator.'},
+    {n:'John Cornelius',r:'Co-Founder, Grainwise & AgTech Advisor',f:'Operations',d:'Former startup founder turned advisor helping AgTech companies navigate from idea to commercialization.'},
+    {n:'Walt Duflock',r:'Founder, HarvestProfit',f:'SaaS',d:'AgTech entrepreneur and advocate for farm profitability, data sovereignty, and sustainable business models.'},
+    {n:'Vonnie Estes',r:'VP of Innovation, IFPA',f:'Fresh Produce',d:'Leading voice on food tech, supply chain innovation, and fresh produce technology trends.'},
+    {n:'David Friedberg',r:'CEO, The Production Board',f:'Biotech',d:'Climate tech and agricultural biotechnology investor; founder of Climate Corporation (acquired by Monsanto).'},
+    {n:'Michael Gilbert',r:'Founder, Semios',f:'IoT',d:'Pioneer in agricultural IoT and precision irrigation; building scalable agtech platforms out of Vancouver.'},
+    {n:'Sara Menker',r:'Founder & CEO, Gro Intelligence',f:'AgData / AI',d:'Data scientist using AI to forecast agricultural and climate trends; World Economic Forum Young Global Leader.'},
+    {n:'Kimbal Musk',r:'Co-Founder, Big Green & Square Roots',f:'Sustainability',d:'Urban farming entrepreneur and food systems advocate impacting communities through learning gardens.'},
+    {n:'Evan Nisselson',r:'General Partner, LDV Capital',f:'Investment',d:'Founder of leading AI and computer vision venture fund with significant AgTech portfolio.'},
+    {n:'Sarah Nolet',r:'Co-Founder, AgThentic',f:'Strategy',d:'Innovation strategy, adoption barriers, and practical AgTech implementation insights.'},
+    {n:'Robert Saik',r:'CEO & Founder, AGvisorPRO',f:'Digital Platform',d:'Named one of Canada\'s Top 50 Most Influential Agriculture Leaders; connecting farmers to ag experts digitally.'},
+    {n:'Karen Schuett',r:'Co-Founder & CEO, Livestock Water Recycling',f:'Livestock Tech',d:'Calgary-based entrepreneur; named one of six most influential women in Canadian agriculture.'},
+    {n:'Matt Stevens',r:'Co-Founder, Finite Farms',f:'Robotics',d:'Canadian founder developing autonomous orchard robots for sustainable fruit production.'},
+    {n:'Rob Trice',r:'Founder, Better Food Ventures',f:'VC / Investor',d:'Early-stage AgTech investor focused on sustainable food systems and technology adoption.'},
+    {n:'Kimberly Zerkel',r:'Director, Mixing Bowl Hub',f:'Community',d:'Building agri-food tech communities, connecting founders with resources and networks.'},
+  ].map(p=>`<div class="person-row"><div class="avatar" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;font-weight:800">${p.n[0]}</div>
   <div class="person-info"><h4>${lnk(p.n,LINKS[p.n])}</h4>
   <div class="person-role">${p.r} &nbsp;·&nbsp; <span class="badge b-green">${p.f}</span></div>
-  <p>${p.d}</p>${LINKS[p.n]?`<a href="${LINKS[p.n]}" target="_blank" rel="noopener" class="person-link">→ ${p.lk}</a>`:`<div class="person-link" style="cursor:pointer" onclick="toast('🔗 Profile link available in full app')">→ ${p.lk}</div>`}</div></div>`).join('')},
+  <p>${p.d}</p>${LINKS[p.n]?`<a href="${LINKS[p.n]}" target="_blank" rel="noopener" class="person-link">→ View Profile</a>`:''}</div></div>`).join('')},
   {label:'Podcasts & Video',content:[
     {n:'Future of Agriculture',d:'Conversations with farmers, entrepreneurs, and researchers about agricultural innovation and technology.',t:'Podcast',tag:'Interviews'},
     {n:'AgTech...So What?',d:"Sarah Nolet's podcast exploring technology adoption, commercialization, and real-world impact in agriculture.",t:'Podcast',tag:'Strategy'},
@@ -1946,9 +1962,8 @@ ${tabs('res',[
   {label:'Events & Conferences',content:`
     <div class="event-row"><div><h4>Ag in Motion 2026</h4><div class="date">📅 July 21–23, 2026 — Langham, SK &nbsp;·&nbsp; <span style="color:var(--green);font-weight:600">Registration Open</span></div></div><button class="event-btn" onclick="window.open('https://aginmotion.ca','_blank')">Register →</button></div>
     <div class="event-row"><div><h4>GrowCanada 2026</h4><div class="date">📅 December 1–3, 2026 — Westin Ottawa, ON</div></div><button class="event-btn" onclick="window.open('https://growcanadaconference.ca','_blank')">Details →</button></div>
-    <div class="event-row"><div><h4>Agriculture Enlightened 2026</h4><div class="date">📅 Fall 2026 (date TBC) — Winnipeg, MB</div></div><button class="event-btn" onclick="toast('📅 Agriculture Enlightened 2026 — date TBC, Winnipeg MB')">Notify Me</button></div>
-    <div class="event-row"><div><h4>Canadian Agricultural Safety Week</h4><div class="date">📅 March 9–15, 2026 — Nationwide</div></div><button class="event-btn" onclick="toast('📅 Canadian Agricultural Safety Week — March 9–15, 2026')">Details</button></div>
-    <div class="event-row"><div><h4>CAAR Retriever Conference 2026</h4><div class="date">📅 February 2026 — Banff, AB</div></div><button class="event-btn" onclick="toast('📅 CAAR Retriever Conference — February 2026, Banff AB')">Details</button></div>`}
+    <div class="event-row"><div><h4>Agriculture Enlightened 2026</h4><div class="date">📅 Fall 2026 (date TBC) — Winnipeg, MB</div></div><a href="https://emilicanada.com/community/agriculture-enlightened/" target="_blank" class="event-btn" style="text-decoration:none">Website ↗</a></div>
+    <div class="event-row"><div><h4>Canadian Agricultural Safety Week</h4><div class="date">📅 March 2026 — Nationwide</div></div><a href="https://casa-acsa.ca/en/canadian-agricultural-safety-week/" target="_blank" class="event-btn" style="text-decoration:none">Website ↗</a></div>`}
 ])}</div>`;
 }
 
@@ -2056,16 +2071,18 @@ function submitFeedback(){
   const type = (document.getElementById('fb-type')||{}).value || 'General Feedback';
   const msg = (document.getElementById('fb-msg')||{}).value || '';
   if(!msg.trim()){ toast('Please write some feedback first'); return; }
-  const fromEmail = currentUser ? currentUser.email : ((document.getElementById('fb-email')||{}).value || 'Anonymous');
+  const fromName = currentUser ? currentUser.name : 'Guest';
+  const fromEmail = currentUser ? currentUser.email : 'Anonymous';
   const subject = encodeURIComponent('AgTech Ops Center Feedback: ' + type);
   const body = encodeURIComponent(
     'Feedback Type: ' + type + '\n' +
-    'From: ' + fromEmail + '\n' +
+    'From: ' + fromName + ' (' + fromEmail + ')' + '\n' +
     'Submitted: ' + new Date().toLocaleString() + '\n\n' +
     '---\n\n' + msg
   );
-  window.location.href = 'mailto:russellcolevop@gmail.com?subject=' + subject + '&body=' + body;
+  window.open('mailto:russellcolevop@gmail.com?subject=' + subject + '&body=' + body, '_blank');
   closeModal('feedback-modal');
+  document.getElementById('fb-msg').value = '';
   toast('📧 Email client opened — hit Send to submit your feedback');
 }
 
