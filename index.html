@@ -844,7 +844,7 @@ function openSignOutMenu() {
 }
 
 async function signOut() {
-  await _supabase.auth.signOut();
+  await _supabase.auth.signOut({ scope: 'global' });
   toast('👋 Signed out');
 }
 
@@ -1948,7 +1948,10 @@ async function signIn(method){
   if(method === 'google'){
     const { error } = await _supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin }
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: { prompt: 'select_account' }
+      }
     });
     if(error) toast('Sign in error: ' + error.message);
     return;
@@ -2343,7 +2346,7 @@ function wizRender() {
     <input class="wiz-input" id="wiz-heard" value="${wizData.how_heard||''}" placeholder="e.g. LinkedIn, friend referral, Google search">`;
   }
 
-  root.innerHTML = `<div class="wiz-overlay" onclick="if(event.target===this)closeWizard()">
+  root.innerHTML = `<div class="wiz-overlay">
     <div class="wiz-box">
       <div class="wiz-header">
         <h2>Set Up Your Profile</h2>
@@ -2352,10 +2355,10 @@ function wizRender() {
       <div class="wiz-progress">${dots}</div>
       <div class="wiz-body">${body}</div>
       <div class="wiz-footer">
-        ${wizStep > 0 ? '<button class="wiz-btn wiz-btn-secondary" onclick="wizBack()">← Back</button>' : '<button class="wiz-btn-skip" onclick="closeWizard()">Skip for now</button>'}
+        ${wizStep > 0 ? '<button class="wiz-btn wiz-btn-secondary" onclick="wizBack()">&larr; Back</button>' : '<div></div>'}
         ${wizStep < total-1
-          ? `<button class="wiz-btn wiz-btn-primary" onclick="wizNext()">Continue →</button>`
-          : `<button class="wiz-btn wiz-btn-primary" onclick="wizSave()">✨ Complete Profile</button>`}
+          ? `<button class="wiz-btn wiz-btn-primary" onclick="wizNext()">Continue &rarr;</button>`
+          : `<button class="wiz-btn wiz-btn-primary" onclick="wizSave()">Complete Profile &rarr;</button>`}
       </div>
     </div>
   </div>`;
