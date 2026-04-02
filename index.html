@@ -3046,7 +3046,16 @@ function pgInvestorOpportunity() {
   const founders = _allProfiles.filter(p=>p.persona==='founder').length;
   const investors = _allProfiles.filter(p=>p.persona==='investor').length;
   const ecosystemMgrs = _allProfiles.filter(p=>['advisor','government','industry_pro'].includes(p.persona)).length;
-  const thisMonth = _allProfiles.filter(p=>new Date(p.created_at) >= new Date(Date.now()-30*864e5)).length;
+  const now = Date.now();
+  const d30 = now - 30*864e5;
+  const d60 = now - 60*864e5;
+  const thisMonth = _allProfiles.filter(p=>new Date(p.created_at).getTime() >= d30).length;
+  const prevMonth = _allProfiles.filter(p=>{const t=new Date(p.created_at).getTime(); return t>=d60 && t<d30;}).length;
+  const prevTotal = _allProfiles.filter(p=>new Date(p.created_at).getTime() < d30).length;
+  const prevFounders = _allProfiles.filter(p=>p.persona==='founder' && new Date(p.created_at).getTime() < d30).length;
+  const prevInvestors = _allProfiles.filter(p=>p.persona==='investor' && new Date(p.created_at).getTime() < d30).length;
+  const momGrowth = (cur,prev) => { if(!prev) return cur>0?'+'+cur:'—'; const pct=Math.round(((cur-prev)/prev)*100); return pct>0?'+'+pct+'%':pct===0?'0%':pct+'%'; };
+  const delta = (cur,prev) => cur-prev>0 ? '+'+( cur-prev) : cur-prev===0 ? '—' : ''+(cur-prev);
 
   const investorUsers = _allProfiles.filter(p => p.admin_tags && p.admin_tags.includes('investor_access'));
   const accessList = investorUsers.length
@@ -3070,19 +3079,19 @@ function pgInvestorOpportunity() {
 
   <div class="card" style="margin-top:16px;border-left:4px solid #6366f1">
     <h3 style="margin:0 0 4px">🌍 The Problem</h3>
-    <div class="sub" style="margin-bottom:14px">Why AgTech ecosystems need FounderOps Center</div>
+    <div class="sub" style="margin-bottom:14px">A $15B+ industry with no connective tissue</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
       <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🧱 Ecosystem Fragmentation</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Startups, investors, accelerators, farms, and government programs all operate in silos. No single platform connects the dots across the AgTech landscape.</div>
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🌱 Founders Can't Find Capital</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">AgTech founders spend months cold-searching for investors, accelerators, and grants. There's no centralized, sector-specific platform to discover funding opportunities by stage, region, or crop vertical.</div>
       </div>
       <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📊 Information Asymmetry</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Founders waste months discovering programs, investors, and resources that ecosystem managers already know about. Investors miss deal flow that never reaches them.</div>
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">💰 Investors Can't Find Deal Flow</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">AgTech-focused VCs rely on warm intros and scattered networks. High-potential startups in regions like Canada, LATAM, and APAC are invisible to capital that would fund them.</div>
       </div>
       <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🛠️ Tool Sprawl</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Ecosystem managers patch together Airtable, Google Drive, email, and generic CRMs. No tool understands AgTech natively — personas, funding stages, crop sectors, or seasonal cycles.</div>
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🏗️ Ecosystems Operate Blind</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Accelerators, government programs, and ecosystem managers have no shared intelligence layer. Everyone builds their own spreadsheets. Connections that should happen don't.</div>
       </div>
     </div>
   </div>
@@ -3095,18 +3104,22 @@ function pgInvestorOpportunity() {
       <div style="text-align:center;padding:16px;background:var(--accent-bg);border-radius:10px;border:1px solid var(--green-mid)">
         <div style="font-size:28px;font-weight:900;color:var(--green)">${total}</div>
         <div style="font-size:11px;color:var(--text-muted);font-weight:600">Platform Users</div>
+        <div style="font-size:10px;margin-top:4px;color:${total>prevTotal?'var(--green)':'var(--text-muted)'};font-weight:700">${momGrowth(total,prevTotal)} MoM</div>
       </div>
       <div style="text-align:center;padding:16px;background:var(--accent-bg);border-radius:10px;border:1px solid var(--green-mid)">
         <div style="font-size:28px;font-weight:900;color:var(--green)">${founders}</div>
         <div style="font-size:11px;color:var(--text-muted);font-weight:600">Founders</div>
+        <div style="font-size:10px;margin-top:4px;color:${founders>prevFounders?'var(--green)':'var(--text-muted)'};font-weight:700">${momGrowth(founders,prevFounders)} MoM</div>
       </div>
       <div style="text-align:center;padding:16px;background:var(--accent-bg);border-radius:10px;border:1px solid var(--green-mid)">
         <div style="font-size:28px;font-weight:900;color:var(--green)">${investors}</div>
         <div style="font-size:11px;color:var(--text-muted);font-weight:600">Investors</div>
+        <div style="font-size:10px;margin-top:4px;color:${investors>prevInvestors?'var(--green)':'var(--text-muted)'};font-weight:700">${momGrowth(investors,prevInvestors)} MoM</div>
       </div>
       <div style="text-align:center;padding:16px;background:var(--accent-bg);border-radius:10px;border:1px solid var(--green-mid)">
         <div style="font-size:28px;font-weight:900;color:var(--green)">${thisMonth}</div>
-        <div style="font-size:11px;color:var(--text-muted);font-weight:600">This Month</div>
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600">New This Month</div>
+        <div style="font-size:10px;margin-top:4px;color:${thisMonth>prevMonth?'var(--green)':'var(--text-muted)'};font-weight:700">${delta(thisMonth,prevMonth)} vs prior 30d</div>
       </div>
     </div>
   </div>
@@ -3136,7 +3149,7 @@ function pgInvestorOpportunity() {
   <div class="card" style="margin-top:16px;border-left:4px solid #6366f1">
     <h3 style="margin:0 0 4px">💰 The Opportunity</h3>
     <div class="sub" style="margin-bottom:14px">Early-stage investment in the platform powering AgTech ecosystem coordination</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px">
       <div style="padding:16px;background:var(--hover);border-radius:10px;border:1px solid var(--border);text-align:center">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Equity Available</div>
         <div style="font-size:28px;font-weight:900;color:#6366f1">5–20%</div>
@@ -3144,15 +3157,19 @@ function pgInvestorOpportunity() {
       </div>
       <div style="padding:16px;background:var(--hover);border-radius:10px;border:1px solid var(--border);text-align:center">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Use of Funds</div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);line-height:1.6;margin-top:8px">Product development<br>Founder salary<br>Ecosystem partnerships<br>Market expansion</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.8;margin-top:6px">Product development<br>Founder salary<br>Ecosystem partnerships<br>Market expansion</div>
       </div>
       <div style="padding:16px;background:var(--hover);border-radius:10px;border:1px solid var(--border);text-align:center">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Revenue Model</div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);line-height:1.6;margin-top:8px">Free tier (current)<br>Pro tier (CRM seats)<br>Fund returns (Phase 3)</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Revenue Streams</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.8;margin-top:6px">SaaS subscriptions (Pro tier)<br>Ecosystem CRM seats<br>Intro & placement fees<br>Fund carry (Phase 3)</div>
+      </div>
+      <div style="padding:16px;background:linear-gradient(135deg, rgba(99,102,241,.08), rgba(99,102,241,.02));border-radius:10px;border:2px solid rgba(99,102,241,.3);text-align:center">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#6366f1;margin-bottom:6px">How You Make Money</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.8;margin-top:6px">Equity appreciation via growth<br>Pro-rata in future rounds<br>Dividends from net revenue<br>Exit via acquisition or fund</div>
       </div>
     </div>
     <div style="padding:14px;background:linear-gradient(135deg, rgba(99,102,241,.06), rgba(99,102,241,.02));border:1px solid rgba(99,102,241,.2);border-radius:10px">
-      <div style="font-size:13px;line-height:1.7;color:var(--text-muted)"><strong style="color:var(--text)">Why now:</strong> AgTech VC investment hit $5.7B in 2024 across 736 startups, but the ecosystem infrastructure connecting founders to capital is still held together with spreadsheets. FounderOps Center is building the connective tissue — and every user, every ecosystem node, every introduction made on the platform increases the value of the network and the quality of deal flow for future fund investments.</div>
+      <div style="font-size:13px;line-height:1.7;color:var(--text-muted)"><strong style="color:var(--text)">Why now:</strong> AgTech VC investment hit $5.7B in 2024 across 736 startups, but the ecosystem infrastructure connecting founders to capital is still held together with spreadsheets. FounderOps Center is building the connective tissue — and every user, every ecosystem node, every introduction made on the platform increases the value of the network and the quality of deal flow for future fund investments. Early investors get in before network effects compound.</div>
     </div>
   </div>
 
