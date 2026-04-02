@@ -317,6 +317,80 @@
   /* ── ONBOARDING STEPS ── */
   .founder-type-btn:hover { border-color: var(--green) !important; background: var(--accent-bg) !important; }
 
+  /* ── ONBOARDING WIZARD ── */
+  .wiz-overlay { position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px); }
+  .wiz-box { background:var(--surface);border-radius:16px;width:min(540px,92vw);max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border:1px solid var(--border); }
+  .wiz-header { padding:24px 28px 0;text-align:center; }
+  .wiz-header h2 { font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px; }
+  .wiz-header p { font-size:13px;color:var(--text-muted);line-height:1.5; }
+  .wiz-progress { display:flex;gap:4px;padding:16px 28px 0; }
+  .wiz-dot { flex:1;height:4px;border-radius:3px;background:var(--border);transition:background .3s; }
+  .wiz-dot.active { background:var(--green); }
+  .wiz-dot.done { background:var(--green);opacity:.5; }
+  .wiz-body { padding:20px 28px 24px; }
+  .wiz-footer { padding:0 28px 24px;display:flex;justify-content:space-between;gap:12px; }
+  .wiz-btn { padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s; }
+  .wiz-btn-primary { background:var(--green);color:#fff; }
+  .wiz-btn-primary:hover { opacity:.9; }
+  .wiz-btn-secondary { background:none;border:1px solid var(--border);color:var(--text-muted); }
+  .wiz-btn-secondary:hover { background:var(--hover); }
+  .wiz-btn-skip { background:none;border:none;color:var(--text-faint);font-size:12px;cursor:pointer;padding:10px 8px; }
+  .wiz-label { font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;display:block; }
+  .wiz-input { width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;margin-bottom:12px;box-sizing:border-box;font-family:inherit; }
+  .wiz-input:focus { outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,197,94,.12); }
+  .wiz-textarea { width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;margin-bottom:12px;box-sizing:border-box;font-family:inherit;resize:vertical;min-height:72px; }
+  .persona-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px; }
+  .persona-card { padding:14px 12px;border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface); }
+  .persona-card:hover { border-color:var(--green);background:var(--accent-bg); }
+  .persona-card.selected { border-color:var(--green);background:var(--accent-bg);box-shadow:0 0 0 3px rgba(34,197,94,.15); }
+  .persona-card .p-icon { font-size:28px;margin-bottom:6px; }
+  .persona-card .p-label { font-size:12px;font-weight:700;color:var(--text); }
+  .persona-card .p-desc { font-size:10px;color:var(--text-muted);margin-top:2px;line-height:1.4; }
+  .chip-grid { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px; }
+  .chip { padding:7px 14px;border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;color:var(--text-muted);transition:all .15s;background:var(--surface); }
+  .chip:hover { border-color:var(--green);color:var(--green); }
+  .chip.selected { border-color:var(--green);background:var(--accent-bg);color:var(--green);font-weight:600; }
+
+  /* ── PROFILE PAGE ── */
+  .profile-header { display:flex;align-items:center;gap:16px;margin-bottom:20px; }
+  .profile-avatar { width:64px;height:64px;border-radius:50%;border:3px solid var(--green);object-fit:cover; }
+  .profile-avatar-placeholder { width:64px;height:64px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800;flex-shrink:0; }
+  .profile-field { margin-bottom:14px; }
+  .profile-field label { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:4px;display:block; }
+  .profile-field .pf-val { font-size:14px;color:var(--text);line-height:1.6; }
+  .profile-chips { display:flex;flex-wrap:wrap;gap:6px; }
+  .profile-chip { padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;background:var(--accent-bg);color:var(--green);border:1px solid var(--green-mid); }
+  .profile-2col { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+  @media(max-width:640px){ .profile-2col { grid-template-columns:1fr; } }
+
+  /* ── ENHANCED ADMIN ── */
+  .admin-filters { display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px; }
+  .admin-filter-btn { padding:6px 14px;border:1px solid var(--border);border-radius:20px;font-size:11px;cursor:pointer;background:var(--surface);color:var(--text-muted);font-weight:600;transition:all .15s; }
+  .admin-filter-btn:hover,.admin-filter-btn.active { border-color:var(--green);background:var(--accent-bg);color:var(--green); }
+  .admin-user-card { border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;background:var(--surface);transition:all .15s;cursor:pointer; }
+  .admin-user-card:hover { border-color:var(--green);box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .admin-user-top { display:flex;align-items:center;gap:12px;margin-bottom:8px; }
+  .admin-user-avatar { width:40px;height:40px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0; }
+  .admin-user-name { font-size:14px;font-weight:700;color:var(--text); }
+  .admin-user-email { font-size:11px;color:var(--text-muted); }
+  .admin-user-meta { display:flex;flex-wrap:wrap;gap:6px;margin-top:6px; }
+  .admin-tag { padding:3px 9px;border-radius:10px;font-size:10px;font-weight:600; }
+  .tag-founder { background:#dcfce7;color:#166534; } html.dark .tag-founder { background:#14532d;color:#86efac; }
+  .tag-investor { background:#dbeafe;color:#1e40af; } html.dark .tag-investor { background:#1e3a5f;color:#93c5fd; }
+  .tag-advisor { background:#fef3c7;color:#92400e; } html.dark .tag-advisor { background:#78350f;color:#fde68a; }
+  .tag-researcher { background:#ede9fe;color:#5b21b6; } html.dark .tag-researcher { background:#3b0764;color:#c4b5fd; }
+  .tag-industry_pro { background:#f1f5f9;color:#475569; } html.dark .tag-industry_pro { background:#334155;color:#cbd5e1; }
+  .tag-service_provider { background:#fce7f3;color:#9d174d; } html.dark .tag-service_provider { background:#831843;color:#f9a8d4; }
+  .tag-government { background:#f0fdf4;color:#15803d; } html.dark .tag-government { background:#14532d;color:#86efac; }
+  .admin-notes-area { width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:12px;font-family:inherit;resize:vertical;min-height:60px; }
+  .admin-detail-panel { border:1px solid var(--border);border-radius:12px;padding:20px;background:var(--surface);margin-top:12px; }
+  .admin-stat-row { display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px; }
+  .admin-mini-stat { text-align:center;padding:12px 8px;background:var(--hover);border-radius:8px; }
+  .admin-mini-stat .ams-val { font-size:22px;font-weight:800;color:var(--green); }
+  .admin-mini-stat .ams-lbl { font-size:10px;color:var(--text-muted);margin-top:2px; }
+  .admin-search { padding:9px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;width:220px;font-family:inherit; }
+  .admin-search:focus { outline:none;border-color:var(--green); }
+
   /* ── MOBILE RESPONSIVE ── */
   @media(max-width:700px){
     body { overflow: auto; }
@@ -419,7 +493,8 @@
       </div>
     </div>
     <button class="book-btn" onclick="openModal('book-modal')">📞 Book a Call with Russell</button>
-    <button style="width:100%;margin-top:8px;padding:7px 12px;background:none;border:1px solid var(--border);border-radius:7px;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px" onclick="goAdmin()">🔐 Admin Panel</button>
+    <button id="nav-profile-btn" style="display:none;width:100%;margin-top:8px;padding:7px 12px;background:none;border:1px solid var(--green-mid);border-radius:7px;font-size:11px;font-weight:600;color:var(--green);cursor:pointer;display:none;align-items:center;justify-content:center;gap:5px" onclick="go('profile',this)">👤 My Profile</button>
+    <button id="nav-admin-btn" style="display:none;width:100%;margin-top:6px;padding:7px 12px;background:none;border:1px solid var(--border);border-radius:7px;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;align-items:center;justify-content:center;gap:5px" onclick="goAdmin()">🔐 Admin Panel</button>
   </div>
 </aside>
 
@@ -601,6 +676,9 @@
   </div>
 </div>
 
+<!-- ONBOARDING WIZARD (dynamically rendered) -->
+<div id="wiz-root"></div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -646,6 +724,12 @@ function applyUser(user, isNew) {
   closeModal('signin-modal');
   dismissOnboard();
 
+  // Show nav buttons
+  const profileBtn = document.getElementById('nav-profile-btn');
+  const adminBtn = document.getElementById('nav-admin-btn');
+  if (profileBtn) profileBtn.style.display = 'flex';
+  if (adminBtn && isAdmin) adminBtn.style.display = 'flex';
+
   // Track & notify on new users
   const seenKey = 'foc_seen_' + user.id;
   if (!localStorage.getItem(seenKey)) {
@@ -660,6 +744,14 @@ function applyUser(user, isNew) {
   }
   const msg = isAdmin ? '✅ Welcome back, Admin!' : '✅ Welcome, ' + name + '!';
   toast(msg);
+
+  // Check for existing profile — show wizard if new
+  loadProfile(user.id).then(profile => {
+    _userProfile = profile;
+    if (!profile || !profile.onboarding_complete) {
+      setTimeout(() => showWizard(), 800);
+    }
+  });
 }
 
 function notifyNewUser(name, email) {
@@ -1823,12 +1915,517 @@ ${logins.length ? chart : '<p style="color:var(--text-faint);font-size:13px;padd
 </div>`;
 }
 
+// ══════════════════════════════════════════════════════════════
+// SUPABASE PROFILE CRUD
+// ══════════════════════════════════════════════════════════════
+let _userProfile = null;
+let _allProfiles = []; // admin cache
+
+async function loadProfile(userId) {
+  const { data, error } = await _supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+  if (error) { console.error('loadProfile error:', error); return null; }
+  return data;
+}
+
+async function upsertProfile(profileData) {
+  const { data, error } = await _supabase.from('profiles').upsert(profileData, { onConflict: 'id' }).select().single();
+  if (error) console.error('upsertProfile error:', error);
+  return { data, error };
+}
+
+async function loadAllProfiles() {
+  const { data, error } = await _supabase.from('profiles').select('*').order('created_at', { ascending: false });
+  if (error) { console.error('loadAllProfiles error:', error); return []; }
+  return data || [];
+}
+
+async function updateAdminNotes(userId, notes, tags) {
+  const { error } = await _supabase.from('profiles').update({ admin_notes: notes, admin_tags: tags }).eq('id', userId);
+  if (error) console.error('updateAdminNotes error:', error);
+  return !error;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ONBOARDING WIZARD
+// ══════════════════════════════════════════════════════════════
+const PERSONAS = [
+  { id:'founder', icon:'🚀', label:'Founder', desc:'Building an AgTech startup' },
+  { id:'investor', icon:'💰', label:'Investor', desc:'Investing in AgTech' },
+  { id:'advisor', icon:'🧭', label:'Advisor / Mentor', desc:'Guiding startups' },
+  { id:'researcher', icon:'🔬', label:'Researcher', desc:'Academic or R&D' },
+  { id:'industry_pro', icon:'🏭', label:'Industry Professional', desc:'Working in agriculture' },
+  { id:'service_provider', icon:'⚖️', label:'Service Provider', desc:'Legal, finance, marketing' },
+  { id:'government', icon:'🏛️', label:'Government / Policy', desc:'Ag policy & regulation' }
+];
+const AGTECH_FOCUS = ['Crop Technology','Precision Agriculture','Livestock Tech','Supply Chain','AgBiotech','Sustainability / Climate','Indoor / Vertical Farming','Farm Management Software','Robotics & Automation','Soil & Water Tech','Food Safety','Marketplace / E-Commerce'];
+const FOUNDER_NEEDS = ['Funding','Technical Talent','Industry Connections','Mentorship','Customers / Pilots','Go-to-Market Strategy','Regulatory Guidance','Co-Founder'];
+const COMPANY_STAGES = [{id:'idea',label:'Idea / Research'},{id:'mvp',label:'MVP / Prototype'},{id:'revenue',label:'Early Revenue'},{id:'scaling',label:'Scaling / Growth'}];
+const FUNDING_STATUSES = [{id:'bootstrapped',label:'Bootstrapped'},{id:'pre_seed',label:'Pre-Seed'},{id:'seed',label:'Seed'},{id:'series_a_plus',label:'Series A+'}];
+const INVEST_STAGES = ['Pre-Seed','Seed','Series A','Series B+','Growth/Late Stage'];
+const EXPERTISE_LIST = ['Finance & Fundraising','Product & Engineering','Marketing & Growth','Operations & Supply Chain','Legal & IP','Agriculture Domain','Data & AI','International Expansion'];
+
+let wizStep = 0;
+let wizData = {};
+const WIZ_STEPS = ['persona','basics','details','goals'];
+
+function showWizard() {
+  wizStep = 0;
+  wizData = {
+    persona: '', organization: '', job_title: '', linkedin_url: '', location: '',
+    company_name: '', company_stage: '', what_building: '', funding_status: '', team_size: '',
+    biggest_needs: [], investment_stages: [], check_size: '', deal_interests: '',
+    expertise_areas: [], advising_count: '', advisor_interests: '',
+    institution: '', research_focus: '', open_to_collab: false,
+    service_type: '', startup_experience: false,
+    agtech_focus: [], goals_platform: '', goals_general: '', how_heard: ''
+  };
+  wizRender();
+}
+
+function wizRender() {
+  const root = document.getElementById('wiz-root');
+  const step = WIZ_STEPS[wizStep];
+  const total = WIZ_STEPS.length;
+  const dots = WIZ_STEPS.map((s,i) => `<div class="wiz-dot ${i<wizStep?'done':''} ${i===wizStep?'active':''}"></div>`).join('');
+
+  let body = '';
+  if (step === 'persona') {
+    body = `<div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:40px;margin-bottom:8px">👋</div>
+      <h3 style="margin:0 0 4px;font-size:17px">Welcome! Tell us about yourself</h3>
+      <p style="font-size:12px;color:var(--text-muted)">This helps Russell connect you with the right people in the AgTech ecosystem.</p>
+    </div>
+    <div class="persona-grid">${PERSONAS.map(p => `
+      <div class="persona-card ${wizData.persona===p.id?'selected':''}" onclick="wizData.persona='${p.id}';wizRender()">
+        <div class="p-icon">${p.icon}</div>
+        <div class="p-label">${p.label}</div>
+        <div class="p-desc">${p.desc}</div>
+      </div>`).join('')}
+    </div>`;
+  } else if (step === 'basics') {
+    body = `<label class="wiz-label">Organization / Company</label>
+    <input class="wiz-input" id="wiz-org" value="${wizData.organization||''}" placeholder="e.g. CropSense AI, University of Guelph">
+    <label class="wiz-label">Your Title / Role</label>
+    <input class="wiz-input" id="wiz-title" value="${wizData.job_title||''}" placeholder="e.g. CEO & Co-Founder, Partner, Professor">
+    <label class="wiz-label">LinkedIn URL</label>
+    <input class="wiz-input" id="wiz-linkedin" value="${wizData.linkedin_url||''}" placeholder="https://linkedin.com/in/yourname">
+    <label class="wiz-label">Location</label>
+    <input class="wiz-input" id="wiz-location" value="${wizData.location||''}" placeholder="e.g. Toronto, ON, Canada">
+    <label class="wiz-label">AgTech Focus Areas</label>
+    <div class="chip-grid">${AGTECH_FOCUS.map(f => `<div class="chip ${wizData.agtech_focus.includes(f)?'selected':''}" onclick="wizToggleChip('agtech_focus','${f}')">${f}</div>`).join('')}</div>`;
+  } else if (step === 'details') {
+    if (wizData.persona === 'founder') {
+      body = `<label class="wiz-label">Company Name</label>
+      <input class="wiz-input" id="wiz-company" value="${wizData.company_name||''}" placeholder="Your startup name">
+      <label class="wiz-label">Stage</label>
+      <div class="chip-grid">${COMPANY_STAGES.map(s => `<div class="chip ${wizData.company_stage===s.id?'selected':''}" onclick="wizData.company_stage='${s.id}';wizRender()">${s.label}</div>`).join('')}</div>
+      <label class="wiz-label">What are you building?</label>
+      <textarea class="wiz-textarea" id="wiz-building" placeholder="Brief description of your product or solution...">${wizData.what_building||''}</textarea>
+      <label class="wiz-label">Funding Status</label>
+      <div class="chip-grid">${FUNDING_STATUSES.map(s => `<div class="chip ${wizData.funding_status===s.id?'selected':''}" onclick="wizData.funding_status='${s.id}';wizRender()">${s.label}</div>`).join('')}</div>
+      <label class="wiz-label">Team Size</label>
+      <input class="wiz-input" id="wiz-team" value="${wizData.team_size||''}" placeholder="e.g. 3, 10-15, Just me">
+      <label class="wiz-label">What do you need most right now?</label>
+      <div class="chip-grid">${FOUNDER_NEEDS.map(n => `<div class="chip ${wizData.biggest_needs.includes(n)?'selected':''}" onclick="wizToggleChip('biggest_needs','${n}')">${n}</div>`).join('')}</div>`;
+    } else if (wizData.persona === 'investor') {
+      body = `<label class="wiz-label">Investment Stage Preferences</label>
+      <div class="chip-grid">${INVEST_STAGES.map(s => `<div class="chip ${wizData.investment_stages.includes(s)?'selected':''}" onclick="wizToggleChip('investment_stages','${s}')">${s}</div>`).join('')}</div>
+      <label class="wiz-label">Typical Check Size</label>
+      <input class="wiz-input" id="wiz-check" value="${wizData.check_size||''}" placeholder="e.g. $50K-$250K, $1M+">
+      <label class="wiz-label">Current AgTech Portfolio</label>
+      <textarea class="wiz-textarea" id="wiz-portfolio" placeholder="List any AgTech companies you've invested in...">${wizData.portfolio_agtech||''}</textarea>
+      <label class="wiz-label">What types of deals are you looking for?</label>
+      <textarea class="wiz-textarea" id="wiz-deals" placeholder="Sectors, stages, geographies...">${wizData.deal_interests||''}</textarea>`;
+    } else if (wizData.persona === 'advisor') {
+      body = `<label class="wiz-label">Areas of Expertise</label>
+      <div class="chip-grid">${EXPERTISE_LIST.map(e => `<div class="chip ${wizData.expertise_areas.includes(e)?'selected':''}" onclick="wizToggleChip('expertise_areas','${e}')">${e}</div>`).join('')}</div>
+      <label class="wiz-label">How many startups are you currently advising?</label>
+      <input class="wiz-input" id="wiz-advcount" value="${wizData.advising_count||''}" placeholder="e.g. 3, None yet">
+      <label class="wiz-label">What kind of startups do you want to help?</label>
+      <textarea class="wiz-textarea" id="wiz-advinterests" placeholder="Stage, focus area, type of help...">${wizData.advisor_interests||''}</textarea>`;
+    } else if (wizData.persona === 'researcher') {
+      body = `<label class="wiz-label">Institution</label>
+      <input class="wiz-input" id="wiz-institution" value="${wizData.institution||''}" placeholder="e.g. University of Guelph">
+      <label class="wiz-label">Research Focus</label>
+      <textarea class="wiz-textarea" id="wiz-research" placeholder="Describe your research area...">${wizData.research_focus||''}</textarea>
+      <label class="wiz-label">Open to startup collaboration?</label>
+      <div class="chip-grid">
+        <div class="chip ${wizData.open_to_collab?'selected':''}" onclick="wizData.open_to_collab=true;wizRender()">Yes, actively looking</div>
+        <div class="chip ${!wizData.open_to_collab?'selected':''}" onclick="wizData.open_to_collab=false;wizRender()">Not at this time</div>
+      </div>`;
+    } else if (wizData.persona === 'service_provider') {
+      body = `<label class="wiz-label">Type of Service</label>
+      <input class="wiz-input" id="wiz-service" value="${wizData.service_type||''}" placeholder="e.g. IP Law, Accounting, Marketing Agency">
+      <label class="wiz-label">Experience working with startups?</label>
+      <div class="chip-grid">
+        <div class="chip ${wizData.startup_experience?'selected':''}" onclick="wizData.startup_experience=true;wizRender()">Yes</div>
+        <div class="chip ${!wizData.startup_experience?'selected':''}" onclick="wizData.startup_experience=false;wizRender()">No, but interested</div>
+      </div>`;
+    } else {
+      body = `<label class="wiz-label">Your Role</label>
+      <input class="wiz-input" id="wiz-role-detail" value="${wizData.job_title||''}" placeholder="Describe your role and focus">
+      <label class="wiz-label">How can you contribute to the ecosystem?</label>
+      <textarea class="wiz-textarea" id="wiz-contrib" placeholder="What value do you bring to AgTech founders?">${wizData.goals_general||''}</textarea>`;
+    }
+  } else if (step === 'goals') {
+    body = `<div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:32px;margin-bottom:6px">🎯</div>
+      <h3 style="margin:0 0 4px;font-size:16px">Almost done!</h3>
+    </div>
+    <label class="wiz-label">What do you hope to get from Founder Ops Center?</label>
+    <textarea class="wiz-textarea" id="wiz-goals-platform" placeholder="e.g. Find investors, discover co-founders, access market data...">${wizData.goals_platform||''}</textarea>
+    <label class="wiz-label">What are your big-picture goals?</label>
+    <textarea class="wiz-textarea" id="wiz-goals-general" placeholder="e.g. Launch MVP by Q3, raise $500K seed round, scale to 100 farms...">${wizData.goals_general||''}</textarea>
+    <label class="wiz-label">How did you hear about us?</label>
+    <input class="wiz-input" id="wiz-heard" value="${wizData.how_heard||''}" placeholder="e.g. LinkedIn, friend referral, Google search">`;
+  }
+
+  root.innerHTML = `<div class="wiz-overlay" onclick="if(event.target===this)closeWizard()">
+    <div class="wiz-box">
+      <div class="wiz-header">
+        <h2>Set Up Your Profile</h2>
+        <p>Step ${wizStep+1} of ${total} — ${['Who you are','Basic info','Your details','Goals & context'][wizStep]}</p>
+      </div>
+      <div class="wiz-progress">${dots}</div>
+      <div class="wiz-body">${body}</div>
+      <div class="wiz-footer">
+        ${wizStep > 0 ? '<button class="wiz-btn wiz-btn-secondary" onclick="wizBack()">← Back</button>' : '<button class="wiz-btn-skip" onclick="closeWizard()">Skip for now</button>'}
+        ${wizStep < total-1
+          ? `<button class="wiz-btn wiz-btn-primary" onclick="wizNext()">Continue →</button>`
+          : `<button class="wiz-btn wiz-btn-primary" onclick="wizSave()">✨ Complete Profile</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function wizCollectInputs() {
+  const v = id => (document.getElementById(id)||{}).value || '';
+  if (WIZ_STEPS[wizStep] === 'basics') {
+    wizData.organization = v('wiz-org');
+    wizData.job_title = v('wiz-title');
+    wizData.linkedin_url = v('wiz-linkedin');
+    wizData.location = v('wiz-location');
+  } else if (WIZ_STEPS[wizStep] === 'details') {
+    if (wizData.persona === 'founder') {
+      wizData.company_name = v('wiz-company');
+      wizData.what_building = v('wiz-building');
+      wizData.team_size = v('wiz-team');
+    } else if (wizData.persona === 'investor') {
+      wizData.check_size = v('wiz-check');
+      wizData.portfolio_agtech = v('wiz-portfolio');
+      wizData.deal_interests = v('wiz-deals');
+    } else if (wizData.persona === 'advisor') {
+      wizData.advising_count = v('wiz-advcount');
+      wizData.advisor_interests = v('wiz-advinterests');
+    } else if (wizData.persona === 'researcher') {
+      wizData.institution = v('wiz-institution');
+      wizData.research_focus = v('wiz-research');
+    } else if (wizData.persona === 'service_provider') {
+      wizData.service_type = v('wiz-service');
+    } else {
+      wizData.job_title = v('wiz-role-detail');
+      wizData.goals_general = v('wiz-contrib');
+    }
+  } else if (WIZ_STEPS[wizStep] === 'goals') {
+    wizData.goals_platform = v('wiz-goals-platform');
+    wizData.goals_general = v('wiz-goals-general');
+    wizData.how_heard = v('wiz-heard');
+  }
+}
+
+function wizToggleChip(field, val) {
+  wizCollectInputs();
+  const arr = wizData[field];
+  const idx = arr.indexOf(val);
+  if (idx >= 0) arr.splice(idx, 1); else arr.push(val);
+  wizRender();
+}
+
+function wizNext() {
+  wizCollectInputs();
+  if (wizStep === 0 && !wizData.persona) { toast('Please select who you are'); return; }
+  wizStep++;
+  wizRender();
+}
+
+function wizBack() { wizCollectInputs(); wizStep--; wizRender(); }
+
+function closeWizard() { document.getElementById('wiz-root').innerHTML = ''; }
+
+async function wizSave() {
+  wizCollectInputs();
+  if (!currentUser) { toast('Please sign in first'); return; }
+  const profile = {
+    id: currentUser.id,
+    email: currentUser.email,
+    full_name: currentUser.name,
+    avatar_url: currentUser.avatar || null,
+    onboarding_complete: true,
+    ...wizData
+  };
+  const { data, error } = await upsertProfile(profile);
+  if (error) { toast('Error saving profile — please try again'); return; }
+  _userProfile = data || profile;
+  closeWizard();
+  toast('🎉 Profile created! Russell will review and connect you with the right people.');
+  // Show profile nav
+  const pbtn = document.getElementById('nav-profile-btn');
+  if (pbtn) pbtn.style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════════════════════
+// PROFILE PAGE
+// ══════════════════════════════════════════════════════════════
+function personaLabel(p) { return (PERSONAS.find(x=>x.id===p)||{}).label || p || 'Not set'; }
+function personaIcon(p) { return (PERSONAS.find(x=>x.id===p)||{}).icon || '👤'; }
+
+function pgProfile() {
+  if (!currentUser) return `<div class="admin-lock"><h2>👤 Sign In Required</h2><p>Sign in to view and edit your profile.</p>
+    <button onclick="openModal('signin-modal')" style="padding:11px 24px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Sign In</button></div>`;
+
+  const p = _userProfile;
+  if (!p || !p.onboarding_complete) return `<div class="admin-lock"><h2>👤 Complete Your Profile</h2><p>Set up your profile so Russell can connect you with the right people.</p>
+    <button onclick="showWizard()" style="padding:11px 24px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Set Up Profile →</button></div>`;
+
+  const chips = (arr) => arr && arr.length ? arr.map(a=>`<span class="profile-chip">${a}</span>`).join('') : '<span style="color:var(--text-faint);font-size:12px">None set</span>';
+  const field = (label, val) => val ? `<div class="profile-field"><label>${label}</label><div class="pf-val">${val}</div></div>` : '';
+
+  let detailSection = '';
+  if (p.persona === 'founder') {
+    detailSection = `
+    ${field('Company', p.company_name)}
+    ${field('Stage', (COMPANY_STAGES.find(s=>s.id===p.company_stage)||{}).label || p.company_stage)}
+    ${field('What You\'re Building', p.what_building)}
+    ${field('Funding', (FUNDING_STATUSES.find(s=>s.id===p.funding_status)||{}).label || p.funding_status)}
+    ${field('Team Size', p.team_size)}
+    <div class="profile-field"><label>Biggest Needs</label><div class="profile-chips">${chips(p.biggest_needs)}</div></div>`;
+  } else if (p.persona === 'investor') {
+    detailSection = `
+    <div class="profile-field"><label>Investment Stages</label><div class="profile-chips">${chips(p.investment_stages)}</div></div>
+    ${field('Check Size', p.check_size)}
+    ${field('AgTech Portfolio', p.portfolio_agtech)}
+    ${field('Deal Interests', p.deal_interests)}`;
+  } else if (p.persona === 'advisor') {
+    detailSection = `
+    <div class="profile-field"><label>Expertise Areas</label><div class="profile-chips">${chips(p.expertise_areas)}</div></div>
+    ${field('Currently Advising', p.advising_count)}
+    ${field('Looking to Help', p.advisor_interests)}`;
+  } else if (p.persona === 'researcher') {
+    detailSection = `${field('Institution', p.institution)}${field('Research Focus', p.research_focus)}${field('Open to Collaboration', p.open_to_collab ? 'Yes' : 'No')}`;
+  } else if (p.persona === 'service_provider') {
+    detailSection = `${field('Service Type', p.service_type)}${field('Startup Experience', p.startup_experience ? 'Yes' : 'No')}`;
+  }
+
+  return `<div class="page-hdr"><h1>My Profile</h1><p>Your information helps Russell connect you with the right people in the AgTech ecosystem.</p></div>
+  <div class="card">
+    <div class="profile-header">
+      ${p.avatar_url ? `<img src="${p.avatar_url}" class="profile-avatar">` : `<div class="profile-avatar-placeholder">${(p.full_name||'?')[0].toUpperCase()}</div>`}
+      <div>
+        <div style="font-size:18px;font-weight:800;color:var(--text)">${p.full_name || 'Anonymous'}</div>
+        <div style="font-size:13px;color:var(--text-muted)">${p.email}</div>
+        <span class="admin-tag tag-${p.persona}" style="margin-top:4px;display:inline-block">${personaIcon(p.persona)} ${personaLabel(p.persona)}</span>
+      </div>
+    </div>
+    <div class="profile-2col">
+      <div>${field('Organization', p.organization)}${field('Title', p.job_title)}${field('Location', p.location)}</div>
+      <div>${field('LinkedIn', p.linkedin_url ? `<a href="${p.linkedin_url}" target="_blank" style="color:var(--green)">${p.linkedin_url}</a>` : '')}${field('Member Since', new Date(p.created_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}))}</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>${personaIcon(p.persona)} ${personaLabel(p.persona)} Details</h3>
+    ${detailSection}
+    <div class="profile-field"><label>AgTech Focus Areas</label><div class="profile-chips">${chips(p.agtech_focus)}</div></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>🎯 Goals</h3>
+    ${field('Platform Goals', p.goals_platform)}
+    ${field('Big-Picture Goals', p.goals_general)}
+    ${field('How You Found Us', p.how_heard)}
+  </div>
+
+  <div style="margin-top:16px;text-align:center">
+    <button onclick="showWizard()" style="padding:10px 28px;background:var(--accent-bg);color:var(--green);border:1px solid var(--green-mid);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✏️ Edit Profile</button>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ENHANCED ADMIN DASHBOARD
+// ══════════════════════════════════════════════════════════════
+let adminFilter = 'all';
+let adminSearch = '';
+let adminExpandedUser = null;
+
+function pgAdmin(){
+  if(!isAdmin) return `<div class="admin-lock"><h2>🔐 Admin Access Required</h2>
+    <p>Sign in as <strong>russellcolevop@gmail.com</strong> to access the admin dashboard.</p>
+    <button onclick="${currentUser?'goAdmin()':'openModal(\'signin-modal\')'}" style="padding:11px 24px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">${currentUser?'Check Admin Access':'Sign In First'}</button></div>`;
+
+  // Trigger async load of profiles
+  if (!_allProfiles.length) {
+    loadAllProfiles().then(profiles => { _allProfiles = profiles; render('admin'); });
+    return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1><p>Loading user profiles...</p></div><div class="card" style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Fetching profiles from Supabase...</p></div>`;
+  }
+
+  const profiles = _allProfiles;
+  const filtered = profiles.filter(p => {
+    if (adminFilter !== 'all' && p.persona !== adminFilter) return false;
+    if (adminSearch) {
+      const s = adminSearch.toLowerCase();
+      return (p.full_name||'').toLowerCase().includes(s) || (p.email||'').toLowerCase().includes(s) || (p.organization||'').toLowerCase().includes(s) || (p.company_name||'').toLowerCase().includes(s);
+    }
+    return true;
+  });
+
+  // Stats
+  const total = profiles.length;
+  const founders = profiles.filter(p=>p.persona==='founder').length;
+  const investors = profiles.filter(p=>p.persona==='investor').length;
+  const advisors = profiles.filter(p=>p.persona==='advisor').length;
+  const researchers = profiles.filter(p=>p.persona==='researcher').length;
+  const others = total - founders - investors - advisors - researchers;
+  const thisWeek = profiles.filter(p=>new Date(p.created_at) >= new Date(Date.now()-7*864e5)).length;
+  const needFunding = profiles.filter(p=>(p.biggest_needs||[]).includes('Funding')).length;
+  const needConnections = profiles.filter(p=>(p.biggest_needs||[]).includes('Industry Connections')).length;
+
+  // Build user cards
+  const userCards = filtered.map(p => {
+    const expanded = adminExpandedUser === p.id;
+    const initials = (p.full_name||p.email||'?').slice(0,2).toUpperCase();
+    const tags = [];
+    if (p.persona) tags.push(`<span class="admin-tag tag-${p.persona}">${personaIcon(p.persona)} ${personaLabel(p.persona)}</span>`);
+    if (p.company_stage) tags.push(`<span class="admin-tag" style="background:var(--hover);color:var(--text-muted)">${(COMPANY_STAGES.find(s=>s.id===p.company_stage)||{}).label||p.company_stage}</span>`);
+    if (p.funding_status) tags.push(`<span class="admin-tag" style="background:var(--hover);color:var(--text-muted)">${(FUNDING_STATUSES.find(s=>s.id===p.funding_status)||{}).label||p.funding_status}</span>`);
+    if (p.location) tags.push(`<span class="admin-tag" style="background:var(--hover);color:var(--text-muted)">📍 ${p.location}</span>`);
+
+    let detail = '';
+    if (expanded) {
+      const f = (label, val) => val ? `<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-faint)">${label}</span><div style="font-size:13px;color:var(--text)">${val}</div></div>` : '';
+      const chipList = (arr) => arr && arr.length ? `<div class="profile-chips" style="margin-top:2px">${arr.map(a=>`<span class="profile-chip">${a}</span>`).join('')}</div>` : '';
+
+      detail = `<div class="admin-detail-panel">
+        <div class="profile-2col">
+          <div>
+            ${f('Organization', p.organization)}
+            ${f('Title', p.job_title)}
+            ${f('LinkedIn', p.linkedin_url ? `<a href="${p.linkedin_url}" target="_blank" style="color:var(--green)">${p.linkedin_url}</a>` : '')}
+            ${f('Company', p.company_name)}
+            ${f('What They\'re Building', p.what_building)}
+            ${f('Check Size', p.check_size)}
+            ${f('Institution', p.institution)}
+            ${f('Research Focus', p.research_focus)}
+            ${f('Service Type', p.service_type)}
+          </div>
+          <div>
+            ${f('Team Size', p.team_size)}
+            ${f('Platform Goals', p.goals_platform)}
+            ${f('Big-Picture Goals', p.goals_general)}
+            ${f('How They Found Us', p.how_heard)}
+            ${f('Deal Interests', p.deal_interests)}
+            ${f('Advisor Interests', p.advisor_interests)}
+            ${f('Advising Count', p.advising_count)}
+          </div>
+        </div>
+        ${(p.biggest_needs||[]).length ? `<div style="margin-top:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-faint)">Biggest Needs</span>${chipList(p.biggest_needs)}</div>` : ''}
+        ${(p.agtech_focus||[]).length ? `<div style="margin-top:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-faint)">AgTech Focus</span>${chipList(p.agtech_focus)}</div>` : ''}
+        ${(p.expertise_areas||[]).length ? `<div style="margin-top:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-faint)">Expertise</span>${chipList(p.expertise_areas)}</div>` : ''}
+        ${(p.investment_stages||[]).length ? `<div style="margin-top:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-faint)">Investment Stages</span>${chipList(p.investment_stages)}</div>` : ''}
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-faint);display:block;margin-bottom:4px">📝 Admin Notes (only you can see this)</label>
+          <textarea class="admin-notes-area" id="notes-${p.id}" onblur="saveNotes('${p.id}')">${p.admin_notes||''}</textarea>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text-faint)">Joined: ${new Date(p.created_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Last updated: ${new Date(p.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+      </div>`;
+    }
+
+    return `<div class="admin-user-card" onclick="toggleAdminUser('${p.id}')">
+      <div class="admin-user-top">
+        ${p.avatar_url ? `<img src="${p.avatar_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0">` : `<div class="admin-user-avatar">${initials}</div>`}
+        <div style="flex:1;min-width:0">
+          <div class="admin-user-name">${p.full_name||'Anonymous'} ${p.email===RUSSELL_EMAIL?'<span style="font-size:10px;color:var(--green)">(You)</span>':''}</div>
+          <div class="admin-user-email">${p.email} ${p.organization ? '· '+p.organization : ''}</div>
+        </div>
+        <div style="font-size:16px;color:var(--text-faint)">${expanded?'▲':'▼'}</div>
+      </div>
+      <div class="admin-user-meta">${tags.join('')}</div>
+      ${detail}
+    </div>`;
+  }).join('');
+
+  const filterBtn = (id, label, count) => `<button class="admin-filter-btn ${adminFilter===id?'active':''}" onclick="adminFilter='${id}';render('admin')">${label}${count !== undefined ? ` (${count})` : ''}</button>`;
+
+  return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
+  <p>Ecosystem intelligence — see who's using the platform and make great connections.</p></div>
+
+  <div class="admin-stat-row">
+    <div class="admin-mini-stat"><div class="ams-val">${total}</div><div class="ams-lbl">Total Users</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${founders}</div><div class="ams-lbl">Founders</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${investors}</div><div class="ams-lbl">Investors</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${advisors}</div><div class="ams-lbl">Advisors</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${researchers}</div><div class="ams-lbl">Researchers</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${thisWeek}</div><div class="ams-lbl">This Week</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${needFunding}</div><div class="ams-lbl">Need Funding</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${needConnections}</div><div class="ams-lbl">Need Connections</div></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div><h3 style="margin:0 0 3px">👥 User Directory</h3><div class="sub">${filtered.length} of ${total} users shown</div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="admin-search" placeholder="🔍 Search users..." value="${adminSearch}" oninput="adminSearch=this.value;render('admin')">
+        <button onclick="adminExportCSV()" style="padding:7px 14px;background:var(--accent-bg);color:var(--green);border:1px solid var(--green-mid);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">↓ Export CSV</button>
+        <button onclick="_allProfiles=[];render('admin')" style="padding:7px 14px;background:var(--hover);border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-muted);white-space:nowrap">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="admin-filters">
+      ${filterBtn('all','All',total)}
+      ${filterBtn('founder','🚀 Founders',founders)}
+      ${filterBtn('investor','💰 Investors',investors)}
+      ${filterBtn('advisor','🧭 Advisors',advisors)}
+      ${filterBtn('researcher','🔬 Researchers',researchers)}
+      ${filterBtn('industry_pro','🏭 Industry',profiles.filter(p=>p.persona==='industry_pro').length)}
+      ${filterBtn('service_provider','⚖️ Services',profiles.filter(p=>p.persona==='service_provider').length)}
+      ${filterBtn('government','🏛️ Government',profiles.filter(p=>p.persona==='government').length)}
+    </div>
+    ${filtered.length ? userCards : '<div style="text-align:center;padding:32px;color:var(--text-faint)"><div style="font-size:28px;margin-bottom:8px">🔍</div><p>No users match your filters. Adjust filters or search terms.</p></div>'}
+  </div>`;
+}
+
+function toggleAdminUser(id) { adminExpandedUser = adminExpandedUser === id ? null : id; render('admin'); }
+
+async function saveNotes(userId) {
+  const textarea = document.getElementById('notes-' + userId);
+  if (!textarea) return;
+  const ok = await updateAdminNotes(userId, textarea.value, []);
+  if (ok) toast('📝 Notes saved');
+}
+
+function adminExportCSV() {
+  const profiles = _allProfiles;
+  if (!profiles.length) { toast('No user data to export'); return; }
+  const headers = ['Name','Email','Persona','Organization','Title','Location','LinkedIn','Company','Stage','Funding','Building','Team Size','Needs','AgTech Focus','Goals (Platform)','Goals (General)','How Heard','Joined','Admin Notes'];
+  const rows = profiles.map(p => [
+    p.full_name, p.email, personaLabel(p.persona), p.organization, p.job_title, p.location, p.linkedin_url,
+    p.company_name, p.company_stage, p.funding_status, p.what_building, p.team_size,
+    (p.biggest_needs||[]).join('; '), (p.agtech_focus||[]).join('; '),
+    p.goals_platform, p.goals_general, p.how_heard,
+    new Date(p.created_at).toISOString().slice(0,10), p.admin_notes
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'agtech_users_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('📥 CSV exported with ' + profiles.length + ' users');
+}
+
 // ── ROUTER ────────────────────────────────────────────────────────
 const pages = {
   overview: pgOverview, journey: pgJourney, glossary: pgGlossary,
   documents: pgDocuments, media: pgMedia, ecosystem: pgEcosystem,
   segments: pgSegments, crops: pgCrops, resources: pgResources,
-  admin: pgAdmin
+  admin: pgAdmin, profile: pgProfile
 };
 function render(page){
   trackPage(page);
