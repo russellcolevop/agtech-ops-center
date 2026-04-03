@@ -233,6 +233,18 @@
   .rec-card .rec-title { font-size: 13px; font-weight: 700; color: var(--text); }
   .rec-card .rec-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
+  /* ── ACCORDION ── */
+  .hub-accordion { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px; background: var(--surface); }
+  .hub-accordion .ha-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; cursor: pointer; user-select: none; transition: background .15s; }
+  .hub-accordion .ha-header:hover { background: var(--hover); }
+  .hub-accordion .ha-header .ha-icon { font-size: 20px; flex-shrink: 0; }
+  .hub-accordion .ha-header .ha-title { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+  .hub-accordion .ha-header .ha-count { font-size: 11px; padding: 2px 9px; border-radius: 10px; background: var(--hover); color: var(--text-muted); font-weight: 600; }
+  .hub-accordion .ha-header .ha-arrow { font-size: 12px; color: var(--text-faint); transition: transform .2s; }
+  .hub-accordion.open .ha-header .ha-arrow { transform: rotate(180deg); }
+  .hub-accordion .ha-body { max-height: 0; overflow: hidden; transition: max-height .3s ease-out, padding .3s ease-out; padding: 0 20px; }
+  .hub-accordion.open .ha-body { max-height: 8000px; padding: 0 20px 20px; transition: max-height .5s ease-in, padding .2s ease-in; }
+
   /* ── VC GRID ── */
   .vc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; }
   .vc-item { background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 11px; }
@@ -661,7 +673,8 @@
     <button class="nav-item" onclick="go('journey',this)"><span class="nav-icon">🚀</span> Founder's Journey</button>
     <button class="nav-item" onclick="go('glossary',this)"><span class="nav-icon">📖</span> AgTech Glossary</button>
     <button class="nav-item" onclick="go('documents',this)"><span class="nav-icon">🧰</span> Founder Toolkit</button>
-    <button class="nav-item" onclick="go('media',this)"><span class="nav-icon">📡</span> AgTech Media &amp; Influencers</button>
+    <!-- Media & Influencers merged into Community Hub -->
+    <!--<button class="nav-item" onclick="go('media',this)"><span class="nav-icon">📡</span> AgTech Media &amp; Influencers</button>-->
   </div>
   <div class="region-wrap">
     <div class="region-lbl">Region-Specific Data</div>
@@ -4912,7 +4925,7 @@ function pgRoadmapStandalone() {
 // ══════════════════════════════════════════════════════════════
 // COMMUNITY HUB
 // ══════════════════════════════════════════════════════════════
-let hubTab = 'newsletters';
+// hubTab removed — replaced by accordion layout (_hubOpen)
 
 const HUB_NEWSLETTERS = [
   { name:'AIVA Newsletter', by:'AIVA', freq:'Regular', desc:'AgTech innovation and venture updates from the AIVA network.', url:'https://airtable.com/appaz6m2ulaHTytRg/pagDTVshyiPNeHKp3/form', icon:'📰' },
@@ -5045,88 +5058,129 @@ const HUB_MENTORS = [
 let mentorSearch = '';
 let mentorFilter = '';
 let mentorCountry = '';
+let _hubOpen = { mentors: true, communities: true, newsletters: false, events: false, podcasts: false, leaders: false };
+
+function hubToggle(section) {
+  _hubOpen[section] = !_hubOpen[section];
+  render('hub');
+}
+
+const HUB_PODCASTS = [
+  { name:'Future of Agriculture', desc:'Conversations with farmers, entrepreneurs, and researchers about agricultural innovation.', type:'Podcast', tag:'Interviews', icon:'🎙️' },
+  { name:'AgTech...So What?', desc:"Sarah Nolet's podcast exploring technology adoption, commercialization, and real-world impact in agriculture.", type:'Podcast', tag:'Strategy', icon:'🎧' },
+  { name:'FarmBits', desc:'Weekly ag tech news, startup funding updates, and industry analysis.', type:'Podcast', tag:'News', icon:'📻' },
+  { name:'Vertical Farming Podcast', desc:'CEA technology, indoor farming innovations, and controlled environment agriculture business models.', type:'Podcast', tag:'CEA', icon:'🏢' },
+  { name:'Groundbreakers', desc:"Syngenta's podcast featuring innovators in agriculture, sustainability, and regenerative practices.", type:'Podcast', tag:'Innovation', icon:'🌱' },
+  { name:'AgFunder Network', desc:'Video interviews with agri-food tech founders, investors, and industry leaders.', type:'YouTube', tag:'Video', icon:'📺' }
+];
+
+const HUB_LEADERS = [
+  { n:'Darren Anderson', r:'Co-Founder & CEO, Vive Crop Protection', f:'Biotech', d:'Canadian founder of nanotechnology-based crop protection products with 100+ patents.' },
+  { n:'David Friedberg', r:'CEO, The Production Board', f:'Biotech', d:'Climate tech and agricultural biotech investor; founder of Climate Corporation.' },
+  { n:'Evan Nisselson', r:'General Partner, LDV Capital', f:'Investment', d:'Leading AI and computer vision venture fund with significant AgTech portfolio.' },
+  { n:'Karen Schuett', r:'Co-Founder & CEO, Livestock Water Recycling', f:'Livestock Tech', d:'Named one of six most influential women in Canadian agriculture.' },
+  { n:'Kimbal Musk', r:'Co-Founder, Big Green & Square Roots', f:'Sustainability', d:'Urban farming entrepreneur and food systems advocate.' },
+  { n:'Louisa Burwood-Taylor', r:'Head of Media, AgFunder', f:'Investment', d:'Expert on agri-food tech investment trends and startup ecosystems.' },
+  { n:'Michael Gilbert', r:'Founder, Semios', f:'IoT', d:'Pioneer in agricultural IoT and precision irrigation from Vancouver.' },
+  { n:'Ranveer Chandra', r:'VP & CTO Agri-Food, Microsoft', f:'AI / IoT', d:'Led Microsoft FarmBeats; named one of Newsweek\'s 50 Most Disruptive Innovators.' },
+  { n:'Rob Trice', r:'Founder, Better Food Ventures', f:'VC / Investor', d:'Early-stage AgTech investor focused on sustainable food systems.' },
+  { n:'Robert Saik', r:'CEO & Founder, AGvisorPRO', f:'Digital Platform', d:'Named one of Canada\'s Top 50 Most Influential Agriculture Leaders.' },
+  { n:'Sara Menker', r:'Founder & CEO, Gro Intelligence', f:'AgData / AI', d:'Data scientist using AI to forecast agricultural and climate trends.' },
+  { n:'Sarah Nolet', r:'Co-Founder, AgThentic', f:'Strategy', d:'Innovation strategy, adoption barriers, and practical AgTech implementation.' },
+  { n:'Sylvain Charlebois', r:'Director, Agri-Food Analytics Lab', f:'Policy', d:'Canadian food systems researcher; author of Canada\'s Food Price Report.' },
+  { n:'Vonnie Estes', r:'VP of Innovation, IFPA', f:'Fresh Produce', d:'Leading voice on food tech, supply chain innovation, and produce technology.' },
+  { n:'Walt Duflock', r:'VP Innovation, Western Growers', f:'Community', d:'AgTech entrepreneur, mentor list curator, and advocate for farm profitability.' }
+];
+
+function hubAccordion(id, icon, title, count, content) {
+  const open = _hubOpen[id];
+  return `<div class="hub-accordion ${open ? 'open' : ''}">
+    <div class="ha-header" onclick="hubToggle('${id}')">
+      <span class="ha-icon">${icon}</span>
+      <span class="ha-title">${title}</span>
+      <span class="ha-count">${count}</span>
+      <span class="ha-arrow">▼</span>
+    </div>
+    <div class="ha-body">${content}</div>
+  </div>`;
+}
 
 function pgCommunityHub() {
   if (!currentUser) return guestGateCard('hub');
 
-  const tabs = [
-    { id:'newsletters', label:'📰 Newsletters', count: HUB_NEWSLETTERS.length },
-    { id:'communities', label:'🌐 Communities', count: HUB_COMMUNITIES.length },
-    { id:'events', label:'📅 Events', count: HUB_EVENTS.length },
-    { id:'mentors', label:'🧑‍🏫 Mentors', count: HUB_MENTORS.length }
-  ];
+  // ── Mentors section (with search/filters) ──
+  const mentorContent = hubMentorContent();
 
-  const tabBar = `<div class="ac-tabs">${tabs.map(t =>
-    `<button class="ac-tab ${hubTab===t.id?'active':''}" onclick="hubTab='${t.id}';render('hub')">${t.label} <span class="ac-count">${t.count}</span></button>`
-  ).join('')}</div>`;
+  // ── Communities section ──
+  const commContent = `<div class="ac-grid">${HUB_COMMUNITIES.map(c => `
+    <div class="ac-card">
+      <div class="ac-icon">${c.icon}</div>
+      <div class="ac-title">${c.name}</div>
+      <div class="ac-org">${c.by}</div>
+      <div style="margin-bottom:10px"><span class="ac-tag type">${c.type}</span></div>
+      <div class="ac-desc">${c.desc}</div>
+      <a href="${c.url}" target="_blank" rel="noopener" class="ac-btn primary">Join →</a>
+    </div>`).join('')}</div>`;
 
-  let content = '';
-
-  if (hubTab === 'newsletters') {
-    content = `<div class="ac-section">
-      <div class="ac-section-hdr"><h3>Subscribe to AgTech Newsletters</h3></div>
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">Stay informed with curated newsletters from across the AgTech ecosystem. Click "Subscribe" to open each newsletter\'s sign-up page.</p>
-      <div class="nl-grid">${HUB_NEWSLETTERS.map(n => `
-        <div class="nl-card">
-          <div class="nl-top">
-            <div class="nl-emoji">${n.icon}</div>
-            <div>
-              <div class="nl-name">${n.name}</div>
-              <div class="nl-by">${n.by}</div>
-            </div>
-          </div>
-          <div class="nl-freq">${n.freq}</div>
-          <div class="nl-desc">${n.desc}</div>
-          <a href="${n.url}" target="_blank" rel="noopener" class="ac-btn primary" style="text-align:center;justify-content:center">📩 Subscribe →</a>
-        </div>`).join('')}
+  // ── Newsletters section ──
+  const nlContent = `<div class="nl-grid">${HUB_NEWSLETTERS.map(n => `
+    <div class="nl-card">
+      <div class="nl-top">
+        <div class="nl-emoji">${n.icon}</div>
+        <div><div class="nl-name">${n.name}</div><div class="nl-by">${n.by}</div></div>
       </div>
-    </div>`;
-  }
+      <div class="nl-freq">${n.freq}</div>
+      <div class="nl-desc">${n.desc}</div>
+      <a href="${n.url}" target="_blank" rel="noopener" class="ac-btn primary" style="text-align:center;justify-content:center">📩 Subscribe →</a>
+    </div>`).join('')}</div>`;
 
-  if (hubTab === 'communities') {
-    content = `<div class="ac-section">
-      <div class="ac-section-hdr"><h3>Join AgTech Communities</h3></div>
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">Connect with AgTech professionals through Slack channels, working groups, LinkedIn communities, and more.</p>
-      <div class="ac-grid">${HUB_COMMUNITIES.map(c => `
-        <div class="ac-card">
-          <div class="ac-icon">${c.icon}</div>
-          <div class="ac-title">${c.name}</div>
-          <div class="ac-org">${c.by}</div>
-          <div style="margin-bottom:10px"><span class="ac-tag type">${c.type}</span></div>
-          <div class="ac-desc">${c.desc}</div>
-          <a href="${c.url}" target="_blank" rel="noopener" class="ac-btn primary">Join →</a>
-        </div>`).join('')}
+  // ── Events section ──
+  const evContent = `<div class="ac-grid">${HUB_EVENTS.map(e => `
+    <div class="ac-card">
+      <div class="ac-icon">${e.icon}</div>
+      <div class="ac-title">${e.name}</div>
+      <div class="ac-org">${e.location}</div>
+      <div style="margin-bottom:10px"><span class="ac-tag event">📅 ${e.date}</span></div>
+      <div class="ac-desc">${e.desc}</div>
+      <a href="${e.url}" target="_blank" rel="noopener" class="ac-btn primary">Learn More →</a>
+    </div>`).join('')}</div>`;
+
+  // ── Podcasts section ──
+  const podContent = `<div class="ac-grid">${HUB_PODCASTS.map(p => `
+    <div class="ac-card">
+      <div class="ac-icon">${p.icon}</div>
+      <div class="ac-title">${p.name}</div>
+      <div style="margin-bottom:10px"><span class="ac-tag type">${p.type}</span><span class="ac-tag persona">${p.tag}</span></div>
+      <div class="ac-desc">${p.desc}</div>
+    </div>`).join('')}</div>`;
+
+  // ── Thought Leaders section ──
+  const leadContent = `<div class="ac-grid">${HUB_LEADERS.map(p => {
+    const initials = p.n.split(' ').map(w=>w[0]).join('');
+    return `<div class="ac-card" style="display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22c55e);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+        <div style="min-width:0">
+          <div class="ac-title" style="margin-bottom:0">${p.n}</div>
+          <div class="ac-org">${p.r}</div>
+        </div>
       </div>
+      <div style="margin-bottom:8px"><span class="ac-tag type">${p.f}</span></div>
+      <div class="ac-desc" style="flex:1">${p.d}</div>
     </div>`;
-  }
-
-  if (hubTab === 'events') {
-    content = `<div class="ac-section">
-      <div class="ac-section-hdr"><h3>Upcoming AgTech Events</h3></div>
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">Conferences, summits, and webinars to attend — in person and virtual.</p>
-      <div class="ac-grid">${HUB_EVENTS.map(e => `
-        <div class="ac-card">
-          <div class="ac-icon">${e.icon}</div>
-          <div class="ac-title">${e.name}</div>
-          <div class="ac-org">${e.location}</div>
-          <div style="margin-bottom:10px"><span class="ac-tag event">📅 ${e.date}</span></div>
-          <div class="ac-desc">${e.desc}</div>
-          <a href="${e.url}" target="_blank" rel="noopener" class="ac-btn primary">Learn More →</a>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  }
-
-  if (hubTab === 'mentors') {
-    content = hubMentorTab();
-  }
+  }).join('')}</div>`;
 
   return `<div class="page-hdr"><h1>🌐 Community Hub</h1>
-    <p>Your front door to the entire AgTech ecosystem — newsletters, communities, working groups, events, and mentors in one place.</p></div>
-    ${tabBar}${content}`;
+    <p>Your front door to the entire AgTech ecosystem. Expand any section to explore.</p></div>
+    ${hubAccordion('mentors', '🧑‍🏫', 'Find a Mentor', HUB_MENTORS.length, mentorContent)}
+    ${hubAccordion('communities', '🌐', 'Communities & Working Groups', HUB_COMMUNITIES.length, commContent)}
+    ${hubAccordion('events', '📅', 'Events & Conferences', HUB_EVENTS.length, evContent)}
+    ${hubAccordion('newsletters', '📰', 'Newsletters & Media', HUB_NEWSLETTERS.length, nlContent)}
+    ${hubAccordion('podcasts', '🎙️', 'Podcasts & Video', HUB_PODCASTS.length, podContent)}
+    ${hubAccordion('leaders', '🌟', 'Thought Leaders to Follow', HUB_LEADERS.length, leadContent)}`;
 }
 
-function hubMentorTab() {
+function hubMentorContent() {
   const agAreas = [...new Set(HUB_MENTORS.map(m=>m.ag).filter(Boolean))].sort();
   const countries = [...new Set(HUB_MENTORS.map(m=>m.co).filter(Boolean))].sort();
 
@@ -5143,10 +5197,7 @@ function hubMentorTab() {
 
   const availColor = { Yes:'#16a34a', Limited:'#d97706', Unknown:'#9ca3af' };
 
-  return `<div class="ac-section">
-    <div class="ac-section-hdr"><h3>Find an AgTech Mentor</h3><span class="ac-count">${filtered.length} of ${HUB_MENTORS.length}</span></div>
-    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">Curated from Walt Duflock\'s AgTech Startup Mentor List. Search by name, expertise, or focus area.</p>
-
+  return `<p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">Curated from Walt Duflock's AgTech Startup Mentor List. Search by name, expertise, or focus area.</p>
     <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
       <input type="text" placeholder="🔍 Search mentors..." value="${mentorSearch}" oninput="mentorSearch=this.value;render('hub')" style="flex:1;min-width:200px;padding:9px 14px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--surface);color:var(--text)">
       <select onchange="mentorFilter=this.value;render('hub')" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--surface);color:var(--text)">
@@ -5157,8 +5208,8 @@ function hubMentorTab() {
         <option value="">All Countries</option>
         ${countries.map(c => '<option value="'+c+'"'+(mentorCountry===c?' selected':'')+'>'+c+'</option>').join('')}
       </select>
+      <span style="font-size:11px;color:var(--text-faint)">${filtered.length} of ${HUB_MENTORS.length}</span>
     </div>
-
     ${filtered.length === 0 ? '<div class="conn-empty"><div class="ce-icon">🔍</div><p>No mentors match your filters. Try broadening your search.</p></div>' :
     `<div class="ac-grid">${filtered.slice(0,50).map(m => {
       const initials = m.n.split(' ').map(w=>w[0]).join('').slice(0,2);
@@ -5180,8 +5231,7 @@ function hubMentorTab() {
         ${m.li ? '<a href="'+m.li+'" target="_blank" rel="noopener" class="ac-btn primary" style="margin-top:auto">Connect on LinkedIn →</a>' : '<div style="font-size:11px;color:var(--text-faint);margin-top:auto">No LinkedIn listed</div>'}
       </div>`;
     }).join('')}</div>
-    ${filtered.length > 50 ? '<p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:16px">Showing first 50 of '+filtered.length+' results. Use search or filters to narrow down.</p>' : ''}`}
-  </div>`;
+    ${filtered.length > 50 ? '<p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:16px">Showing first 50 of '+filtered.length+' results. Use search or filters to narrow down.</p>' : ''}`}`;
 }
 
 // ══════════════════════════════════════════════════════════════
