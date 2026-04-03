@@ -375,9 +375,14 @@
   html.dark .tier-operator { background:#581c87;color:#d8b4fe;border-color:#7e22ce; }
   .tier-leader { background:linear-gradient(135deg,#fef9c3,#fde68a);color:#92400e;border:1px solid #f59e0b; }
   html.dark .tier-leader { background:linear-gradient(135deg,#78350f,#92400e);color:#fde68a;border-color:#f59e0b; }
-  .badge-item { display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:600;background:var(--hover);border:1px solid var(--border);color:var(--text);position:relative;cursor:pointer; }
-  .badge-item.earned { background:var(--accent-bg);border-color:var(--green-mid);color:var(--green); }
-  .badge-item.locked { opacity:.55; }
+  .badge-item { display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:20px;font-size:11px;font-weight:700;background:var(--hover);border:1.5px solid var(--border);color:var(--text-muted);position:relative;cursor:pointer;transition:all .2s ease;letter-spacing:.01em; }
+  .badge-item:hover { transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12); }
+  .badge-item.earned { background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border-color:rgba(34,197,94,.4);color:#16a34a;box-shadow:0 0 0 1px rgba(34,197,94,.08),0 2px 8px rgba(34,197,94,.1); }
+  :root.dark .badge-item.earned { background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(34,197,94,.05));color:#4ade80; }
+  .badge-item.locked { opacity:.45;border-style:dashed; }
+  .badge-item .badge-icon { font-size:14px;line-height:1; }
+  .badge-item.earned .badge-icon { filter:none; }
+  .badge-item.locked .badge-icon { filter:grayscale(1);opacity:.6; }
   .badge-item .badge-tip { display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--bg-deep,#1a1a2e);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:11px;font-weight:400;white-space:nowrap;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.25);pointer-events:none;max-width:280px;white-space:normal;line-height:1.5; }
   .badge-item .badge-tip::after { content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--border); }
   .badge-item:hover .badge-tip { display:block; }
@@ -841,7 +846,7 @@ function applyUser(user, isNew) {
   const roadmapBtn = document.getElementById('nav-roadmap-btn');
   if (profileBtn) profileBtn.style.display = 'flex';
   if (adminBtn && isAdmin) adminBtn.style.display = 'flex';
-  if (roadmapBtn && isAdmin) roadmapBtn.style.display = 'flex';
+  // Roadmap nav only for non-admin users with access (admin sees it in the admin dashboard tabs)
 
   // Track & notify on new users
   const seenKey = 'foc_seen_' + user.id;
@@ -865,8 +870,8 @@ function applyUser(user, isNew) {
       showBlockedScreen();
       return;
     }
-    // Show roadmap nav for users granted access
-    if (profile && (profile.admin_tags||[]).includes('roadmap_access')) {
+    // Show roadmap nav for non-admin users granted access (admin sees it in admin dashboard)
+    if (!isAdmin && profile && (profile.admin_tags||[]).includes('roadmap_access')) {
       const rmBtn = document.getElementById('nav-roadmap-btn');
       if (rmBtn) rmBtn.style.display = 'flex';
     }
@@ -2459,6 +2464,77 @@ async function deleteUser(userId, userName) {
   render('admin');
 }
 
+// ── QUARTERLY CHECK-IN ────────────────────────────────────────
+function openCheckinModal() {
+  if (!currentUser || !_userProfile) return;
+  const p = _userProfile;
+  const personaDefs = PERSONA_BADGES[p.persona] || [];
+  const earned = p.badges || [];
+  const unearned = personaDefs.filter(b => !earned.includes(b.id) && !b.autoCheck);
+
+  const html = `<div class="badge-claim-overlay" onclick="if(event.target===this)this.remove()">
+    <div class="badge-claim-box" style="max-width:520px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:40px;margin-bottom:8px">📋</div>
+        <h3 style="margin:0 0 4px;font-size:18px">Quarterly Check-In</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin:0">Quick update to keep your profile current and your status active</p>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:6px">Has anything changed since your last update?</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="document.getElementById('checkin-changes').style.display='block';this.style.background='var(--green)';this.style.color='#fff'" style="padding:8px 18px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:var(--hover);color:var(--text)">Yes, things have changed</button>
+          <button onclick="submitCheckin('no_changes')" style="padding:8px 18px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:var(--hover);color:var(--text)">Nothing major changed</button>
+        </div>
+      </div>
+
+      <div id="checkin-changes" style="display:none">
+        <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:6px">What's new? (brief update)</label>
+        <textarea id="checkin-update-text" style="width:100%;min-height:60px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;resize:vertical;font-family:inherit;margin-bottom:12px" placeholder="e.g. Closed our seed round, started 2 new pilots, hired a CTO..."></textarea>
+
+        ${unearned.length > 0 ? `
+          <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:8px">Any new milestones to claim?</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${unearned.map(b =>
+            `<span class="badge-item locked" style="opacity:.7;border-style:solid;cursor:pointer" onclick="this.classList.toggle('earned');this.classList.toggle('locked');this.dataset.claim=this.classList.contains('earned')?'1':'0'" data-badge="${b.id}" data-claim="0">${b.icon} ${b.label}</span>`
+          ).join('')}</div>` : ''}
+
+        <button onclick="submitCheckin('updated')" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✅ Submit Check-In</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function submitCheckin(type) {
+  const updateText = (document.getElementById('checkin-update-text') || {}).value || '';
+  // Collect any claimed badges
+  const claimedEls = document.querySelectorAll('[data-badge][data-claim="1"]');
+  const newBadges = [...claimedEls].map(el => el.dataset.badge);
+
+  // Update profile
+  const updates = { last_checkin: new Date().toISOString() };
+  if (updateText.trim()) {
+    updates.checkin_notes = (_userProfile.checkin_notes || '') + '\n[' + new Date().toLocaleDateString() + '] ' + updateText.trim();
+  }
+  if (newBadges.length) {
+    updates.badges = [...new Set([...(_userProfile.badges || []), ...newBadges])];
+    updates.tier = calcTier(updates.badges);
+  }
+
+  const { error } = await _supabase.from('profiles').update(updates).eq('id', currentUser.id);
+  if (!error) {
+    Object.assign(_userProfile, updates);
+    const msg = type === 'no_changes'
+      ? '✅ Check-in recorded — you\'re all set!'
+      : `✅ Check-in complete!${newBadges.length ? ' ' + newBadges.length + ' new milestone(s) claimed!' : ''}`;
+    toast(msg);
+    render(currentPage);
+  } else {
+    toast('❌ Error saving check-in');
+  }
+  document.querySelector('.badge-claim-overlay')?.remove();
+}
+
 async function resetMyAccount() {
   if (!confirm('⚠️ Reset your own account?\n\nThis will wipe your profile data and take you through the onboarding wizard again.\n\nYour account will remain — just your profile gets cleared.')) return;
   const wiped = {
@@ -2677,16 +2753,22 @@ function getMissingFields(p) {
 
 function badgesGridHtml(earnedBadges, persona) {
   const defs = getBadgesForPersona(persona);
-  return `<div style="display:flex;flex-wrap:wrap;gap:6px">${defs.map(b => {
+  const earnedCount = defs.filter(b => earnedBadges.includes(b.id)).length;
+  const totalCount = defs.length;
+  return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <span style="font-size:12px;font-weight:800;color:var(--text)">${earnedCount}/${totalCount} milestones</span>
+    <div style="flex:1;height:4px;background:var(--hover);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.round(earnedCount/totalCount*100)}%;background:var(--green);border-radius:2px;transition:width .4s"></div></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px">${defs.map(b => {
     const earned = earnedBadges.includes(b.id);
     const isAuto = !!b.check;
     const clickAction = !earned && !isAuto ? `onclick="openBadgeClaim('${b.id}')"` : '';
     const tipText = earned
-      ? `<strong>✅ Earned!</strong><br>${b.desc}`
+      ? `<strong style="color:var(--green)">✅ Earned!</strong><br>${b.desc}`
       : isAuto
         ? `<strong>${b.label}</strong><br>${b.desc}<br><em style='color:var(--text-faint)'>Auto-earned when conditions are met</em>`
-        : `<strong>${b.label}</strong><br>${b.desc}<br><em style='color:var(--green)'>Click to claim this milestone</em>`;
-    return `<span class="badge-item ${earned?'earned':'locked'}" ${clickAction}>${b.icon} ${b.label}<span class="badge-tip">${tipText}</span></span>`;
+        : `<strong>${b.label}</strong><br>${b.desc}<br><em style='color:var(--green)'>Click to claim this milestone →</em>`;
+    return `<span class="badge-item ${earned?'earned':'locked'}" ${clickAction}><span class="badge-icon">${b.icon}</span> ${b.label}<span class="badge-tip">${tipText}</span></span>`;
   }).join('')}</div>`;
 }
 
@@ -3429,6 +3511,25 @@ function pgProfile() {
     ${field('How You Found Us', p.how_heard)}
   </div>
 
+  ${(() => {
+    const lastCheckin = p.last_checkin ? new Date(p.last_checkin) : null;
+    const daysSinceCheckin = lastCheckin ? Math.floor((Date.now() - lastCheckin.getTime()) / 864e5) : 999;
+    const isOverdue = daysSinceCheckin > 90;
+    const isWarning = daysSinceCheckin > 60;
+    return `<div class="card" style="margin-top:14px;border-left:4px solid ${isOverdue ? '#ef4444' : isWarning ? '#f59e0b' : 'var(--green)'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="margin:0 0 4px">${isOverdue ? '⚠️' : '📋'} Quarterly Check-In</h3>
+          <p style="font-size:12px;color:var(--text-muted);margin:0">${lastCheckin
+            ? `Last check-in: ${lastCheckin.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})} (${daysSinceCheckin} days ago)`
+            : 'You haven\'t completed a check-in yet'}</p>
+          ${isOverdue ? '<p style="font-size:11px;color:#ef4444;font-weight:700;margin:4px 0 0">Your profile may be suspended if not updated. Keep your milestones current to stay active.</p>' : ''}
+        </div>
+        <button onclick="openCheckinModal()" style="padding:10px 22px;background:${isOverdue ? '#ef4444' : 'var(--green)'};color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">${isOverdue ? '🚨 Check In Now' : isWarning ? '⏰ Check In' : '✅ Check In'}</button>
+      </div>
+    </div>`;
+  })()}
+
   <div style="margin-top:16px;text-align:center">
     <button onclick="editWizard()" style="padding:10px 28px;background:var(--accent-bg);color:var(--green);border:1px solid var(--green-mid);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✏️ Edit Profile</button>
   </div>`;
@@ -3550,7 +3651,7 @@ function pgAdmin(){
           }
         </div>
         <div style="margin-top:8px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-          <div style="font-size:10px;color:var(--text-faint)">Joined: ${new Date(p.created_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Last updated: ${new Date(p.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+          <div style="font-size:10px;color:var(--text-faint)">Joined: ${new Date(p.created_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Last updated: ${new Date(p.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})} ${p.last_checkin ? '· Check-in: '+new Date(p.last_checkin).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '· ⚠️ No check-in'}</div>
           ${p.email !== RUSSELL_EMAIL ? (p.blocked
             ? `<div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:11px;color:#dc2626;font-weight:700">🚫 Blocked${p.blocked_reason ? ' — '+p.blocked_reason : ''}</span>
@@ -3708,84 +3809,92 @@ function pgRoadmap() {
     </div>
   </div>
 
+  <!-- SHIPPED FEATURES -->
   <div class="card" style="margin-top:16px;border-left:4px solid var(--green)">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🏗️</span><h3 style="margin:0">Phase 1 — Multi-Ecosystem CRM</h3></div>
-    <span class="badge b-yellow" style="margin-bottom:12px">Priority Initiative</span>
-    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Transform FounderOps Center from an intelligence platform into the operating system for AgTech ecosystem managers. Each ecosystem node (accelerator, incubator, tech validator, regional hub) gets a private workspace with their own startup pipeline, relationship tracking, and document management — replacing the patchwork of Airtable, Google Drive, and generic CRMs.</p>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">✅</span><h3 style="margin:0">Shipped — Ecosystem Intelligence Foundation</h3></div>
+    <span class="badge b-green" style="margin-bottom:12px">Live</span>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">The core platform is live with verified profiles, persona-specific milestone journeys, structured evidence collection, and engagement tracking. Every feature below is built and deployed.</p>
 
     <div style="margin-top:16px">
-      <h4 style="font-size:13px;margin:0 0 10px;color:var(--text)">Core Capabilities</h4>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
         <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📋 Private Pipeline Management</div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Each ecosystem manager gets a Kanban-style pipeline for their startups. Custom stages (Application → Assessment → Active → Alumni), notes, tags, and status tracking. Replaces Airtable.</div>
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🎯 Persona-Specific Milestone Journeys</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">8 persona types (Founder, Investor, Advisor, Researcher, Farmer, Service Provider, Government, Industry Pro) each with 12 unique milestones tracking their real journey. Founders progress from incorporation through PMF to scaling. Investors track from fund affiliation through lead deals to ecosystem champion. Every persona has a meaningful progression path.</div>
         </div>
         <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🤝 Relationship Tracker</div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Log interactions, track introductions made, meeting notes, follow-ups. Full CRM for managing relationships with startups, investors, mentors, and partners.</div>
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📝 Badge Claim with Evidence Collection</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Users claim milestones by submitting structured evidence — not self-declaration. Each badge has specific evidence prompts. A founder claiming "First Revenue" describes their revenue model and timeline. An investor claiming "First Check" names the company and round. This evidence creates the richest participant dataset in AgTech.</div>
         </div>
         <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📁 Document Vault</div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Upload and organize process docs, assessment templates, pitch deck reviews, due diligence checklists. Per-ecosystem document library. Replaces Google Drive chaos.</div>
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🏅 Tier System (Explorer → Leader)</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Four-tier progression: Explorer (0+ badges), Builder (3+), Operator (6+), Leader (9+). Tiers reflect verified engagement, not vanity metrics. A Leader-tier investor has proven portfolio activity — they can set preferences to only connect with Operator+ founders. Quality controls quality.</div>
         </div>
         <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔄 Opt-In Cross-Ecosystem Sharing</div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Ecosystem managers can choose to share pipeline data with partner organizations. See when a startup is also being tracked by another ecosystem — coordinate instead of competing.</div>
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔄 Quarterly Check-In System</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Users are prompted quarterly to confirm their profile is current and claim new milestones. Color-coded urgency (green → yellow → red) keeps the ecosystem fresh. Stale profiles lose visibility. "Nothing changed" fast-path respects busy users while still recording engagement.</div>
         </div>
         <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📊 Ecosystem Analytics</div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Dashboard showing pipeline velocity, conversion rates, sector distribution, funding outcomes. Data each ecosystem manager can use for reporting and strategy.</div>
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📜 Terms & Consent Flow</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Onboarding includes persona-specific terms of participation with clear value propositions. Users consent to structured data collection, understanding that their milestone evidence contributes to ecosystem intelligence. Timestamped consent for compliance.</div>
         </div>
         <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🎯 Goal Tracking</div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Each ecosystem defines its goals — validate X technologies, enroll Y startups in accelerator, facilitate Z introductions. Platform tracks progress and surfaces opportunities to hit targets.</div>
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📊 Ecosystem Quality Metrics (Admin)</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Admin dashboard shows real-time ecosystem health: tier distribution, check-in rates, milestone velocity, engagement quality scores, and per-persona pool depth. Data-driven ecosystem management instead of guesswork.</div>
         </div>
       </div>
     </div>
 
     <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
-      <h4 style="font-size:13px;margin:0 0 8px;color:var(--text)">Why This Wins</h4>
+      <h4 style="font-size:13px;margin:0 0 8px;color:var(--text)">Why This Matters</h4>
       <div style="font-size:12px;line-height:1.8;color:var(--text-muted)">
-        <strong>For ecosystem managers:</strong> One tool replaces 4–5 (Airtable + Google Drive + email + spreadsheets + generic CRM). Purpose-built for AgTech — understands personas, sectors, and funding stages natively.<br>
-        <strong>For the platform:</strong> Each ecosystem manager brings their entire network of startups onto the platform. 10 ecosystem managers × 50 startups each = 500 warm users with rich profiles — all generating proprietary deal flow data.<br>
-        <strong>For the thesis-driven fund:</strong> This creates the data moat. Every startup tracked, every introduction made, every pipeline conversion becomes intelligence that informs investment decisions. No other fund will have this level of ecosystem-wide visibility.
+        <strong>The data moat:</strong> Every milestone claimed with evidence creates proprietary intelligence no other platform has. After 100 founders progress through milestones, the platform knows which stages are hardest, which sectors move fastest, and where capital is needed most.<br>
+        <strong>Self-maintaining quality:</strong> Quarterly check-ins + tier gating means the ecosystem stays fresh without manual curation. Stale profiles fade, active participants rise. Investors see only verified, engaged founders.<br>
+        <strong>Network effects:</strong> Each new participant increases the value for everyone else. A founder's milestone evidence helps investors assess deal quality. An investor's portfolio data helps founders target the right capital. The system gets smarter with every interaction.
       </div>
     </div>
   </div>
 
+  <!-- PHASE 1: NEXT -->
+  <div class="card" style="margin-top:16px;border-left:4px solid #f59e0b">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🏗️</span><h3 style="margin:0">Phase 1 — Multi-Ecosystem CRM Workspaces</h3></div>
+    <span class="badge b-yellow" style="margin-bottom:12px">Next Priority</span>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Transform FounderOps Center into the operating system for AgTech ecosystem managers. Each ecosystem node (accelerator, incubator, tech validator, regional hub) gets a private workspace with their own startup pipeline, relationship tracking, and document management — replacing the patchwork of Airtable, Google Drive, and generic CRMs.</p>
+
+    <div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+      <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📋 Private Pipeline Management</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Kanban-style pipeline per ecosystem. Custom stages, notes, tags, status tracking. Replaces Airtable for ecosystem managers.</div>
+      </div>
+      <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🤝 Relationship Tracker</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Log interactions, introductions, meeting notes, follow-ups. Full CRM for managing relationships across the ecosystem.</div>
+      </div>
+      <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔄 Cross-Ecosystem Sharing</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Opt-in pipeline sharing between partner organizations. See when a startup is tracked by multiple ecosystems — coordinate instead of competing.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 2: INTELLIGENCE -->
   <div class="card" style="margin-top:16px;border-left:4px solid var(--border)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🔮</span><h3 style="margin:0">Phase 2 — Intelligence Layer</h3></div>
     <span class="badge b-blue" style="margin-bottom:12px">Future</span>
-    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Once multiple ecosystem nodes are active, aggregate anonymized insights across the network. Identify sector-wide trends, emerging startups appearing across multiple pipelines, funding gaps, and collaboration opportunities. This is where FounderOps Center becomes the Bloomberg Terminal for AgTech.</p>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Aggregate milestone evidence and engagement data across the network to surface sector-wide trends, emerging startups, funding gaps, and collaboration opportunities. Introduce smart matching — connecting founders to the right investors based on verified stage, sector, and check size fit. This is where FounderOps Center becomes the Bloomberg Terminal for AgTech.</p>
   </div>
 
+  <!-- PHASE 3: REVENUE -->
   <div class="card" style="margin-top:16px;border-left:4px solid var(--border)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">💰</span><h3 style="margin:0">Phase 3 — Revenue Model</h3></div>
     <span class="badge b-purple" style="margin-bottom:12px">Long-term</span>
-    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Free tier: ecosystem intelligence platform (current features). Pro tier: CRM workspace for ecosystem managers ($X/month per seat). Fund: thesis-driven investments powered by proprietary deal flow generated by the entire network. The platform pays for itself through data-driven investment returns.</p>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Free tier: ecosystem profiles with milestone tracking (current features). Pro tier: CRM workspace for ecosystem managers. Premium investor access: verified deal flow, filtered by tier and milestone stage. Fund: thesis-driven investments powered by proprietary deal flow and milestone intelligence from the entire network.</p>
   </div>
 
+  <!-- PHASE 4: TALENT -->
   <div class="card" style="margin-top:16px;border-left:4px solid var(--border)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">👥</span><h3 style="margin:0">Phase 4 — Talent & Employment</h3></div>
     <span class="badge b-purple" style="margin-bottom:12px">Future Opportunity</span>
-    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">AgTech startups struggle to find specialized talent — engineers who understand agriculture, sales people who can navigate farm networks, operators who've scaled hardware+software companies. Meanwhile, talented professionals interested in AgTech have no central place to discover opportunities.</p>
-    <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px">
-      <div style="padding:12px;background:var(--hover);border-radius:8px;border:1px solid var(--border)">
-        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🎯 Job Board</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Startups post roles tagged by sector, stage, and skills needed. Talent profiles match automatically based on expertise and interests.</div>
-      </div>
-      <div style="padding:12px;background:var(--hover);border-radius:8px;border:1px solid var(--border)">
-        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🤝 Talent Matching</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Same matching engine that powers investor-founder intros, extended to talent. Founders describe their ideal hire, the platform surfaces candidates from the network.</div>
-      </div>
-      <div style="padding:12px;background:var(--hover);border-radius:8px;border:1px solid var(--border)">
-        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📊 Ecosystem Talent Data</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Aggregated insights on talent supply and demand across the AgTech ecosystem. Where are the skill gaps? Which sectors are hiring fastest? Data for ecosystem managers and investors.</div>
-      </div>
-    </div>
-    <div style="margin-top:12px;padding:10px 14px;background:var(--accent-bg);border:1px solid var(--green-mid);border-radius:8px">
-      <div style="font-size:12px;color:var(--green);line-height:1.6"><strong>Why it fits:</strong> Every startup on the platform eventually needs to hire. Every professional in the network is a potential candidate. The talent layer monetizes naturally through job listing fees and recruiting commissions — and deepens platform stickiness for all personas.</div>
-    </div>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">AgTech startups struggle to find specialized talent. The platform already has verified, tiered professionals across every persona. Extend the matching engine to talent: job board, talent matching based on verified expertise, and ecosystem-wide talent supply/demand data. Monetizes through listing fees and recruiting commissions.</p>
   </div>`;
 }
 
