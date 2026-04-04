@@ -781,6 +781,7 @@
       <option value="service_provider">⚖️ Service Provider</option>
       <option value="government">🏛️ Government</option>
     </select>
+    <button id="admin-preview-wiz-btn" style="display:none;padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--text);font-family:inherit;cursor:pointer;white-space:nowrap" onclick="previewWizard()">🧙 Preview Wizard</button>
     <div style="position:relative" id="user-menu-wrap">
       <button class="signin-btn" id="topbar-user-btn" onclick="openModal('signin-modal')">→ Sign In</button>
       <div id="user-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:200px;z-index:200;overflow:hidden">
@@ -993,6 +994,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
     const ivb = document.getElementById('nav-investor-btn'); if (ivb) ivb.style.display = 'none';
     const mts = document.getElementById('sidebar-my-tools'); if (mts) mts.style.display = 'none';
     const ps = document.getElementById('admin-persona-switcher'); if (ps) { ps.style.display = 'none'; ps.value = ''; }
+    const pwb = document.getElementById('admin-preview-wiz-btn'); if (pwb) pwb.style.display = 'none';
     _adminPersonaOverride = null;
     // Reset branding to default on signout
     const lt = document.querySelector('.logo-text'); if (lt) lt.textContent = 'Founder Ops Center';
@@ -1042,6 +1044,8 @@ function applyUser(user, isNew) {
   // Show persona switcher for admin
   const personaSwitcher = document.getElementById('admin-persona-switcher');
   if (personaSwitcher) personaSwitcher.style.display = isAdmin ? 'inline-block' : 'none';
+  const previewWizBtn = document.getElementById('admin-preview-wiz-btn');
+  if (previewWizBtn) previewWizBtn.style.display = isAdmin ? 'inline-block' : 'none';
   // Roadmap nav only for non-admin users with access (admin sees it in the admin dashboard tabs)
 
   // Track & notify on new users
@@ -1221,6 +1225,28 @@ function adminSwitchPersona(persona) {
   render(currentPage);
   const label = (PERSONAS.find(p=>p.id===persona)||{}).label || persona;
   toast('👁️ Previewing as: ' + label);
+}
+
+let _wizPreviewMode = false;
+function previewWizard() {
+  // Use the currently selected persona from the switcher, or start fresh
+  const switcher = document.getElementById('admin-persona-switcher');
+  const selectedPersona = switcher ? switcher.value : '';
+  _wizPreviewMode = true;
+  wizStep = 0;
+  wizData = {
+    persona: selectedPersona, organization: '', job_title: '', linkedin_url: '', location: '',
+    company_name: '', company_stage: '', what_building: '', funding_status: '', team_size: '',
+    biggest_needs: [], investment_stages: [], check_size: '', portfolio_agtech: '', deal_interests: '',
+    expertise_areas: [], advising_count: '', advisor_interests: '',
+    institution: '', research_focus: '', open_to_collab: false,
+    service_type: '', startup_experience: false,
+    agtech_focus: [], goals_platform: '', goals_general: '', how_heard: '',
+    secondary_role: '', consent_accepted: false
+  };
+  // If a persona is already chosen, skip straight to basics
+  if (selectedPersona) wizStep = 1;
+  wizRender();
 }
 
 function openSignOutMenu() {
@@ -3885,19 +3911,27 @@ function wizRender() {
     </label>`;
   }
 
+  const previewBanner = _wizPreviewMode ? '<div style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:6px 12px;margin-bottom:8px;font-size:11px;color:#b45309;font-weight:600;text-align:center">🧙 Preview Mode — no changes will be saved</div>' : '';
+  const closePreviewBtn = _wizPreviewMode ? '<button class="wiz-btn wiz-btn-secondary" onclick="closeWizard();_wizPreviewMode=false" style="margin-right:auto">✕ Close Preview</button>' : '';
+  const lastStepBtn = _wizPreviewMode
+    ? '<button class="wiz-btn wiz-btn-primary" onclick="closeWizard();_wizPreviewMode=false;toast(\'✅ Wizard preview complete\')">Done Previewing</button>'
+    : '<button class="wiz-btn wiz-btn-primary" onclick="wizSave()">Complete Profile &rarr;</button>';
+
   root.innerHTML = `<div class="wiz-overlay">
     <div class="wiz-box">
+      ${previewBanner}
       <div class="wiz-header">
-        <h2>Set Up Your Profile</h2>
+        <h2>${_wizPreviewMode ? '🧙 Preview: ' : ''}Set Up Your Profile</h2>
         <p>Step ${wizStep+1} of ${total} — ${['Who you are','Basic info','Your details','Goals & context','Join the ecosystem'][wizStep]}</p>
       </div>
       <div class="wiz-progress">${dots}</div>
       <div class="wiz-body">${body}</div>
       <div class="wiz-footer">
+        ${closePreviewBtn}
         ${wizStep > 0 ? '<button class="wiz-btn wiz-btn-secondary" onclick="wizBack()">&larr; Back</button>' : '<div></div>'}
         ${wizStep < total-1
           ? `<button class="wiz-btn wiz-btn-primary" onclick="wizNext()">Continue &rarr;</button>`
-          : `<button class="wiz-btn wiz-btn-primary" onclick="wizSave()">Complete Profile &rarr;</button>`}
+          : lastStepBtn}
       </div>
     </div>
   </div>`;
@@ -3991,7 +4025,7 @@ function wizNext() {
 
 function wizBack() { wizCollectInputs(); wizStep--; wizRender(); }
 
-function closeWizard() { document.getElementById('wiz-root').innerHTML = ''; }
+function closeWizard() { document.getElementById('wiz-root').innerHTML = ''; _wizPreviewMode = false; }
 
 async function wizSave() {
   wizCollectInputs();
