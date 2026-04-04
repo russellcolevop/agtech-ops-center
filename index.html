@@ -1154,9 +1154,11 @@ function applyPersonaUI(profile) {
     }
   }
 
-  // Show/hide nav items based on persona
+  // Show/hide nav items based on persona (skip My Tools items — they have their own visibility logic)
+  const myToolsIds = ['nav-action-btn','nav-hub-btn','nav-connections-btn','nav-investor-btn','nav-roadmap-btn','nav-admin-btn'];
   const allNavBtns = document.querySelectorAll('.sidebar-section .nav-item');
   allNavBtns.forEach(btn => {
+    if (btn.id && myToolsIds.includes(btn.id)) return; // skip My Tools items
     const onclick = btn.getAttribute('onclick') || '';
     const match = onclick.match(/go\('(\w+)'/);
     if (match) {
