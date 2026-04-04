@@ -4960,6 +4960,42 @@ function pgUserConnections() {
   ${content}`;
 }
 
+function connFallbackBrowse(active, pauseStatus) {
+  let html = '<div class="conn-empty"><div class="ce-icon">🌱</div>';
+  html += '<p>No strong matches right now, but that doesn\'t mean there\'s no one worth talking to.</p>';
+  html += '<p style="margin-top:8px;font-size:13px;color:var(--text-muted)">Browse the people already in the ecosystem below. As more people join and complete their profiles, smarter matches will appear here automatically.</p>';
+  if (active.length > 0) {
+    html += '<div style="margin-top:16px"><h4 style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text)">👥 People in the Ecosystem</h4>';
+    html += '<div class="conn-discover-grid">';
+    active.slice(0, 12).forEach(o => {
+      const td = tierDef(o.tier || 'explorer');
+      const oBadges = calcBadges(o);
+      const badgeDefs = getBadgesForPersona(o.persona);
+      const pills = oBadges.slice(0, 4).map(bid => {
+        const bdef = badgeDefs.find(b => b.id === bid);
+        return bdef ? '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:rgba(34,197,94,.08);color:var(--green);font-weight:600;border:1px solid rgba(34,197,94,.15)">' + bdef.icon + ' ' + bdef.label + '</span>' : '';
+      }).filter(Boolean).join('');
+      const overflow = oBadges.length > 4 ? '<span style="font-size:9px;padding:2px 7px;color:var(--text-faint)">+' + (oBadges.length - 4) + ' more</span>' : '';
+      html += '<div class="conn-card">';
+      html += '<div class="cc-hdr">';
+      html += '<div class="cc-avatar">' + (o.avatar_url ? '<img src="' + o.avatar_url + '">' : (o.full_name || '?')[0].toUpperCase()) + '</div>';
+      html += '<div>';
+      html += '<div class="cc-name">' + (o.full_name || 'Anonymous') + ' <span style="font-size:11px;color:' + td.color + ';font-weight:600">' + td.icon + '</span></div>';
+      html += '<div class="cc-meta">' + personaIcon(o.persona) + ' ' + personaLabel(o.persona) + (o.organization ? ' · ' + o.organization : '') + (o.location ? ' · ' + o.location : '') + '</div>';
+      html += '</div></div>';
+      if (pills) html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0">' + pills + overflow + '</div>';
+      html += '<div class="cc-actions">';
+      html += '<button class="conn-btn primary" ' + (pauseStatus.paused ? 'disabled title="Complete pending outcome reports first"' : '') + ' onclick="requestIntro(\'' + o.id + '\',1,[&quot;Part of the AgTech ecosystem&quot;])">🤝 Request Intro</button>';
+      html += '</div></div>';
+    });
+    html += '</div></div>';
+  } else {
+    html += '<p style="margin-top:12px;font-size:12px;color:var(--text-faint)">You\'re one of the first here. Invite someone you think would benefit from being part of this network.</p>';
+  }
+  html += '</div>';
+  return html;
+}
+
 function connDiscoverTab(p, pauseStatus) {
   // Guard: ensure data is loaded before rendering (prevents duplicate intro requests during async load)
   if (!_allProfiles.length) return `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Loading matches...</p></div>`;
@@ -5078,7 +5114,7 @@ function connDiscoverTab(p, pauseStatus) {
   <div class="card">
     <h3>🔍 Recommended Connections</h3>
     <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">AI-matched based on your persona, stage, needs, focus areas, and location. Request an introduction and Russell will connect you.</p>
-    ${requestable.length ? `<div class="conn-discover-grid">${matchCards}</div>` : `<div class="conn-empty"><div class="ce-icon">🌱</div><p>No strong matches right now, but that doesn't mean there's no one worth talking to.</p><p style="margin-top:8px;font-size:13px;color:var(--text-muted)">Browse the people already in the ecosystem below. As more people join and complete their profiles, smarter matches will appear here automatically.</p>${active.length > 0 ? `<div style="margin-top:16px"><h4 style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text)">👥 People in the Ecosystem</h4><div class="conn-discover-grid">${active.slice(0,12).map(o => { const td = tierDef(o.tier || 'explorer'); const oBadges = calcBadges(o); return \`<div class="conn-card"><div class="cc-hdr"><div class="cc-avatar">\${o.avatar_url ? \`<img src="\${o.avatar_url}">\` : (o.full_name||'?')[0].toUpperCase()}</div><div><div class="cc-name">\${o.full_name || 'Anonymous'} <span style="font-size:11px;color:\${td.color};font-weight:600">\${td.icon}</span></div><div class="cc-meta">\${personaIcon(o.persona)} \${personaLabel(o.persona)}\${o.organization ? ' · ' + o.organization : ''}\${o.location ? ' · ' + o.location : ''}</div></div></div>\${oBadges.length > 0 ? \`<div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0">\${oBadges.slice(0,4).map(bid => { const bdef = getBadgesForPersona(o.persona).find(b=>b.id===bid); return bdef ? \`<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:rgba(34,197,94,.08);color:var(--green);font-weight:600;border:1px solid rgba(34,197,94,.15)">\${bdef.icon} \${bdef.label}</span>\` : ''; }).join('')}\${oBadges.length > 4 ? \`<span style="font-size:9px;padding:2px 7px;color:var(--text-faint)">+\${oBadges.length - 4} more</span>\` : ''}</div>\` : ''}<div class="cc-actions"><button class="conn-btn primary" \${pauseStatus.paused ? 'disabled title="Complete pending outcome reports first"' : ''} onclick="requestIntro('\${o.id}',1,[&quot;Part of the AgTech ecosystem&quot;])">🤝 Request Intro</button></div></div>\`; }).join('')}</div></div>` : '<p style="margin-top:12px;font-size:12px;color:var(--text-faint)">You\'re one of the first here. Invite someone you think would benefit from being part of this network.</p>'}`}
+    ${requestable.length ? `<div class="conn-discover-grid">${matchCards}</div>` : connFallbackBrowse(active, pauseStatus)}
   </div>
   ${tierGatedHtml}`;
 }
