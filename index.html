@@ -710,6 +710,7 @@
     <button id="nav-action-btn" style="display:none;width:100%;margin-top:6px;padding:7px 12px;background:var(--green);border:none;border-radius:7px;font-size:11px;font-weight:600;color:#fff;cursor:pointer;align-items:center;justify-content:center;gap:5px" onclick="go('action',this)">🎯 Action Center</button>
     <button id="nav-hub-btn" style="display:none;width:100%;margin-top:6px;padding:7px 12px;background:none;border:1px solid var(--green-mid);border-radius:7px;font-size:11px;font-weight:600;color:var(--green);cursor:pointer;align-items:center;justify-content:center;gap:5px" onclick="go('hub',this)">🌐 Community Hub</button>
     <button id="nav-connections-btn" style="display:none;width:100%;margin-top:6px;padding:7px 12px;background:none;border:1px solid var(--green-mid);border-radius:7px;font-size:11px;font-weight:600;color:var(--green);cursor:pointer;align-items:center;justify-content:center;gap:5px" onclick="go('connections',this)">🤝 My Connections</button>
+    <button id="nav-investor-btn" style="display:none;width:100%;margin-top:6px;padding:7px 12px;background:none;border:1px solid var(--green-mid);border-radius:7px;font-size:11px;font-weight:600;color:var(--green);cursor:pointer;align-items:center;justify-content:center;gap:5px" onclick="go('investor',this)">📈 Investor Dashboard</button>
     <button id="nav-roadmap-btn" style="display:none;width:100%;margin-top:6px;padding:7px 12px;background:none;border:1px solid var(--green-mid);border-radius:7px;font-size:11px;font-weight:600;color:var(--green);cursor:pointer;align-items:center;justify-content:center;gap:5px" onclick="go('roadmap',this)">🗺️ Product Roadmap</button>
     <button id="nav-admin-btn" style="display:none;width:100%;margin-top:6px;padding:7px 12px;background:none;border:1px solid var(--border);border-radius:7px;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;align-items:center;justify-content:center;gap:5px" onclick="goAdmin()">🔐 Admin Panel</button>
   </div>
@@ -929,6 +930,12 @@ _supabase.auth.onAuthStateChange((event, session) => {
     const cb = document.getElementById('nav-connections-btn'); if (cb) cb.style.display = 'none';
     const acb = document.getElementById('nav-action-btn'); if (acb) acb.style.display = 'none';
     const hbb = document.getElementById('nav-hub-btn'); if (hbb) hbb.style.display = 'none';
+    const ivb = document.getElementById('nav-investor-btn'); if (ivb) ivb.style.display = 'none';
+    // Reset branding to default on signout
+    const lt = document.querySelector('.logo-text'); if (lt) lt.textContent = 'Founder Ops Center';
+    const li = document.querySelector('.logo-icon'); if (li) li.textContent = 'F';
+    const tl = document.querySelector('.sidebar-tagline'); if (tl) tl.textContent = 'AgTech ecosystem intelligence for founders, investors, and operators.';
+    document.title = 'AgTech Founder Ops Center';
     // Show clean full-screen signed-out landing
     showSignedOutPage();
   }
@@ -1004,6 +1011,8 @@ function applyUser(user, isNew) {
       // Check auto-suspend for incomplete profiles
       const suspended = await checkAutoSuspend(_userProfile);
       if (suspended) { showBlockedScreen(); return; }
+      // Apply persona-tailored UI (branding, nav visibility)
+      applyPersonaUI(_userProfile);
       // Re-render to show any verification banners
       if (currentPage) render(currentPage);
     }
@@ -1013,6 +1022,106 @@ function applyUser(user, isNew) {
 function notifyNewUser(name, email) {
   // Log new signups silently — admin dashboard shows all users
   console.log('🆕 New signup:', name, email, new Date().toISOString());
+}
+
+// ══════════════════════════════════════════════════════════════
+// PERSONA-TAILORED UI
+// ══════════════════════════════════════════════════════════════
+const PERSONA_UI = {
+  'early-stage':   { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence — from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','segments','crops','resources'] },
+  'growth-stage':  { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence — from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','segments','crops','resources'] },
+  'investor':      { brand:'Investor Ops Center', icon:'I', tagline:'AgTech deal flow, market data, and ecosystem intelligence.', nav:['overview','glossary','ecosystem','segments','crops','resources'], extraNav:['investor'] },
+  'farmer':        { brand:'Farmer Ops Center',   icon:'🌾', tagline:'Discover AgTech innovations built for your operation.', nav:['overview','glossary','ecosystem','crops','resources'] },
+  'advisor':       { brand:'Advisor Ops Center',   icon:'A', tagline:'Tools and connections to mentor the next generation of AgTech.', nav:['overview','glossary','ecosystem','segments','resources'] },
+  'researcher':    { brand:'Research Ops Center',  icon:'R', tagline:'AgTech research, industry data, and collaboration opportunities.', nav:['overview','glossary','ecosystem','segments','crops','resources'] },
+  'service':       { brand:'AgTech Ops Center',    icon:'S', tagline:'Serve the AgTech ecosystem with market intelligence.', nav:['overview','glossary','ecosystem','segments','resources'] },
+  'industry':      { brand:'AgTech Ops Center',    icon:'⚙️', tagline:'Industry intelligence for agriculture professionals.', nav:['overview','glossary','ecosystem','segments','crops','resources'] },
+  'government':    { brand:'AgTech Policy Center', icon:'🏛️', tagline:'Policy intelligence and AgTech ecosystem data.', nav:['overview','glossary','ecosystem','segments','resources'] }
+};
+
+function getPersonaKey(profile) {
+  if (!profile || !profile.persona) return null;
+  const p = profile.persona;
+  const map = {
+    'founder': (profile.company_stage && ['series_a','series_b','scaling','growth'].some(s => (profile.company_stage||'').includes(s))) ? 'growth-stage' : 'early-stage',
+    'investor': 'investor',
+    'farmer': 'farmer',
+    'advisor': 'advisor',
+    'researcher': 'researcher',
+    'industry_pro': 'industry',
+    'service_provider': 'service',
+    'government': 'government'
+  };
+  return map[p] || 'early-stage'; // default fallback
+}
+
+function applyPersonaUI(profile) {
+  const key = getPersonaKey(profile);
+  const cfg = PERSONA_UI[key] || PERSONA_UI['early-stage'];
+
+  // Update branding
+  const logoText = document.querySelector('.logo-text');
+  const logoIcon = document.querySelector('.logo-icon');
+  const tagline = document.querySelector('.sidebar-tagline');
+  if (logoText) logoText.textContent = cfg.brand;
+  if (logoIcon) logoIcon.textContent = cfg.icon;
+  if (tagline) tagline.textContent = cfg.tagline;
+
+  // Update page title
+  document.title = cfg.brand;
+
+  // Merge secondary role nav items
+  let visiblePages = [...cfg.nav];
+  const secondaryRole = profile.secondary_role;
+  if (secondaryRole) {
+    const secKey = getPersonaKey({ persona: secondaryRole });
+    const secCfg = PERSONA_UI[secKey];
+    if (secCfg) {
+      secCfg.nav.forEach(p => { if (!visiblePages.includes(p)) visiblePages.push(p); });
+    }
+  }
+
+  // Show/hide nav items based on persona
+  const allNavBtns = document.querySelectorAll('.sidebar-section .nav-item');
+  allNavBtns.forEach(btn => {
+    const onclick = btn.getAttribute('onclick') || '';
+    const match = onclick.match(/go\('(\w+)'/);
+    if (match) {
+      const page = match[1];
+      btn.style.display = visiblePages.includes(page) ? '' : 'none';
+    }
+  });
+
+  // Show/hide Investor Dashboard nav button
+  const investorBtn = document.getElementById('nav-investor-btn');
+  if (investorBtn) {
+    const showInvestor = key === 'investor' ||
+      (profile.secondary_role && (profile.secondary_role === 'investor' || profile.secondary_role.includes('investor')));
+    investorBtn.style.display = showInvestor ? 'flex' : 'none';
+  }
+
+  // Rename Journey and Toolkit for non-founder personas
+  if (key !== 'early-stage' && key !== 'growth-stage') {
+    allNavBtns.forEach(btn => {
+      const onclick = btn.getAttribute('onclick') || '';
+      if (onclick.includes("'journey'")) {
+        btn.innerHTML = '<span class="nav-icon">🚀</span> AgTech Journey';
+      }
+      if (onclick.includes("'documents'")) {
+        btn.innerHTML = '<span class="nav-icon">🧰</span> AgTech Toolkit';
+      }
+    });
+  } else {
+    allNavBtns.forEach(btn => {
+      const onclick = btn.getAttribute('onclick') || '';
+      if (onclick.includes("'journey'")) {
+        btn.innerHTML = '<span class="nav-icon">🚀</span> Founder\'s Journey';
+      }
+      if (onclick.includes("'documents'")) {
+        btn.innerHTML = '<span class="nav-icon">🧰</span> Founder Toolkit';
+      }
+    });
+  }
 }
 
 function openSignOutMenu() {
@@ -3076,7 +3185,7 @@ function showWizard() {
     institution: '', research_focus: '', open_to_collab: false,
     service_type: '', startup_experience: false,
     agtech_focus: [], goals_platform: '', goals_general: '', how_heard: '',
-    consent_accepted: false
+    secondary_role: '', consent_accepted: false
   };
   wizRender();
 }
@@ -3113,6 +3222,7 @@ function editWizard() {
     goals_platform: p.goals_platform || '',
     goals_general: p.goals_general || '',
     how_heard: p.how_heard || '',
+    secondary_role: p.secondary_role || '',
     consent_accepted: !!p.consent_accepted
   };
   // If persona is already set, skip straight to basics (step 2)
@@ -3234,7 +3344,10 @@ function wizRender() {
     <label class="wiz-label">What are your big-picture goals?</label>
     <textarea class="wiz-textarea" id="wiz-goals-general" oninput="wizData.goals_general=this.value" placeholder="e.g. Launch MVP by Q3, raise $500K seed round, scale to 100 farms...">${wizData.goals_general||''}</textarea>
     <label class="wiz-label">How did you hear about us?</label>
-    <input class="wiz-input" id="wiz-heard" value="${wizData.how_heard||''}" oninput="wizData.how_heard=this.value" placeholder="e.g. LinkedIn, friend referral, Google search">`;
+    <input class="wiz-input" id="wiz-heard" value="${wizData.how_heard||''}" oninput="wizData.how_heard=this.value" placeholder="e.g. LinkedIn, friend referral, Google search">
+    <label class="wiz-label" style="margin-top:16px">Do you also identify as... <span style="font-weight:400;color:var(--text-faint)">(optional)</span></label>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px">Select a secondary role to unlock additional features tailored to that persona.</p>
+    <div class="chip-grid">${PERSONAS.filter(p => p.id !== wizData.persona).map(p => `<div class="chip ${wizData.secondary_role===p.id?'selected':''}" onclick="wizData.secondary_role=wizData.secondary_role==='${p.id}'?'':'${p.id}';wizRender()">${p.icon} ${p.label}</div>`).join('')}</div>`;
   } else if (step === 'consent') {
     const personaValue = {
       founder: 'curated deal flow visibility, investor introductions at the right stage, a trusted network of advisors, and structured milestone tracking that proves your traction to the market',
@@ -3433,6 +3546,8 @@ async function wizSave() {
   if (abtn) abtn.style.display = 'flex';
   const hbtn = document.getElementById('nav-hub-btn');
   if (hbtn) hbtn.style.display = 'flex';
+  // Apply persona-tailored UI after wizard completion
+  applyPersonaUI(_userProfile);
   render(currentPage);
 }
 
@@ -4778,6 +4893,8 @@ function connActiveTab(p) {
                 <option value="collaboration_started">🤝 Collaboration started</option>
                 <option value="investment_discussion">💰 Investment discussion</option>
                 <option value="pilot_started">🌱 Pilot started</option>
+                <option value="couldnt_schedule">📅 Couldn't find a time to meet</option>
+                <option value="meeting_cancelled">🚫 Meeting didn't happen</option>
                 <option value="no_fit">❌ Not a fit right now</option>
                 <option value="no_response">📭 No response from other party</option>
               </select>
@@ -5348,12 +5465,275 @@ function pgActionCenter() {
     </div>`;
 }
 
+// ══════════════════════════════════════════════════════════════
+// INVESTOR DASHBOARD
+// ══════════════════════════════════════════════════════════════
+
+const INVESTOR_DEALS = [
+  { co:'Halter', amt:'$165M', round:'Series D', date:'Jun 2025', lead:'Bessemer Venture Partners', sector:'Livestock Tech', desc:'Virtual fencing and GPS livestock management platform from New Zealand. Valued at $1.65B.', geo:'🇳🇿 NZ' },
+  { co:'80 Acres Farms', amt:'$115M', round:'Growth', date:'Feb 2025', lead:'General Atlantic', sector:'Indoor Farming', desc:'Fully automated vertical farm operations. Post-money valuation ~$1.2B.', geo:'🇺🇸 US' },
+  { co:'Monarch Tractor', amt:'$133M', round:'Series C', date:'Jul 2024', lead:'Hedosophia', sector:'Robotics', desc:'Electric, autonomous tractors for sustainable farming — largest ag robotics round ever.', geo:'🇺🇸 US' },
+  { co:'Oishii', amt:'$150M', round:'Series B', date:'Feb 2024', lead:'Undisclosed', sector:'Indoor Farming', desc:'Premium vertical-farmed berries. Japan expansion.', geo:'🇺🇸 US' },
+  { co:'Inari Agriculture', amt:'$103M', round:'Late Stage', date:'Jan 2024', lead:'Flagship Pioneering', sector:'Biotech', desc:'AI-powered crop science using gene editing. Total raised: $720M.', geo:'🇺🇸 US' },
+  { co:'Carbon Robotics', amt:'$70M', round:'Series D', date:'2024', lead:'Undisclosed', sector:'Robotics', desc:'Autonomous laser weeding robots for row crops. Total raised: $157M.', geo:'🇺🇸 US' },
+  { co:'Nofence', amt:'$35M', round:'Series B', date:'Jul 2025', lead:'Undisclosed', sector:'Livestock Tech', desc:'Virtual fencing platform — Europe\'s largest AgTech round of 2025.', geo:'🇳🇴 Norway' },
+  { co:'Pairwise', amt:'$40M', round:'Series C', date:'2024', lead:'Undisclosed', sector:'Biotech', desc:'Gene editing platform (Fulcrum™) for specialty crop improvement.', geo:'🇺🇸 US' },
+  { co:'Indigo Agriculture', amt:'$250M', round:'Late Stage', date:'2023', lead:'Various', sector:'Sustainability', desc:'Microbial crop treatments, grain marketplace, and carbon credit platform. Total: $1.4B.', geo:'🇺🇸 US' },
+  { co:'Farm-ng', amt:'$10M', round:'Series A', date:'Jan 2024', lead:'Undisclosed', sector:'Robotics', desc:'Modular autonomous farm robots. Acquired by Bonsai Robotics in Jul 2025.', geo:'🇺🇸 US' },
+  { co:'Ginkgo Bioworks', amt:'$796M', round:'Multiple', date:'2023–2024', lead:'Various', sector:'Biotech', desc:'Synthetic biology platform for agricultural and industrial applications.', geo:'🇺🇸 US' },
+  { co:'BrightFarms', amt:'Undisclosed', round:'Expansion', date:'2024', lead:'Cox Enterprises', sector:'Indoor Farming', desc:'Now largest US greenhouse operator at 700+ acres under glass.', geo:'🇺🇸 US' }
+];
+
+const INVESTOR_TRENDS = {
+  years: [
+    { year: 2022, total: '$51B', note: 'Peak year — historic high for AgTech globally' },
+    { year: 2023, total: '$15.6B', note: '−49% correction after 2021–22 boom' },
+    { year: 2024, total: '$16B', note: 'Stabilized (−4% YoY); 736 startups funded; $3.8B VC' },
+    { year: 2025, total: '~$16.2B', note: 'Flat through Q3; deal count down 12%; quality over quantity' }
+  ],
+  hotSectors: [
+    { name: 'Precision Ag (AI, IoT, Satellites)', share: '~40%', trend: '🔥 Hot', amt: '~$6.4B' },
+    { name: 'Agricultural Biotech & Gene Editing', share: '~12%', trend: '🔥 Hot', amt: '~$2B' },
+    { name: 'Farm Robotics & Autonomy', share: '~8%', trend: '📈 Growing', amt: '+$135M YoY' },
+    { name: 'Crops & Genetics', share: '~7%', trend: '📈 Growing', amt: '+$280M YoY' },
+    { name: 'Supply Chain & Traceability', share: '~6%', trend: '➡️ Stable', amt: '' },
+    { name: 'Indoor Farming (CEA)', share: '~5%', trend: '📉 Cooling', amt: '$328M (−25% YoY)' },
+    { name: 'Alternative Protein', share: '~4%', trend: '📉 Cooling', amt: 'Significant decline' }
+  ],
+  signals: [
+    '13 of top 20 US deals in 2024 involved AI or autonomous solutions',
+    'AI in agriculture market projected 25%+ annual growth through 2030',
+    'Downstream (consumer-facing) agtech rose +38% YoY in 2024',
+    'Upstream (farm-level) agtech declined −22% YoY',
+    'Debt and late-stage instruments hit 18.2% of total funding — decade high',
+    'IPO filings surged 32% in early 2025 — exit window reopening'
+  ]
+};
+
+const INVESTOR_TOP_VCS = [
+  { firm:'Flagship Pioneering', hq:'Boston', stage:'Growth', portfolio:'Indigo Ag, Inari, Ginkgo Bioworks', focus:'Deep science, biotech platforms' },
+  { firm:'DCVC Bio', hq:'San Francisco', stage:'Early', portfolio:'64+ investments in deep tech ag', focus:'Hard science, $500K–$5M checks' },
+  { firm:'S2G Ventures', hq:'Chicago', stage:'Series A–C', portfolio:'Sustainable ag and food', focus:'Sustainability, food systems' },
+  { firm:'AgFunder', hq:'San Francisco', stage:'Seed–C', portfolio:'$250K–$5M+ checks; 100K subscribers', focus:'Full-stack agri-food tech' },
+  { firm:'Yamaha Motor Ventures', hq:'Palo Alto', stage:'Early–Growth', portfolio:'35 companies; robotics focus', focus:'Farm robotics, mobility' },
+  { firm:'Omnivore', hq:'India', stage:'Seed/A', portfolio:'Leading Indian agtech fund', focus:'India-focused farm tech' },
+  { firm:'Astanor Ventures', hq:'London', stage:'Early–Growth', portfolio:'European sustainable ag', focus:'Climate, soil health, biotech' },
+  { firm:'Anterra Capital', hq:'Amsterdam', stage:'Early–Growth', portfolio:'European ag & food', focus:'Deep tech, bio-innovation' },
+  { firm:'The Yield Lab', hq:'St. Louis', stage:'Seed', portfolio:'H.A.R.V.E.S.T. program', focus:'Seed-stage agtech globally' },
+  { firm:'Better Food Ventures', hq:'San Francisco', stage:'Early', portfolio:'Sustainable food system startups', focus:'Climate-smart agriculture' },
+  { firm:'Plug and Play AgTech', hq:'Sunnyvale', stage:'Early', portfolio:'Corteva, Nestlé, Bayer partners', focus:'Corporate-backed accelerator' },
+  { firm:'Fall Line Capital', hq:'San Francisco', stage:'Growth', portfolio:'Farmland + agtech hybrid', focus:'Farmland + technology convergence' }
+];
+
+const INVESTOR_EXITS = [
+  { co:'Farm-ng → Bonsai Robotics', type:'M&A', date:'Jul 2025', note:'Ag robotics consolidation play' },
+  { co:'Bowery Farming', type:'Shutdown', date:'Nov 2024', note:'Raised $700M+, peaked at $2.3B valuation — first major CEA failure' },
+  { co:'Oishii acquires Tortuga', type:'M&A', date:'2024', note:'Indoor farming / robotics consolidation' },
+  { co:'Revol Greens', type:'Downsizing', date:'2024', note:'Facility closures; competitive pressures in leafy greens' },
+  { co:'BrightFarms / Cox Farms', type:'Expansion', date:'2024', note:'Became largest US greenhouse operator — 700+ acres' }
+];
+
+const INVESTOR_NEWS = [
+  { name:'AgFunderNews', desc:'Award-winning weekly coverage of agri-food tech investment. 100K+ subscribers.', url:'https://agfundernews.com/newsletter', icon:'💰' },
+  { name:'AgTech Navigator', desc:'Regular industry briefings and investment intelligence reports.', url:'https://www.agtechnavigator.com', icon:'🧭' },
+  { name:'iGrow News Digest', desc:'Weekly recap across precision ag, vertical farming, biotech, and robotics.', url:'https://igrownews.com/ag-newsletter/', icon:'🌿' },
+  { name:'The Signal', desc:'High-level macro trend analysis for agtech decision-makers.', url:'https://www.globalagtechinitiative.com/thesignal/', icon:'📡' },
+  { name:'PitchBook AgTech', desc:'Deal data, valuations, and VC activity across agriculture technology.', url:'https://pitchbook.com', icon:'📊' },
+  { name:'AgFunder Research', desc:'Annual global reports on agri-food tech investment with sector breakdowns.', url:'https://agfunder.com/research/', icon:'📈' }
+];
+
+let investorDealFilter = '';
+
+function pgInvestorDashboard() {
+  if (!currentUser) return guestGateCard('investor');
+
+  // ── Market Snapshot ──
+  const latestYear = INVESTOR_TRENDS.years[INVESTOR_TRENDS.years.length - 1];
+  const snapshot = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px">
+    <div class="ac-card" style="text-align:center;padding:20px">
+      <div style="font-size:28px;font-weight:800;color:var(--green)">${latestYear.total}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Global AgTech Investment (${latestYear.year})</div>
+    </div>
+    <div class="ac-card" style="text-align:center;padding:20px">
+      <div style="font-size:28px;font-weight:800;color:var(--green)">736</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Startups Funded (2024)</div>
+    </div>
+    <div class="ac-card" style="text-align:center;padding:20px">
+      <div style="font-size:28px;font-weight:800;color:var(--green)">~40%</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Precision Ag Market Share</div>
+    </div>
+    <div class="ac-card" style="text-align:center;padding:20px">
+      <div style="font-size:28px;font-weight:800;color:var(--green)">25%+</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">AI in Ag Annual Growth</div>
+    </div>
+  </div>`;
+
+  // ── Funding History ──
+  const fundingHistory = `<div class="hub-accordion ${_investorOpen.funding ? 'open' : ''}">
+    <div class="ha-header" onclick="investorToggle('funding')">
+      <span class="ha-icon">📊</span><span class="ha-title">Global Funding Trajectory</span>
+      <span class="ha-count">${INVESTOR_TRENDS.years.length} years</span><span class="ha-arrow">▼</span>
+    </div>
+    <div class="ha-body">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+        ${INVESTOR_TRENDS.years.map(y => `<div style="padding:14px;border-radius:10px;border:1px solid var(--border);background:var(--surface)">
+          <div style="font-size:20px;font-weight:800;color:var(--text)">${y.year}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--green);margin:4px 0">${y.total}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${y.note}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // ── Sector Heatmap ──
+  const trendIcon = { '🔥 Hot':'#ef4444', '📈 Growing':'#f59e0b', '➡️ Stable':'#3b82f6', '📉 Cooling':'#9ca3af' };
+  const sectorHeatmap = `<div class="hub-accordion ${_investorOpen.sectors ? 'open' : ''}">
+    <div class="ha-header" onclick="investorToggle('sectors')">
+      <span class="ha-icon">🔥</span><span class="ha-title">Sector Heatmap</span>
+      <span class="ha-count">${INVESTOR_TRENDS.hotSectors.length} sectors</span><span class="ha-arrow">▼</span>
+    </div>
+    <div class="ha-body">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${INVESTOR_TRENDS.hotSectors.map(s => `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--text)">${s.name}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${s.amt || s.share}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;font-weight:700;color:${trendIcon[s.trend]||'var(--text-muted)'}">${s.trend}</span>
+            <span style="font-size:11px;color:var(--text-faint)">${s.share}</span>
+          </div>
+        </div>`).join('')}
+      </div>
+      <div style="margin-top:16px;padding:14px;border-radius:10px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15)">
+        <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">🧠 Key Signals</div>
+        ${INVESTOR_TRENDS.signals.map(s => `<div style="font-size:12px;color:var(--text-muted);padding:3px 0">• ${s}</div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // ── Recent Deals ──
+  const sectors = [...new Set(INVESTOR_DEALS.map(d=>d.sector))].sort();
+  const filteredDeals = investorDealFilter ? INVESTOR_DEALS.filter(d=>d.sector===investorDealFilter) : INVESTOR_DEALS;
+  const dealSection = `<div class="hub-accordion ${_investorOpen.deals ? 'open' : ''}">
+    <div class="ha-header" onclick="investorToggle('deals')">
+      <span class="ha-icon">💰</span><span class="ha-title">Notable Funding Rounds (2023–2025)</span>
+      <span class="ha-count">${INVESTOR_DEALS.length} deals</span><span class="ha-arrow">▼</span>
+    </div>
+    <div class="ha-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button onclick="investorDealFilter='';render('investor')" class="ac-btn ${!investorDealFilter?'primary':'secondary'}" style="font-size:11px;padding:5px 12px">All</button>
+        ${sectors.map(s => `<button onclick="investorDealFilter='${s}';render('investor')" class="ac-btn ${investorDealFilter===s?'primary':'secondary'}" style="font-size:11px;padding:5px 12px">${s}</button>`).join('')}
+      </div>
+      <div class="ac-grid">
+        ${filteredDeals.map(d => `<div class="ac-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div>
+              <div class="ac-title">${d.co}</div>
+              <div class="ac-org">${d.lead}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:16px;font-weight:800;color:var(--green)">${d.amt}</div>
+              <div style="font-size:10px;color:var(--text-faint)">${d.round}</div>
+            </div>
+          </div>
+          <div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px">
+            <span class="ac-tag type">${d.sector}</span>
+            <span class="ac-tag persona">${d.geo}</span>
+            <span class="ac-tag" style="background:var(--hover);color:var(--text-faint)">${d.date}</span>
+          </div>
+          <div class="ac-desc">${d.desc}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // ── Active VCs ──
+  const vcSection = `<div class="hub-accordion ${_investorOpen.vcs ? 'open' : ''}">
+    <div class="ha-header" onclick="investorToggle('vcs')">
+      <span class="ha-icon">🏦</span><span class="ha-title">Most Active AgTech Investors</span>
+      <span class="ha-count">${INVESTOR_TOP_VCS.length} firms</span><span class="ha-arrow">▼</span>
+    </div>
+    <div class="ha-body">
+      <div class="ac-grid">
+        ${INVESTOR_TOP_VCS.map(v => `<div class="ac-card">
+          <div class="ac-title">${v.firm}</div>
+          <div class="ac-org">${v.hq}</div>
+          <div style="margin:8px 0;display:flex;flex-wrap:wrap;gap:4px">
+            <span class="ac-tag type">${v.stage}</span>
+          </div>
+          <div class="ac-desc" style="margin-bottom:6px">${v.focus}</div>
+          <div style="font-size:10px;color:var(--text-faint)">Portfolio: ${v.portfolio}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // ── Exits & M&A ──
+  const exitSection = `<div class="hub-accordion ${_investorOpen.exits ? 'open' : ''}">
+    <div class="ha-header" onclick="investorToggle('exits')">
+      <span class="ha-icon">🚪</span><span class="ha-title">Notable Exits & M&A</span>
+      <span class="ha-count">${INVESTOR_EXITS.length}</span><span class="ha-arrow">▼</span>
+    </div>
+    <div class="ha-body">
+      <div style="margin-bottom:12px;padding:12px;border-radius:8px;background:var(--hover);font-size:12px;color:var(--text-muted)">
+        <strong>2023:</strong> 28 exits (all M&A) &nbsp;|&nbsp; <strong>2024:</strong> 37 exits (+32% YoY, 1 IPO) &nbsp;|&nbsp; <strong>2025:</strong> IPO filings surged 32%; M&A dollar value dropped 97%
+      </div>
+      ${INVESTOR_EXITS.map(e => `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);margin-bottom:8px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${e.co}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${e.note}</div>
+        </div>
+        <div style="text-align:right">
+          <span class="ac-tag ${e.type==='M&A'?'type':e.type==='Shutdown'?'':' persona'}">${e.type}</span>
+          <div style="font-size:10px;color:var(--text-faint);margin-top:4px">${e.date}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+
+  // ── News Sources ──
+  const newsSection = `<div class="hub-accordion ${_investorOpen.news ? 'open' : ''}">
+    <div class="ha-header" onclick="investorToggle('news')">
+      <span class="ha-icon">📰</span><span class="ha-title">Investor News & Research</span>
+      <span class="ha-count">${INVESTOR_NEWS.length} sources</span><span class="ha-arrow">▼</span>
+    </div>
+    <div class="ha-body">
+      <div class="ac-grid">
+        ${INVESTOR_NEWS.map(n => `<div class="ac-card">
+          <div style="font-size:20px;margin-bottom:8px">${n.icon}</div>
+          <div class="ac-title">${n.name}</div>
+          <div class="ac-desc">${n.desc}</div>
+          <a href="${n.url}" target="_blank" rel="noopener" class="ac-btn primary" style="margin-top:auto">Visit →</a>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  return `<div class="page-hdr">
+    <h1>📈 Investor Dashboard</h1>
+    <p>AgTech market intelligence, deal flow, and sector trends. Data sourced from AgFunder, PitchBook, and industry reports.</p>
+  </div>
+  ${snapshot}
+  ${fundingHistory}
+  ${sectorHeatmap}
+  ${dealSection}
+  ${vcSection}
+  ${exitSection}
+  ${newsSection}
+  <div style="text-align:center;padding:16px;font-size:11px;color:var(--text-faint)">Data last updated Q3 2025. Sources: AgFunder, PitchBook, Crunchbase, company press releases. Figures are approximate.</div>`;
+}
+
+let _investorOpen = { funding: true, sectors: true, deals: true, vcs: false, exits: false, news: false };
+function investorToggle(section) { _investorOpen[section] = !_investorOpen[section]; render('investor'); }
+
 const pages = {
   overview: pgOverview, journey: pgJourney, glossary: pgGlossary,
   documents: pgDocuments, media: pgMedia, ecosystem: pgEcosystem,
   segments: pgSegments, crops: pgCrops, resources: pgResources,
   admin: pgAdmin, profile: pgProfile, roadmap: pgRoadmapStandalone,
-  connections: pgUserConnections, hub: pgCommunityHub, action: pgActionCenter
+  connections: pgUserConnections, hub: pgCommunityHub, action: pgActionCenter,
+  investor: pgInvestorDashboard
 };
 
 // Pages guests can see in full
