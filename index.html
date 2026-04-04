@@ -490,7 +490,7 @@
   .badge-item .badge-icon { font-size:14px;line-height:1; }
   .badge-item.earned .badge-icon { filter:none; }
   .badge-item.locked .badge-icon { filter:grayscale(1);opacity:.6; }
-  .badge-item .badge-tip { display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--bg-deep,#1a1a2e);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:11px;font-weight:400;white-space:nowrap;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.25);pointer-events:none;max-width:280px;white-space:normal;line-height:1.5; }
+  .badge-item .badge-tip { display:none;position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);background:var(--bg-deep,#1a1a2e);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:12px;font-weight:500;white-space:normal;z-index:999;box-shadow:0 6px 24px rgba(0,0,0,.3);pointer-events:none;min-width:220px;max-width:360px;line-height:1.6;letter-spacing:.01em; }
   .badge-item .badge-tip::after { content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--border); }
   .badge-item:hover .badge-tip { display:block; }
   .badge-claim-overlay { position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:center;justify-content:center; }
@@ -1739,6 +1739,77 @@ const LINKS = {
   'EIT Food RisingFoodStars':'https://www.eitfood.eu',
   'Radicle Growth Lab':'https://www.radicle.vc',
   'Cycle Momentum':'https://cyclemomentum.com',
+  // US Resources
+  'USDA NRCS':'https://www.nrcs.usda.gov',
+  'SBIR Program (USDA)':'https://www.nifa.usda.gov/grants/funding-opportunities/small-business-innovation-research-program-phase-i',
+  'SARE (Sustainable Agriculture)':'https://www.sare.org',
+  'Foundation for Food & Agriculture Research':'https://foundationfar.org',
+  'World Ag Expo':'https://www.worldagexpo.com',
+  'Commodity Classic':'https://www.commodityclassic.com',
+  'Cornell AgriTech':'https://cals.cornell.edu',
+  'UC Davis College of Agriculture':'https://caes.ucdavis.edu',
+  'Purdue College of Agriculture':'https://ag.purdue.edu',
+  'Texas A&M AgriLife':'https://agrilifeextension.tamu.edu',
+  'Farm Foundation':'https://www.farmfoundation.org',
+  'National Association of State Departments of Agriculture':'https://www.nasda.org',
+  // Netherlands Resources
+  'StartLife':'https://start-life.nl',
+  'Food Valley NL':'https://www.foodvalley.nl',
+  'LTO Nederland':'https://www.lto.nl',
+  'TKI Agri & Food':'https://topsectoragrifood.nl',
+  'Delft University of Technology':'https://www.tudelft.nl',
+  'HAS Green Academy':'https://www.hasgreencampus.nl',
+  // Israel Resources
+  'Israel Innovation Authority':'https://innovationisrael.org.il/en',
+  'Trendlines Group':'https://www.trendlines.com',
+  'Fresh Start FoodTech Incubator':'https://www.fresh-start.co.il',
+  'Volcani Institute':'https://www.agri.gov.il/en/pages/volcani-center.aspx',
+  'Hebrew University Faculty of Agriculture':'https://new.huji.ac.il/en',
+  'Ben-Gurion University (Negev)':'https://in.bgu.ac.il',
+  'Technion':'https://www.technion.ac.il/en',
+  'Agri-Israel Conference':'https://www.agrisrael.co.il',
+  // Brazil Resources
+  'EMBRAPA':'https://www.embrapa.br/en',
+  'BNDES':'https://www.bndes.gov.br/SiteBNDES/bndes/bndes_en',
+  'MAPA (Ministry of Agriculture)':'https://www.gov.br/agricultura/pt-br',
+  'ESALQ-USP':'https://www.esalq.usp.br',
+  'UNICAMP (Campinas)':'https://www.unicamp.br/en',
+  'AgTech Garage':'https://www.agtechgarage.com',
+  'SP Ventures':'https://www.spventures.com.br',
+  'Agrishow':'https://www.agrishow.com.br',
+  // Australia Resources
+  'Grains Research & Development Corporation':'https://grdc.com.au',
+  'AgriFutures Australia':'https://www.agrifutures.com.au',
+  'CSIRO Agriculture':'https://www.csiro.au/en/research/plants',
+  'Meat & Livestock Australia':'https://www.mla.com.au',
+  'National Farmers\' Federation':'https://nff.org.au',
+  'Sprout X':'https://www.sproutx.com.au',
+  'University of Queensland Agriculture':'https://agriculture.uq.edu.au',
+  'University of Sydney Agriculture':'https://www.sydney.edu.au/science/schools/school-of-life-and-environmental-sciences.html',
+  'evokeAG':'https://www.evokeag.com',
+  // Singapore Resources
+  'Singapore Food Agency':'https://www.sfa.gov.sg',
+  'Enterprise Singapore':'https://www.enterprisesg.gov.sg',
+  'A*STAR':'https://www.a-star.edu.sg',
+  'Temasek Life Sciences Lab':'https://www.tll.org.sg',
+  'NTU Singapore':'https://www.ntu.edu.sg',
+  'NUS Singapore':'https://www.nus.edu.sg',
+  'GROW Accelerator':'https://www.growrif.com',
+  // EU Resources
+  'European Commission DG Agriculture':'https://agriculture.ec.europa.eu',
+  'Horizon Europe':'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/horizon',
+  'CGIAR':'https://www.cgiar.org',
+  'CEMA':'https://www.cema-agri.org',
+  'INRAE (France)':'https://www.inrae.fr/en',
+  'Fraunhofer IOSB (Germany)':'https://www.iosb.fraunhofer.de/en.html',
+  'SIANI':'https://www.siani.se',
+  'European Agtech Network':'https://www.european-agtech.eu',
+  'EIT Food':'https://www.eitfood.eu',
+  'Volcani Institute':'https://www.agri.gov.il/en/pages/volcani-center.aspx',
+  'Glacier Farm':'https://aginmotion.ca',
+  'European Innovation Council (EIC)':'https://eic.ec.europa.eu',
+  'Wageningen University & Research':'https://www.wur.nl',
+  'National Farmers\' Federation':'https://nff.org.au',
 };
 
 // Helper: wrap text in a link if URL exists
@@ -2741,6 +2812,208 @@ eu: {
 }
 };
 
+// ── REGION RESOURCES DATA ──────────────────────────────────────────
+const REGION_RESOURCES = {
+ca: {
+  funding: [
+    {name:'Sustainable CAP',sub:'Federal-provincial agri-food innovation funding (2023–2028)',desc:'Up to $3.5 billion over 5 years for programs strengthening competitiveness, innovation and resiliency in Canada\'s agriculture and agri-food sectors.'},
+    {name:'AgriInnovate',sub:'Repayable contributions for commercialization',desc:'Up to $10 million in repayable contributions to accelerate commercialization of innovative agri-food products, services, and technologies.'},
+    {name:'Protein Industries Canada',sub:'Innovation supercluster for plant protein',desc:'One of Canada\'s five Innovation Superclusters with federal investment of ~$153M matched by private sector, funding plant protein projects across the Prairies.'},
+    {name:'Farm Credit Canada',sub:'$7B coalition for ag & food innovation by 2030',desc:'FCC Capital committed C$2B directly, then convened a 20+ partner coalition pledging additional C$5B — totalling C$7B for Canadian agriculture and food innovation by 2030.'},
+    {name:'BDC Capital',sub:'Venture capital for Canadian tech companies',desc:'Business Development Bank of Canada\'s investment arm actively funds agtech and foodtech companies across Canada.'},
+  ],
+  networks: [
+    {name:'Pan-Canadian Smart Farm Network',sub:'Collaborative network of smart farms across provinces',desc:'Network of applied research farms across Canada working together to advance smart agriculture technologies and practices.'},
+    {name:'Creative Destruction Lab (CDL)',sub:'AgTech accelerator with multiple nodes',desc:'World-renowned seed-stage program for massively scalable, science-based companies, with specific agtech streams across Canada.'},
+    {name:'North Forge',sub:'Manitoba incubator for science-based innovation',desc:'Manitoba\'s leading technology incubator supporting startups in agricultural technology, cleantech, and other sectors.'},
+    {name:'CFIN (Canadian Food Innovation Network)',sub:'National network facilitating agri-food innovation',desc:'National network facilitating innovation in Canada\'s agri-food sector through funding, networking, and research collaboration.'},
+    {name:'SVG Ventures THRIVE',sub:'Global agtech accelerator with Canadian presence',desc:'Leading global agtech accelerator connecting startups with investors and corporate partners, active in the Canadian market.'},
+    {name:'Bioenterprise',sub:'Ontario agri-technology development organization',desc:'Helps agri-technology businesses grow through advisory services, funding connections, and commercialization support.'},
+  ],
+  research: [
+    {name:'Olds College Smart Farm',sub:'Canada\'s Smart Farm — leading AgTech research',desc:'Showcases precision agriculture technologies and sustainable farming practices on a working farm. Key testbed for AgTech innovation in Alberta.'},
+    {name:'University of Saskatchewan',sub:'Agricultural robotics and livestock research',desc:'Leading Canadian research in agricultural engineering, crop science, and livestock systems with strong industry partnerships.'},
+    {name:'Glacier Farm',sub:'Saskatchewan test site for agricultural innovations',desc:'Working farm serving as a demonstration site for agricultural innovations during Ag in Motion and year-round research.'},
+    {name:'Assiniboine Community College',sub:'Digital Agriculture program and training',desc:'Manitoba college offering specialized digital agriculture training and applied research in sustainable farming technologies.'},
+    {name:'Agriculture and Agri-Food Canada (AAFC)',sub:'Federal agricultural research and development',desc:'Federal department conducting research in sustainable agriculture, food safety, and innovation across Canada\'s diverse regions.'},
+    {name:'University of Guelph',sub:'Ontario AgTech research hub',desc:'Leading food and agricultural university with strong industry partnerships, incubation programs, and applied research across the food system.'},
+  ],
+  events: [
+    {name:'Ag in Motion 2026',date:'July 21–23, 2026',location:'Langham, SK',status:'Registration Open',url:'https://aginmotion.ca'},
+    {name:'GrowCanada 2026',date:'December 1–3, 2026',location:'Westin Ottawa, ON',status:'Call for Speakers',url:'https://growcanadaconference.ca'},
+    {name:'Agriculture Enlightened 2026',date:'Fall 2026 (TBC)',location:'Winnipeg, MB',status:'Coming Soon',url:'https://emilicanada.com/community/agriculture-enlightened/'},
+    {name:'Canadian Agricultural Safety Week',date:'March 2026',location:'Nationwide',status:'Planning',url:'https://casa-acsa.ca/en/canadian-agricultural-safety-week/'},
+  ]
+},
+us: {
+  funding: [
+    {name:'USDA NRCS',sub:'Natural Resources Conservation Service',desc:'Federal cost-share programs and technical assistance for conservation and sustainable agriculture innovations across all US agricultural regions.'},
+    {name:'SBIR Program (USDA)',sub:'Small Business Innovation Research grants',desc:'Federal grant program supporting early-stage agtech and agricultural science companies with non-dilutive funding for R&D.'},
+    {name:'SARE (Sustainable Agriculture)',sub:'Regional research and education grants',desc:'Sustainable Agriculture Research and Education program providing competitive grants for farmer-led and researcher-led projects across US regions.'},
+    {name:'Foundation for Food & Agriculture Research',sub:'Public-private agriculture research funding',desc:'Non-profit funding organization that matches private sector investment to scale agricultural research and innovation nationwide.'},
+  ],
+  networks: [
+    {name:'SVG Ventures | THRIVE',sub:'Leading global AgTech accelerator',desc:'Top-ranked agtech accelerator based in Silicon Valley connecting startups with Fortune 500 corporate partners and investors.'},
+    {name:'Farm Foundation',sub:'Agricultural leadership and policy',desc:'Non-profit organization convening agricultural leaders around key challenges including technology adoption and rural innovation.'},
+    {name:'National Association of State Departments of Agriculture',sub:'State agricultural agencies network',desc:'Network of state agriculture departments coordinating agricultural innovation, policy, and technology programs across all 50 states.'},
+    {name:'Techstars Farm to Fork',sub:'AgriFood startup accelerator',desc:'Premier startup accelerator program focused on agriculture and food innovation with mentor-driven model and investment.'},
+    {name:'AgLaunch365',sub:'Mid-South AgTech accelerator',desc:'Memphis-based accelerator connecting AgTech startups with farmers for real-world validation and market access across the Mid-South.'},
+  ],
+  research: [
+    {name:'Cornell AgriTech',sub:'Agricultural technology research',desc:'Cornell University\'s agricultural research division with programs spanning crop science, food safety, and digital agriculture.'},
+    {name:'UC Davis College of Agriculture',sub:'West Coast agricultural research',desc:'Leading agricultural research institution with strong programs in viticulture, precision agriculture, and sustainable farming.'},
+    {name:'Purdue College of Agriculture',sub:'Midwest agricultural innovation',desc:'Major Midwest research institution with comprehensive agricultural technology, engineering, and crop science programs.'},
+    {name:'Texas A&M AgriLife',sub:'Agricultural research and extension network',desc:'One of the largest agricultural research and extension networks in the US, serving Texas and the Great Plains.'},
+  ],
+  events: [
+    {name:'World Ag Expo',date:'February 10–12, 2026',location:'Tulare, CA',status:'Registration Open',url:'https://www.worldagexpo.com'},
+    {name:'Commodity Classic',date:'February 26–28, 2026',location:'San Antonio, TX',status:'Early Registration',url:'https://www.commodityclassic.com'},
+    {name:'InfoAg Conference',date:'July 2026',location:'St. Louis, MO',status:'Call for Papers',url:'https://infoag.org'},
+  ]
+},
+nl: {
+  funding: [
+    {name:'TKI Agri & Food',sub:'Top Sector innovation program',desc:'Dutch government strategic innovation program supporting collaborative R&D projects between research institutes and the agri-food industry.'},
+    {name:'European Innovation Council (EIC)',sub:'EU high-risk innovation grants',desc:'EU funding program providing grants and blended finance for breakthrough innovations in agriculture, food, and sustainability.'},
+    {name:'Horizon Europe',sub:'EU framework programme for research',desc:'EU\'s largest research funding programme with significant allocation to sustainable agriculture, food systems, and bioeconomy.'},
+    {name:'EIT Food RisingFoodStars',sub:'European food innovation accelerator',desc:'EIT Food\'s startup accelerator supporting Europe\'s most promising agri-food startups with funding, mentoring, and market access.'},
+  ],
+  networks: [
+    {name:'Food Valley NL',sub:'Europe\'s largest agri-food cluster',desc:'Innovation cluster connecting over 15,000 agri-food professionals, 70+ research groups, and hundreds of companies around Wageningen.'},
+    {name:'StartLife',sub:'Wageningen agtech venture builder',desc:'Leading European agtech and food startup incubator, closely linked to Wageningen University with deep investor networks.'},
+    {name:'LTO Nederland',sub:'Dutch agricultural and horticultural organization',desc:'Largest Dutch agricultural organization representing 35,000+ farmers and growers, advocating for innovation and sustainability.'},
+    {name:'Rabobank–FoodBytes!',sub:'Corporate food & ag innovation platform',desc:'Rabobank\'s innovation platform connecting food and agriculture startups with corporate partners and investors globally.'},
+  ],
+  research: [
+    {name:'Wageningen University & Research',sub:'#1 agricultural university globally',desc:'World\'s top-ranked agricultural research university with comprehensive programs in plant science, food technology, and precision agriculture.'},
+    {name:'Delft University of Technology',sub:'Agricultural engineering and robotics',desc:'Leading Dutch technical university with growing research programs in agricultural automation, robotics, and biosystems engineering.'},
+    {name:'HAS Green Academy',sub:'Applied agricultural research',desc:'University of applied sciences specializing in agriculture, food, and green spaces with hands-on research partnerships.'},
+  ],
+  events: [
+    {name:'GreenTech Amsterdam',date:'June 2026',location:'Amsterdam, NL',status:'Registration Open',url:'https://www.greentech.nl'},
+    {name:'World Horti Center Expo',date:'November 2026',location:'Naaldwijk, NL',status:'Planning Phase',url:'https://www.worldhorticenter.nl'},
+    {name:'Potato Europe',date:'September 2026',location:'Emmeloord, NL',status:'Exhibitor Registration',url:'https://www.potatoeurope.com'},
+  ]
+},
+il: {
+  funding: [
+    {name:'Israel Innovation Authority',sub:'Government R&D grants and support',desc:'Israel\'s primary innovation funding body providing grants, incentives, and support programs for agtech and food tech R&D projects.'},
+    {name:'Trendlines Group',sub:'Agtech and medtech venture fund',desc:'Innovation commercialization company investing in early-stage agrifood and medtech ventures, with a strong focus on Israeli technologies.'},
+    {name:'Fresh Start FoodTech Incubator',sub:'Government-backed food tech incubator',desc:'Israel\'s first dedicated food tech incubator, backed by the Israel Innovation Authority, supporting early-stage companies.'},
+  ],
+  networks: [
+    {name:'SVG Ventures THRIVE',sub:'Global agtech platform with Israeli network',desc:'Leading global agtech accelerator with strong connections to Israeli startups through Israel\'s venture ecosystem.'},
+    {name:'Volcani Institute',sub:'Israel\'s agricultural research center',desc:'Israel\'s national agricultural research institute advancing research in crop science, water management, and farming in challenging climates.'},
+    {name:'Hebrew University Faculty of Agriculture',sub:'Rehovot campus agricultural research',desc:'Leading agricultural research faculty with world-class programs in soil science, plant science, and food engineering.'},
+  ],
+  research: [
+    {name:'Volcani Institute',sub:'National agricultural research center',desc:'Israel\'s primary agricultural research institution under the Ministry of Agriculture, leading research in crop improvement and water tech.'},
+    {name:'Ben-Gurion University (Negev)',sub:'Desert and dryland agriculture',desc:'World-leading research on sustainable agriculture in arid environments, desalination, and water conservation at the Negev campus.'},
+    {name:'Technion',sub:'Israel Institute of Technology',desc:'Leading engineering university with strong agricultural automation, biosystems engineering, and precision agriculture programs.'},
+    {name:'Hebrew University Faculty of Agriculture',sub:'Crop science and biotechnology',desc:'Premier agricultural research faculty advancing crop breeding, soil science, and agricultural technology on the Rehovot campus.'},
+  ],
+  events: [
+    {name:'Agri-Israel Conference',date:'May 2026',location:'Tel Aviv, Israel',status:'Registration Open',url:'https://www.agrisrael.co.il'},
+    {name:'Agrivest',date:'November 2026',location:'Tel Aviv, Israel',status:'Early Registration',url:'https://www.agrivest.org'},
+  ]
+},
+br: {
+  funding: [
+    {name:'BNDES',sub:'National Development Bank — agricultural credit',desc:'Brazil\'s primary development bank providing concessional loans and equity investment for agricultural technology and agribusiness innovation.'},
+    {name:'MAPA (Ministry of Agriculture)',sub:'Government agricultural programs',desc:'Brazilian Ministry of Agriculture providing Plano Safra funding, research support, and regulatory frameworks for agricultural innovation.'},
+    {name:'SP Ventures',sub:'Leading Brazilian agtech VC fund',desc:'Leading venture capital fund focused on agtech and foodtech in Latin America, based in São Paulo with strong deal flow.'},
+    {name:'AgTech Garage',sub:'Agtech innovation hub',desc:'Brazil\'s largest agtech hub connecting startups with agribusiness companies through corporate innovation programs and open innovation.'},
+  ],
+  networks: [
+    {name:'EMBRAPA',sub:'National agricultural research corporation',desc:'Brazil\'s premier agricultural research organization with 43 research centers across the country spanning crops, livestock, and sustainability.'},
+    {name:'ESALQ-USP',sub:'University of São Paulo agriculture campus',desc:'Brazil\'s most prestigious agricultural university known for agronomy, food science, and agricultural engineering research.'},
+    {name:'UNICAMP (Campinas)',sub:'Technology and agricultural sciences',desc:'Leading Brazilian university with strong agricultural technology, food engineering, and biotechnology programs in São Paulo state.'},
+    {name:'AgTech Garage',sub:'Open innovation platform',desc:'Innovation hub connecting 200+ agribusiness companies with startups and researchers to accelerate technology adoption.'},
+  ],
+  research: [
+    {name:'EMBRAPA',sub:'43 research centers nationwide',desc:'Leading tropical agriculture research organization developing improved crop varieties, sustainable practices, and precision ag solutions.'},
+    {name:'ESALQ-USP',sub:'Agricultural sciences and technology',desc:'Top-ranked agricultural research institution in Latin America with programs in agronomy, precision agriculture, and biotechnology.'},
+    {name:'UNICAMP (Campinas)',sub:'Food technology and biotech',desc:'Major research university advancing agricultural biotechnology, food processing technology, and sustainable farming systems.'},
+  ],
+  events: [
+    {name:'Agrishow',date:'April 28 – May 2, 2026',location:'Ribeirão Preto, SP',status:'Registration Open',url:'https://www.agrishow.com.br'},
+    {name:'Tecnoshow Comigo',date:'April 2026',location:'Rio Verde, GO',status:'Planning',url:'https://tecnoshowcomigo.com.br'},
+  ]
+},
+au: {
+  funding: [
+    {name:'Grains Research & Development Corporation',sub:'Grain crop R&D investment',desc:'Industry-government partnership investing ~A$200M annually in grain crop research, technology, and farmer extension programs.'},
+    {name:'AgriFutures Australia',sub:'Rural innovation funding',desc:'Government-backed corporation funding rural innovation across emerging industries, technology adoption, and sustainability programs.'},
+    {name:'Sprout X',sub:'Australian agtech accelerator',desc:'Specialist agtech and food-tech accelerator supporting early-stage ventures with funding, mentorship, and industry connections.'},
+    {name:'Meat & Livestock Australia',sub:'Livestock R&D investment',desc:'Producer-funded research and marketing body investing in livestock technology, productivity, and sustainability programs.'},
+  ],
+  networks: [
+    {name:'National Farmers\' Federation',sub:'Peak body for Australian farmers',desc:'Australia\'s national farm advocacy organization promoting technology adoption, policy reform, and sustainable agriculture.'},
+    {name:'AgriFutures Australia',sub:'Rural innovation network',desc:'Connects farmers, researchers, and agtech companies across Australia\'s diverse agricultural industries and regions.'},
+    {name:'CSIRO Agriculture',sub:'National science research agency',desc:'Australia\'s premier research organization with extensive agricultural programs in crop improvement, livestock, and climate adaptation.'},
+    {name:'Sprout X',sub:'Agtech venture community',desc:'Australia\'s leading agtech startup community building a pipeline of innovative companies through acceleration and investment.'},
+  ],
+  research: [
+    {name:'CSIRO Agriculture',sub:'National agricultural research',desc:'Australia\'s leading research agency conducting breakthrough research in precision agriculture, crop improvement, and sustainable farming.'},
+    {name:'University of Queensland Agriculture',sub:'Tropical agriculture research',desc:'Major research institution with strong programs in tropical and subtropical agriculture, crop science, and agribusiness.'},
+    {name:'University of Sydney Agriculture',sub:'Agricultural and environmental sciences',desc:'Leading research in agricultural systems, sustainable production, and food security with strong industry partnerships.'},
+  ],
+  events: [
+    {name:'evokeAG',date:'February 2026',location:'Melbourne, VIC',status:'Registration Open',url:'https://www.evokeag.com'},
+    {name:'Hort Connections',date:'June 2026',location:'Brisbane, QLD',status:'Early Registration',url:'https://hortconnections.com.au'},
+  ]
+},
+sg: {
+  funding: [
+    {name:'Singapore Food Agency',sub:'National food security programs',desc:'Singapore\'s food regulatory authority running the "30 by 30" initiative and providing grants for local food production technology.'},
+    {name:'Enterprise Singapore',sub:'Innovation and growth support',desc:'Government agency providing grants, mentorship, and market access support for agtech and food tech companies in Singapore.'},
+    {name:'A*STAR',sub:'Agency for Science, Technology and Research',desc:'National research agency funding R&D in food science, sustainable agriculture, and biotechnology through multiple research institutes.'},
+    {name:'GROW Accelerator',sub:'Aquaculture and urban farming accelerator',desc:'Accelerator program supporting early-stage ventures in aquaculture, urban farming, and food resilience technologies.'},
+  ],
+  networks: [
+    {name:'NTU Singapore',sub:'Nanyang Technological University',desc:'Leading technology university with growing research programs in sustainable food systems, urban agriculture, and food science.'},
+    {name:'NUS Singapore',sub:'National University of Singapore',desc:'Premier university with research programs in food science, biological sciences, and environmental sustainability.'},
+    {name:'Temasek Life Sciences Lab',sub:'Biotech research foundation',desc:'Research institute focused on plant biology and food innovation, contributing to Singapore\'s food security goals.'},
+    {name:'Enterprise Singapore',sub:'Industry ecosystem development',desc:'Government agency developing Singapore\'s agtech and food-tech ecosystem through funding, talent attraction, and international partnerships.'},
+  ],
+  research: [
+    {name:'A*STAR',sub:'National research agency',desc:'Conducts advanced research in food science, aquaculture technology, and sustainable production systems through its research institutes.'},
+    {name:'NTU Singapore',sub:'Food science and technology',desc:'Research programs spanning food engineering, sustainable agriculture, and controlled environment technologies.'},
+    {name:'NUS Singapore',sub:'Biological sciences and food security',desc:'Research in crop improvement, alternative proteins, and food processing technologies supporting 30 by 30 goals.'},
+    {name:'Temasek Life Sciences Lab',sub:'Plant biology and food innovation',desc:'World-class research in plant biology, rice genetics, and crop improvement with applications to tropical food security.'},
+  ],
+  events: [
+    {name:'Asia-Pacific Agri-Food Innovation Summit',date:'October 2026',location:'Singapore',status:'Call for Speakers',url:'https://agrifoodinnovation.com'},
+    {name:'Food&HotelAsia',date:'March 2026',location:'Singapore Expo',status:'Registration Open',url:'https://foodnhotelasia.com'},
+  ]
+},
+eu: {
+  funding: [
+    {name:'Horizon Europe',sub:'EU framework programme — €95.5B total',desc:'EU\'s largest R&D funding programme with significant allocation to sustainable agriculture, food systems, and the bioeconomy.'},
+    {name:'European Innovation Council (EIC)',sub:'High-risk innovation grants for SMEs',desc:'EU funding for breakthrough innovations in agriculture and food, providing grants and equity investment for startups and SMEs.'},
+    {name:'EIT Food RisingFoodStars',sub:'Europe\'s top food innovation accelerator',desc:'EIT Food\'s startup network supporting agri-food ventures with funding, mentoring, market access, and a pan-European network.'},
+    {name:'European Commission DG Agriculture',sub:'Common Agricultural Policy funding',desc:'CAP provides ~€55B annually supporting farm modernization, innovation, and sustainable practices across all 27 member states.'},
+  ],
+  networks: [
+    {name:'EIT Food',sub:'EU food innovation ecosystem',desc:'European Institute of Innovation and Technology initiative connecting 200+ partners across research, education, and business in agri-food.'},
+    {name:'CGIAR',sub:'Global agricultural research partnership',desc:'International research network with strong European participation addressing food security, climate adaptation, and sustainability.'},
+    {name:'CEMA',sub:'European Agricultural Machinery Association',desc:'Represents 4,500+ EU farm equipment manufacturers, driving technology standards and precision agriculture adoption.'},
+    {name:'European Agtech Network',sub:'Industry association for agtech startups',desc:'Pan-European network connecting agtech companies, investors, and researchers to accelerate agricultural innovation.'},
+  ],
+  research: [
+    {name:'Wageningen University & Research',sub:'#1 agricultural university globally',desc:'World\'s top-ranked agricultural research institution serving EU and global agricultural innovation partnerships.'},
+    {name:'INRAE (France)',sub:'French national agricultural research',desc:'France\'s major agricultural research institute with 18 research centers across the country advancing sustainable agriculture.'},
+    {name:'Fraunhofer IOSB (Germany)',sub:'Agricultural automation and AI',desc:'German applied research institute advancing agricultural robotics, computer vision, and automated farming systems.'},
+    {name:'SIANI',sub:'Swedish agricultural development network',desc:'Stockholm-based research network focusing on sustainable agriculture, food systems, and international development partnerships.'},
+  ],
+  events: [
+    {name:'SIMA Paris',date:'November 2026',location:'Paris, France',status:'Registration Open',url:'https://en.simaonline.com'},
+    {name:'Agritechnica',date:'November 2027',location:'Hanover, Germany',status:'Planning Phase',url:'https://www.agritechnica.com'},
+    {name:'EIT Food Summit',date:'May 2026',location:'Europe (rotating)',status:'Call for Speakers',url:'https://www.eitfood.eu'},
+  ]
+}
+};
+
 function ecoExpandableSegments() {
   const r = REGION_DATA[_currentRegion];
   if (!r) return '';
@@ -2844,6 +3117,22 @@ function pgEcosystem(){
 // PAGE: INDUSTRY SEGMENTS
 // ════════════════════════════════════════════════
 function pgSegments(){
+  // For non-Canada regions, use the REGION_DATA segments
+  if (_currentRegion !== 'ca') {
+    const rd = REGION_DATA[_currentRegion];
+    if (!rd || !rd.segments || !rd.segments.length) return '<div class="page-hdr"><h1>Industry Segments</h1><p>No detailed segment data available for this region yet. Check the <a href="#" onclick="go(\'ecosystem\',null);return false" style="color:var(--green)">Ecosystem Overview</a> for market insights.</p></div>';
+    return `<div class="page-hdr"><h1>${rd.flag} ${rd.name} AgTech Industry Segments</h1>
+<p>Overview of ${rd.country}'s agtech sectors with market size, adoption rates, and key players.</p></div>
+<div class="seg-grid">${rd.segments.map(s=>`
+<div class="seg-card" onclick="_ecoSegmentOpen='${s.id}';go('ecosystem',null)">
+  <h4>${s.icon} ${s.name}</h4>
+  <p>${s.desc}</p>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+    <span style="font-size:11px;color:var(--text-muted)">${s.marketSize.substring(0,50)}${s.marketSize.length>50?'...':''}</span>
+    <span style="font-size:11px;color:var(--green)">▼ Details</span>
+  </div>
+</div>`).join('')}</div>`;
+  }
   const segs=[
     {id:'prec',n:'Precision Farming & Digital Tools',d:'Data-driven farming, IoT sensors, satellite imagery, and farm management software.',g:'+12% YoY',
       opp:'Scalable digital tools for Prairie farms averaging 1,000+ acres.',
@@ -2895,6 +3184,19 @@ function pgSegments(){
 // PAGE: CROPS
 // ════════════════════════════════════════════════
 function pgCrops(){
+  // For non-Canada regions, show a message directing to Ecosystem
+  if (_currentRegion !== 'ca') {
+    const rd = REGION_DATA[_currentRegion];
+    const country = rd ? rd.country : _currentRegion.toUpperCase();
+    return `<div class="page-hdr"><h1>${rd ? rd.flag+' ' : ''}Crop Production — ${country}</h1>
+<p>Detailed crop production data for ${country} is coming soon. In the meantime, explore the <a href="#" onclick="go('ecosystem',null);return false" style="color:var(--green)">Ecosystem Overview</a> for ${country} market insights, key sectors, and agricultural context.</p></div>
+<div class="card" style="text-align:center;padding:40px">
+  <div style="font-size:48px;margin-bottom:16px">🌾</div>
+  <h3 style="margin-bottom:8px">Crop Data Coming Soon</h3>
+  <p style="color:var(--text-muted);font-size:13px;max-width:400px;margin:0 auto">We're building out detailed crop production data for each region. Check the Ecosystem Overview for ${country}-specific agricultural statistics and market context.</p>
+  <button onclick="go('ecosystem',null)" style="margin-top:16px;padding:10px 24px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">View ${country} Ecosystem →</button>
+</div>`;
+  }
   const groups=[
     {id:'grains',cat:'🌾 Grains & Cereals',count:2,crops:[
       {n:'Wheat',d:'Canada\'s #2 field crop by area (~9M acres). Spring and winter varieties. ~75% of production is exported. Prairie provinces dominate production.'},
@@ -2932,37 +3234,19 @@ function pgCrops(){
 // PAGE: RESOURCES & SUPPORT
 // ════════════════════════════════════════════════
 function pgResources(){
+  const res = REGION_RESOURCES[_currentRegion];
+  if (!res) return '<div class="page-hdr"><h1>Resources &amp; Support</h1><p>Select a region from the sidebar to view resources.</p></div>';
+  const rd = REGION_DATA[_currentRegion];
+  const regionCountry = rd ? rd.country : _currentRegion.toUpperCase();
   const r=(n,sub,d)=>`<div class="res-card"><h4>${lnk(n,LINKS[n])}</h4><div class="res-sub">${sub}</div><p>${d}</p></div>`;
-  return `<div class="page-hdr"><h1>Resources, Networks &amp; Support Programs — Canada</h1>
-<p>Directory of ecosystem support organizations, funding programs, and industry networks in Canada.</p></div>
+  return `<div class="page-hdr"><h1>Resources, Networks &amp; Support Programs — ${regionCountry}</h1>
+<p>Directory of ecosystem support organizations, funding programs, and industry networks in ${regionCountry}.</p></div>
 <div class="card">
 ${tabs('res',[
-  {label:'Government Funding',content:`
-    ${r('Sustainable CAP','Federal-provincial agri-food innovation funding (2023–2028)','Up to $3.5 billion over 5 years for programs that strengthen competitiveness, innovation and resiliency in the agriculture, agri-food and agri-based products sector.')}
-    ${r('AgriInnovate','Repayable contributions for commercialization acceleration','Up to $10 million in repayable contributions to accelerate commercialization of innovative agri-food products, services, processes and technologies.')}
-    ${r('Protein Industries Canada','Innovation supercluster for plant protein and processing','One of Canada\'s five Innovation Superclusters. Federal investment of ~$153M matched by private sector, funding plant protein and agri-food projects across the Prairies.')}
-    ${r('SDTC','Now NRC IRAP — Cleantech &amp; ag innovation funding','SDTC was wound down in 2024. Clean technology agricultural projects are now supported through NRC Industrial Research Assistance Program (IRAP) and the Clean Growth Hub.')}
-    ${r('Farm Credit Canada','$5B coalition + $2B FCC Capital for ag &amp; food innovation by 2030','FCC Capital committed C$2B directly (May 2025), then convened a 20+ partner coalition pledging an additional C$5B — totalling C$7B for Canadian agriculture and food innovation by 2030.')}
-    ${r('BDC Capital','Venture capital for Canadian tech companies','Business Development Bank of Canada\'s investment arm actively funds agtech and foodtech companies across Canada.')}`},
-  {label:'Industry Networks',content:`
-    ${r('Pan-Canadian Smart Farm Network','Collaborative network of smart farms across 3 provinces','A network of applied research farms across Canada working together to advance smart agriculture technologies and practices.')}
-    ${r('Creative Destruction Lab (CDL)','AgTech accelerator with multiple nodes','World-renowned seed-stage program for massively scalable, science-based companies, with specific agtech streams across Canada.')}
-    ${r('North Forge','Manitoba incubator for science-based innovation','Manitoba\'s leading technology incubator supporting startups in agricultural technology, cleantech, and other sectors.')}
-    ${r('CFIN (Canadian Food Innovation Network)','National network facilitating agri-food innovation','National network facilitating innovation in Canada\'s agri-food sector through funding, networking, and research collaboration.')}
-    ${r('SVG Ventures THRIVE','Global agtech accelerator with Canadian presence','Leading global agtech accelerator connecting startups with investors and corporate partners, active in the Canadian market.')}
-    ${r('Bioenterprise','Ontario agri-technology development organization','Helps agri-technology businesses grow through advisory services, funding connections, and commercialization support.')}`},
-  {label:'Research Institutions',content:`
-    ${r('Olds College Smart Farm','Canada\'s Smart Farm — leading AgTech research','Showcases precision agriculture technologies and sustainable farming practices on a working farm. Key testbed for AgTech innovation in Alberta.')}
-    ${r('University of Saskatchewan','Agricultural robotics and livestock research','Leading Canadian research in agricultural engineering, crop science, and livestock systems with strong industry partnerships.')}
-    ${r('Glacier Farm','Saskatchewan test site for agricultural innovations','Working farm serving as a demonstration site for agricultural innovations during Ag in Motion and year-round research.')}
-    ${r('Assiniboine Community College','Digital Agriculture program and training','Manitoba college offering specialized digital agriculture training programs and applied research in sustainable farming technologies.')}
-    ${r('Agriculture and Agri-Food Canada (AAFC)','Federal agricultural research and development','Federal department conducting research in sustainable agriculture, food safety, and agricultural innovation across Canada\'s diverse regions.')}
-    ${r('University of Guelph','Ontario AgTech research hub','Leading food and agricultural university with strong industry partnerships, incubation programs, and applied research across the food system.')}`},
-  {label:'Events & Conferences',content:`
-    <div class="event-row"><div><h4>Ag in Motion 2026</h4><div class="date">📅 July 21–23, 2026 — Langham, SK &nbsp;·&nbsp; <span style="color:var(--green);font-weight:600">Registration Open</span></div></div><button class="event-btn" onclick="window.open('https://aginmotion.ca','_blank')">Register →</button></div>
-    <div class="event-row"><div><h4>GrowCanada 2026</h4><div class="date">📅 December 1–3, 2026 — Westin Ottawa, ON</div></div><button class="event-btn" onclick="window.open('https://growcanadaconference.ca','_blank')">Details →</button></div>
-    <div class="event-row"><div><h4>Agriculture Enlightened 2026</h4><div class="date">📅 Fall 2026 (date TBC) — Winnipeg, MB</div></div><a href="https://emilicanada.com/community/agriculture-enlightened/" target="_blank" class="event-btn" style="text-decoration:none">Website ↗</a></div>
-    <div class="event-row"><div><h4>Canadian Agricultural Safety Week</h4><div class="date">📅 March 2026 — Nationwide</div></div><a href="https://casa-acsa.ca/en/canadian-agricultural-safety-week/" target="_blank" class="event-btn" style="text-decoration:none">Website ↗</a></div>`}
+  {label:'Government Funding',content:res.funding.map(f=>r(f.name,f.sub,f.desc)).join('')},
+  {label:'Industry Networks',content:res.networks.map(n=>r(n.name,n.sub,n.desc)).join('')},
+  {label:'Research Institutions',content:res.research.map(i=>r(i.name,i.sub,i.desc)).join('')},
+  {label:'Events & Conferences',content:res.events.map(e=>`<div class="event-row"><div><h4>${e.name}</h4><div class="date">📅 ${e.date} — ${e.location} &nbsp;·&nbsp; <span style="color:var(--green);font-weight:600">${e.status}</span></div></div><button class="event-btn" onclick="window.open('${e.url}','_blank')">Details →</button></div>`).join('')}
 ])}</div>`;
 }
 
