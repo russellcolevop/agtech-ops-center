@@ -2084,7 +2084,8 @@ function toggleStat(id){
 // ════════════════════════════════════════════════
 function pgOverview(){
   const _pWelcome = (() => {
-    if (!currentUser || !_userProfile || !_userProfile.persona) return '';
+    const _wp = _adminPersonaOverride || (_userProfile && _userProfile.persona) || (isAdmin ? 'founder' : null);
+    if (!currentUser || !_userProfile || !_wp) return '';
     const name = _userProfile.full_name ? _userProfile.full_name.split(' ')[0] : '';
     const msgs = {
       founder: { icon:'🚀', title:'Welcome back' + (name ? ', ' + name : '') + '!', sub:'Your AgTech founder intelligence hub. Check your <a href="#" onclick="go(\'action\');return false" style="color:var(--green);font-weight:600">Action Center</a> for personalized next steps.' },
@@ -2096,7 +2097,7 @@ function pgOverview(){
       service_provider: { icon:'⚖️', title:'Welcome back' + (name ? ', ' + name : '') + '!', sub:'Serve the AgTech ecosystem. Browse <a href="#" onclick="go(\'hub\');return false" style="color:var(--green);font-weight:600">Community Hub</a> to find founders.' },
       government: { icon:'🏛️', title:'Welcome back' + (name ? ', ' + name : '') + '!', sub:'Policy intelligence and ecosystem data. See <a href="#" onclick="go(\'ecosystem\');return false" style="color:var(--green);font-weight:600">Ecosystem Overview</a> for your region.' }
     };
-    const m = msgs[_userProfile.persona] || msgs.founder;
+    const m = msgs[_wp] || msgs.founder;
     return `<div style="padding:14px 18px;border-radius:10px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);margin-bottom:20px;display:flex;gap:12px;align-items:center">
       <span style="font-size:24px;flex-shrink:0">${m.icon}</span>
       <div><div style="font-size:14px;font-weight:700;color:var(--text)">${m.title}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">${m.sub}</div></div>
