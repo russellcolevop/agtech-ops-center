@@ -3260,7 +3260,7 @@ ${tabs('res',[
   {label:'Government Funding',content:res.funding.map(f=>r(f.name,f.sub,f.desc)).join('')},
   {label:'Industry Networks',content:res.networks.map(n=>r(n.name,n.sub,n.desc)).join('')},
   {label:'Research Institutions',content:res.research.map(i=>r(i.name,i.sub,i.desc)).join('')},
-  {label:'Events & Conferences',content:res.events.map(e=>`<div class="event-row"><div><h4>${e.name}</h4><div class="date">📅 ${e.date} — ${e.location} &nbsp;·&nbsp; <span style="color:var(--green);font-weight:600">${e.status}</span></div></div><button class="event-btn" onclick="window.open('${e.url}','_blank')">Details →</button></div>`).join('')}
+  {label:'Events & Conferences',content:res.events.map(e=>`<div class="event-row"><div><h4>${e.name}</h4><div class="date">📅 ${e.date} — ${e.location} &nbsp;·&nbsp; <span style="color:var(--green);font-weight:600">${e.status}</span></div></div><button class="event-btn" onclick="window.open('${e.url}','_blank')">Details →</button></div>`).join('') + '<div style="margin-top:16px;padding:12px 16px;border-radius:8px;background:var(--hover);font-size:12px;color:var(--text-muted)">🌐 See more global events in the <a href="#" onclick="go(\'hub\');return false" style="color:var(--green);font-weight:600">Community Hub</a>.</div>'}
 ])}</div>`;
 }
 
@@ -4821,7 +4821,7 @@ function pgProfile() {
     </div>`;
   })()}
 
-  <div style="margin-top:16px;text-align:center">
+  <div style="margin-top:16px;margin-bottom:60px;text-align:center">
     <button onclick="editWizard()" style="padding:10px 28px;background:var(--accent-bg);color:var(--green);border:1px solid var(--green-mid);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✏️ Edit Profile</button>
   </div>`;
 }
@@ -6268,7 +6268,7 @@ function pgRoadmapStandalone() {
 
 const HUB_NEWSLETTERS = [
   { name:'AIVA Newsletter', by:'AIVA', freq:'Regular', desc:'AgTech innovation and venture updates from the AIVA network.', url:'https://airtable.com/appaz6m2ulaHTytRg/pagDTVshyiPNeHKp3/form', icon:'📰' },
-  { name:'Best of AgTech Newsletters', by:'AgTech Newsletter Hub', freq:'Curated', desc:'Curated collection of the best AgTech newsletters in one place — subscribe to multiple at once.', url:'https://agtech.newslettergo.com/best-of', icon:'⭐' },
+  { name:'Best of AgTech Newsletters', by:'FounderOps Curated', freq:'Curated', desc:'All the newsletters below are hand-picked for AgTech professionals — subscribe to any that match your focus.', url:'', icon:'⭐', isHeader:true },
   { name:'AgFunderNews', by:'AgFunder', freq:'Weekly', desc:'Industry-leading weekly newsletter covering global agri-food tech with deep reporting and analysis for 100K+ subscribers.', url:'https://agfundernews.com/newsletter', icon:'💰' },
   { name:'iGrow News AgTech Digest', by:'Sepehr Achard', freq:'Weekly (Fri)', desc:'Free weekly recap of AgTech headlines across precision ag, vertical farming, biotech, robotics, and data.', url:'https://igrownews.com/ag-newsletter/', icon:'🌿' },
   { name:'The Signal', by:'Global Ag Tech Initiative', freq:'Weekly', desc:'High-level analysis of global AgTech trends, regulation, and innovation for ag-tech decision-makers.', url:'https://www.globalagtechinitiative.com/thesignal/', icon:'📡' },
@@ -6286,7 +6286,7 @@ const HUB_NEWSLETTERS = [
 const HUB_COMMUNITIES = [
   { name:'AgTech Alchemy', type:'Slack + Meetups', by:'Walt Duflock, Sachi Desai, Rhishi Pethe', desc:'Brings founders, operators, investors, and practitioners together in-person and via Slack to share real experience.', url:'https://www.linkedin.com/company/agtech-alchemy', icon:'⚗️' },
   { name:'AgChat & Chew', type:'Biweekly Zoom Meeting', by:'Andrew Rose', desc:'Biweekly AgTech networking call — every other Friday 9:30–10:30am ET. Email Andrew to get the calendar invite.', url:'mailto:andrew@chesapeakesun.com?subject=AgChat%20%26%20Chew%20-%20Request%20to%20Join&body=Hi%20Andrew%2C%20I%20found%20AgChat%20%26%20Chew%20on%20FounderOps%20Center%20and%20would%20love%20to%20join.%20Please%20send%20me%20the%20calendar%20invite!', icon:'☕' },
-  { name:'AgRobotics Working Group', type:'Weekly Working Group', by:'Dan (arwg@westernfairdistrict.com)', desc:'Weekly agenda-driven working group advancing ag robotics and automation in Canada. Email Dan to join.', url:'https://westernfairdistrict.ungerboeck.net/Apps/wfl/?aat=4c3030326d78736c57305451536d6f64355074595a61722f586e6d6d7270394672526d75526b386b4275593d', icon:'🤖' },
+  { name:'AgRobotics Working Group', type:'Weekly Working Group', by:'Dan (arwg@westernfairdistrict.com)', desc:'Weekly agenda-driven working group advancing ag robotics and automation in Canada. Email Dan to join.', url:'mailto:arwg@westernfairdistrict.com?subject=AgRobotics%20Working%20Group%20-%20Request%20to%20Join&body=Hi%20Dan%2C%20I%20found%20the%20AgRobotics%20Working%20Group%20on%20FounderOps%20Center%20and%20would%20love%20to%20join.%20Please%20add%20me%20to%20the%20group!', icon:'🤖' },
   { name:'Founders Network — AgTech', type:'Founder Community', by:'Founders Network', desc:'Full-lifecycle mentoring support for AgTech founders from funding rounds to corporate and government partnerships.', url:'https://foundersnetwork.com/mentoring-programs/agtech-founders/', icon:'🚀' },
   { name:'The Farming Community', type:'Discord', by:'Community-run (16K+ members)', desc:'Welcoming space for farmers, students, professionals, and enthusiasts worldwide to learn, teach, and grow.', url:'https://discord.com/invite/farming', icon:'💬' },
   { name:'Cultivator', type:'Accelerator + Network', by:'Cultivator (Saskatchewan)', desc:'Venture capital-backed 3-month accelerator helping AgTech startups achieve product-market fit and scale.', url:'https://www.cultivator.ca', icon:'🌾' },
@@ -6460,8 +6460,15 @@ function pgCommunityHub() {
     </div>`).join('')}</div>`;
 
   // ── Newsletters section ──
-  const nlContent = `<div class="nl-grid">${HUB_NEWSLETTERS.map(n => `
-    <div class="nl-card">
+  const nlContent = `<div class="nl-grid">${HUB_NEWSLETTERS.map(n => {
+    if (n.isHeader) return `<div class="nl-card" style="grid-column:1/-1;background:rgba(22,163,74,.04);border-color:rgba(22,163,74,.2)">
+      <div class="nl-top">
+        <div class="nl-emoji">${n.icon}</div>
+        <div><div class="nl-name" style="color:var(--green)">${n.name}</div><div class="nl-by">${n.by}</div></div>
+      </div>
+      <div class="nl-desc">${n.desc}</div>
+    </div>`;
+    return `<div class="nl-card">
       <div class="nl-top">
         <div class="nl-emoji">${n.icon}</div>
         <div><div class="nl-name">${n.name}</div><div class="nl-by">${n.by}</div></div>
@@ -6469,7 +6476,8 @@ function pgCommunityHub() {
       <div class="nl-freq">${n.freq}</div>
       <div class="nl-desc">${n.desc}</div>
       <a href="${n.url}" target="_blank" rel="noopener" class="ac-btn primary" style="text-align:center;justify-content:center">📩 Subscribe →</a>
-    </div>`).join('')}</div>`;
+    </div>`;
+  }).join('')}</div>`;
 
   // ── Events section ──
   const evContent = `<div class="ac-grid">${HUB_EVENTS.map(e => `
@@ -6635,7 +6643,12 @@ function pgActionCenter() {
   if (!currentUser) return guestGateCard('action');
   const p = _userProfile || {};
   const persona = _adminPersonaOverride || p.persona || 'early-stage';
-  const recs = PERSONA_RECS[persona] || PERSONA_RECS['early-stage'];
+  const allRecs = PERSONA_RECS[persona] || PERSONA_RECS['early-stage'];
+  // Filter out "Complete profile" rec if profile is already done
+  const recs = allRecs.filter(r => {
+    if (r.title && r.title.includes('Complete your FounderOps profile') && p.onboarding_complete) return false;
+    return true;
+  });
 
   // Filter accelerators — sort open/upcoming first
   const now = new Date();
