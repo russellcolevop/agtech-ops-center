@@ -744,7 +744,7 @@
   <div id="sidebar-my-tools" class="sidebar-section" style="display:none;border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
     <div class="section-label" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none" onclick="toggleAccordion('mytools')"><span>My Tools</span><span id="accordion-mytools-arrow" style="font-size:10px;transition:transform .2s;transform:rotate(-90deg)">▼</span></div>
     <div id="accordion-mytools-items" style="display:none">
-    <button id="nav-action-btn" class="nav-item" style="display:none" onclick="go('action',this)"><span class="nav-icon">🎯</span> Action Center</button>
+    <button id="nav-action-btn" class="nav-item" style="display:none" onclick="go('action',this)"><span class="nav-icon">🎯</span> Action Center <span id="nav-action-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;align-items:center;justify-content:center;padding:0 4px;margin-left:auto"></span></button>
     <button id="nav-hub-btn" class="nav-item" style="display:none" onclick="go('hub',this)"><span class="nav-icon">🌐</span> Community Hub</button>
     <button id="nav-connections-btn" class="nav-item" style="display:none" onclick="go('connections',this)"><span class="nav-icon">🤝</span> My Connections</button>
     <button id="nav-roadmap-btn" class="nav-item" style="display:none" onclick="go('roadmap',this)"><span class="nav-icon">🗺️</span> Product Roadmap</button>
@@ -3687,33 +3687,41 @@ function getNotifications() {
   if (!currentUser || !_userProfile) return notifs;
   const p = _userProfile;
 
-  // 1. Profile not complete
+  // 1. Profile not set up
   if (!p.onboarding_complete) {
     notifs.push({ icon:'👤', title:'Complete your profile', desc:'Set up your profile so Russell can connect you with the right people.', action:'profile', priority:1 });
-  } else {
-    const completeness = calcCompleteness(p);
-    if (completeness < 100) {
-      notifs.push({ icon:'✏️', title:'Finish your profile (' + completeness + '%)', desc:'Fill in missing fields to earn the Verified Profile badge and unlock higher tiers.', action:'profile', priority:2 });
-    }
   }
 
-  // 2. Quarterly check-in overdue or upcoming
-  const lastCheckin = p.last_checkin ? new Date(p.last_checkin) : null;
-  const daysSince = lastCheckin ? Math.floor((Date.now() - lastCheckin.getTime()) / 864e5) : 999;
-  if (daysSince > 90) {
-    notifs.push({ icon:'🚨', title:'Quarterly check-in overdue', desc:lastCheckin ? 'Last check-in was ' + daysSince + ' days ago. Update your milestones to stay active.' : 'You haven\'t completed a check-in yet.', action:'profile', priority:1 });
-  } else if (daysSince > 60) {
-    notifs.push({ icon:'⏰', title:'Check-in coming up', desc:'Your quarterly check-in is due in ' + (90 - daysSince) + ' days. Stay ahead of it.', action:'profile', priority:3 });
-  }
-
-  // 3. Profile needs review (pre-created account)
+  // 2. Profile needs review (pre-created account)
   if (p.needs_review) {
     notifs.push({ icon:'📋', title:'Review your profile', desc:'Russell pre-loaded your profile. Please review it and make any changes.', action:'profile', priority:1 });
   }
 
-  // 4. No LinkedIn URL
-  if (p.onboarding_complete && !p.linkedin_url) {
-    notifs.push({ icon:'🔗', title:'Add your LinkedIn', desc:'Adding your LinkedIn helps Russell make better introductions for you.', action:'profile', priority:4 });
+  // 3. Quarterly check-in overdue
+  const lastCheckin = p.last_checkin ? new Date(p.last_checkin) : null;
+  const daysSince = lastCheckin ? Math.floor((Date.now() - lastCheckin.getTime()) / 864e5) : 999;
+  if (p.onboarding_complete && daysSince > 90) {
+    notifs.push({ icon:'🚨', title:'Quarterly check-in overdue', desc:lastCheckin ? 'Last check-in was ' + daysSince + ' days ago. Update your milestones to stay active.' : 'You haven\'t completed a check-in yet.', action:'profile', priority:1 });
+  }
+
+  // 4. Pending connection outcome reports
+  if (_userIntros && _userIntros.length) {
+    const pendingOutcomes = _userIntros.filter(i => {
+      if (i.status !== 'introduced') return false;
+      const d = (Date.now() - new Date(i.introduced_at || i.created_at).getTime()) / 864e5;
+      return d > 14;
+    });
+    if (pendingOutcomes.length) {
+      notifs.push({ icon:'🤝', title:pendingOutcomes.length + ' connection' + (pendingOutcomes.length > 1 ? 's' : '') + ' need feedback', desc:'Share how your introduction' + (pendingOutcomes.length > 1 ? 's' : '') + ' went so we can keep improving matches.', action:'connections', priority:2 });
+    }
+  }
+
+  // 5. New suggested intros waiting for action
+  if (_userIntros && _userIntros.length) {
+    const suggested = _userIntros.filter(i => i.status === 'suggested');
+    if (suggested.length) {
+      notifs.push({ icon:'✨', title:suggested.length + ' new connection' + (suggested.length > 1 ? 's' : '') + ' suggested', desc:'Russell has suggested ' + (suggested.length > 1 ? 'some introductions' : 'an introduction') + ' for you. Review and accept.', action:'connections', priority:2 });
+    }
   }
 
   // Sort by priority (lower = more urgent)
@@ -3724,10 +3732,12 @@ function getNotifications() {
 function updateNotifBell() {
   const bell = document.getElementById('notif-bell');
   const badge = document.getElementById('notif-badge');
+  const navBadge = document.getElementById('nav-action-badge');
   if (!bell || !badge) return;
 
   if (!currentUser || !_userProfile) {
     bell.style.display = 'none';
+    if (navBadge) navBadge.style.display = 'none';
     return;
   }
 
@@ -3736,8 +3746,10 @@ function updateNotifBell() {
   if (notifs.length > 0) {
     badge.style.display = 'flex';
     badge.textContent = notifs.length;
+    if (navBadge) { navBadge.style.display = 'flex'; navBadge.textContent = notifs.length; }
   } else {
     badge.style.display = 'none';
+    if (navBadge) navBadge.style.display = 'none';
   }
 }
 
