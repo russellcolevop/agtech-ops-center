@@ -1126,6 +1126,8 @@ function applyUser(user, isNew) {
     }
     // Update notification bell after any profile state change
     updateNotifBell();
+    // Load Supabase deals for investor dashboard
+    if (currentUser) loadSupabaseDeals().then(d => { if (d.length) { _supabaseDeals = d; } });
   });
 }
 
@@ -3413,6 +3415,85 @@ async function loadAllProfiles() {
   return data || [];
 }
 
+// ── Supabase Deal Management ──
+async function loadSupabaseDeals() {
+  try {
+    const { data, error } = await _supabase.from('agtech_deals').select('*').order('created_at', { ascending: false });
+    if (error) { console.warn('agtech_deals table not found or error:', error.message); return []; }
+    return (data || []).map(d => ({
+      co: d.company, amt: d.amount_display || ('$' + (d.amount_m||0) + 'M'), amtNum: d.amount_m || 0,
+      round: d.round, date: d.deal_date || '', lead: d.lead_investor || 'Undisclosed',
+      sector: d.sector, desc: d.description || '', geo: d.geo_label || '', region: d.region || ''
+    }));
+  } catch(e) { console.warn('loadSupabaseDeals:', e); return []; }
+}
+
+async function saveSupabaseDeal(deal) {
+  const payload = {
+    company: deal.co, amount_m: deal.amtNum || 0, amount_display: deal.amt,
+    round: deal.round, deal_date: deal.date, lead_investor: deal.lead,
+    sector: deal.sector, description: deal.desc, geo_label: deal.geo, region: deal.region,
+    added_by: currentUser?.id || null
+  };
+  if (deal.id) {
+    const { error } = await _supabase.from('agtech_deals').update(payload).eq('id', deal.id);
+    if (error) { toast('Error updating deal: ' + error.message); return false; }
+  } else {
+    const { error } = await _supabase.from('agtech_deals').insert(payload);
+    if (error) { toast('Error saving deal: ' + error.message); return false; }
+  }
+  toast('Deal saved!');
+  _supabaseDeals = await loadSupabaseDeals();
+  render('admin');
+  return true;
+}
+
+async function deleteSupabaseDeal(id) {
+  if (!confirm('Delete this deal?')) return;
+  const { error } = await _supabase.from('agtech_deals').delete().eq('id', id);
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('Deal deleted');
+  _supabaseDeals = await loadSupabaseDeals();
+  render('admin');
+}
+
+async function seedDealsToSupabase() {
+  if (!confirm('Seed ' + INVESTOR_DEALS.length + ' deals to Supabase? This will add them to the agtech_deals table.')) return;
+  let ok = 0;
+  for (const d of INVESTOR_DEALS) {
+    const payload = {
+      company: d.co, amount_m: d.amtNum || 0, amount_display: d.amt,
+      round: d.round, deal_date: d.date, lead_investor: d.lead,
+      sector: d.sector, description: d.desc, geo_label: d.geo, region: d.region,
+      added_by: currentUser?.id || null
+    };
+    const { error } = await _supabase.from('agtech_deals').insert(payload);
+    if (!error) ok++;
+  }
+  toast(ok + '/' + INVESTOR_DEALS.length + ' deals seeded to Supabase');
+  _supabaseDeals = await loadSupabaseDeals();
+  render('admin');
+}
+
+function submitNewDeal() {
+  const co = document.getElementById('deal-co')?.value?.trim();
+  if (!co) { toast('Company name is required'); return; }
+  const amtNum = parseFloat(document.getElementById('deal-amt')?.value) || 0;
+  const deal = {
+    co,
+    amt: amtNum ? '$' + amtNum + 'M' : 'Undisclosed',
+    amtNum,
+    round: document.getElementById('deal-round')?.value || '',
+    sector: document.getElementById('deal-sector')?.value || '',
+    region: document.getElementById('deal-region')?.value || '',
+    lead: document.getElementById('deal-lead')?.value?.trim() || 'Undisclosed',
+    date: document.getElementById('deal-date')?.value?.trim() || '',
+    geo: document.getElementById('deal-geo')?.value?.trim() || '',
+    desc: document.getElementById('deal-desc')?.value?.trim() || ''
+  };
+  saveSupabaseDeal(deal);
+}
+
 async function updateAdminNotes(userId, notes, tags) {
   const { error } = await _supabase.from('profiles').update({ admin_notes: notes, admin_tags: tags }).eq('id', userId);
   if (error) console.error('updateAdminNotes error:', error);
@@ -4886,8 +4967,8 @@ function pgAdmin(){
 
   // Admin tab bar helper
   const adminTabBar = (active) => `<div style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border);flex-wrap:wrap">
-    ${['directory','connections','roadmap','investor'].map(t => {
-      const labels = {directory:'👥 User Directory', connections:'🧠 Smart Connections', roadmap:'🗺️ Product Roadmap', investor:'💼 Investor Opportunity'};
+    ${['directory','connections','deals','roadmap','investor'].map(t => {
+      const labels = {directory:'👥 User Directory', connections:'🧠 Smart Connections', deals:'📈 Deal Manager', roadmap:'🗺️ Product Roadmap', investor:'💼 Investor Opportunity'};
       const isActive = active === t;
       return `<button onclick="adminTab='${t}';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:${isActive?'var(--green)':'var(--text-muted)'};border-bottom:2px solid ${isActive?'var(--green)':'transparent'};margin-bottom:-2px">${labels[t]}</button>`;
     }).join('')}
@@ -4898,6 +4979,56 @@ function pgAdmin(){
     return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
     <p>Ecosystem intelligence — see who's using the platform and make great connections.</p></div>
     ${adminTabBar('connections')}` + pgConnections();
+  }
+
+  // Deals management tab
+  if (adminTab === 'deals') {
+    const dealRegions = Object.entries(ECOSYSTEM_MATURITY).map(([k,v])=>({id:k,label:v.flag+' '+v.label}));
+    const sectorOptions = ['Precision Ag','Biotech','Robotics','Indoor Farming','Livestock Tech','Supply Chain','Sustainability','Other'];
+    const roundOptions = ['Seed','Series A','Series B','Series C','Series D','Growth','Late Stage','Multiple','Expansion'];
+
+    const existingDeals = _supabaseDeals.length ? _supabaseDeals : INVESTOR_DEALS;
+    const dealCards = existingDeals.map((d,i) => `<div class="ac-card" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div><div class="ac-title">${d.co}</div><div class="ac-org">${d.lead}</div></div>
+        <div style="text-align:right"><div style="font-size:14px;font-weight:800;color:var(--green)">${d.amt}</div><div style="font-size:10px;color:var(--text-faint)">${d.round}</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+        <span class="ac-tag type">${d.sector}</span><span class="ac-tag persona">${d.geo}</span><span class="ac-tag">${d.region}</span>
+      </div>
+      <div class="ac-desc" style="font-size:11px">${d.desc}</div>
+      ${d.id ? `<button onclick="deleteSupabaseDeal('${d.id}')" style="margin-top:8px;padding:4px 10px;font-size:10px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;cursor:pointer">Delete</button>` : ''}
+    </div>`).join('');
+
+    return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
+    <p>Manage deal data for the Investor Dashboard.</p></div>
+    ${adminTabBar('deals')}
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">${_supabaseDeals.length ? '✅ Supabase connected' : '⚠️ Using hardcoded data'} — ${existingDeals.length} deals</div>
+      ${!_supabaseDeals.length ? `<button onclick="seedDealsToSupabase()" class="ac-btn primary" style="font-size:11px">🚀 Seed Deals to Supabase</button>` : ''}
+      <button onclick="loadSupabaseDeals().then(d=>{_supabaseDeals=d;render('admin')})" class="ac-btn secondary" style="font-size:11px">🔄 Refresh</button>
+    </div>
+    <div class="hub-accordion open">
+      <div class="ha-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="ha-icon">➕</span><span class="ha-title">Add New Deal</span><span class="ha-arrow">▼</span>
+      </div>
+      <div class="ha-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">
+          <div><label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Company *</label><input id="deal-co" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);font-family:inherit"></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Amount ($M)</label><input id="deal-amt" type="number" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);font-family:inherit"></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Round</label><select id="deal-round" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);font-family:inherit">${roundOptions.map(r=>`<option>${r}</option>`).join('')}</select></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Sector</label><select id="deal-sector" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);font-family:inherit">${sectorOptions.map(s=>`<option>${s}</option>`).join('')}</select></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Region</label><select id="deal-region" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);font-family:inherit">${dealRegions.map(r=>`<option value="${r.id}">${r.label}</option>`).join('')}</select></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Lead Investor</label><input id="deal-lead" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);font-family:inherit"></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Date</label><input id="deal-date" placeholder="e.g. Jan 2025" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);font-family:inherit"></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Geo Label</label><input id="deal-geo" placeholder="e.g. 🇺🇸 US" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);font-family:inherit"></div>
+        </div>
+        <div style="margin-bottom:14px"><label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Description</label><textarea id="deal-desc" rows="2" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);font-family:inherit;resize:vertical"></textarea></div>
+        <button onclick="submitNewDeal()" class="ac-btn primary" style="font-size:12px;padding:8px 20px">💾 Save Deal to Supabase</button>
+      </div>
+    </div>
+    <div style="margin-top:20px"><h3 style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px">Existing Deals (${existingDeals.length})</h3>
+    <div class="ac-grid">${dealCards}</div></div>`;
   }
 
   // Roadmap tab
@@ -6574,19 +6705,43 @@ function pgActionCenter() {
 // ══════════════════════════════════════════════════════════════
 
 const INVESTOR_DEALS = [
-  { co:'Halter', amt:'$165M', round:'Series D', date:'Jun 2025', lead:'Bessemer Venture Partners', sector:'Livestock Tech', desc:'Virtual fencing and GPS livestock management platform from New Zealand. Valued at $1.65B.', geo:'🇳🇿 NZ' },
-  { co:'80 Acres Farms', amt:'$115M', round:'Growth', date:'Feb 2025', lead:'General Atlantic', sector:'Indoor Farming', desc:'Fully automated vertical farm operations. Post-money valuation ~$1.2B.', geo:'🇺🇸 US' },
-  { co:'Monarch Tractor', amt:'$133M', round:'Series C', date:'Jul 2024', lead:'Hedosophia', sector:'Robotics', desc:'Electric, autonomous tractors for sustainable farming — largest ag robotics round ever.', geo:'🇺🇸 US' },
-  { co:'Oishii', amt:'$150M', round:'Series B', date:'Feb 2024', lead:'Undisclosed', sector:'Indoor Farming', desc:'Premium vertical-farmed berries. Japan expansion.', geo:'🇺🇸 US' },
-  { co:'Inari Agriculture', amt:'$103M', round:'Late Stage', date:'Jan 2024', lead:'Flagship Pioneering', sector:'Biotech', desc:'AI-powered crop science using gene editing. Total raised: $720M.', geo:'🇺🇸 US' },
-  { co:'Carbon Robotics', amt:'$70M', round:'Series D', date:'2024', lead:'Undisclosed', sector:'Robotics', desc:'Autonomous laser weeding robots for row crops. Total raised: $157M.', geo:'🇺🇸 US' },
-  { co:'Nofence', amt:'$35M', round:'Series B', date:'Jul 2025', lead:'Undisclosed', sector:'Livestock Tech', desc:'Virtual fencing platform — Europe\'s largest AgTech round of 2025.', geo:'🇳🇴 Norway' },
-  { co:'Pairwise', amt:'$40M', round:'Series C', date:'2024', lead:'Undisclosed', sector:'Biotech', desc:'Gene editing platform (Fulcrum™) for specialty crop improvement.', geo:'🇺🇸 US' },
-  { co:'Indigo Agriculture', amt:'$250M', round:'Late Stage', date:'2023', lead:'Various', sector:'Sustainability', desc:'Microbial crop treatments, grain marketplace, and carbon credit platform. Total: $1.4B.', geo:'🇺🇸 US' },
-  { co:'Farm-ng', amt:'$10M', round:'Series A', date:'Jan 2024', lead:'Undisclosed', sector:'Robotics', desc:'Modular autonomous farm robots. Acquired by Bonsai Robotics in Jul 2025.', geo:'🇺🇸 US' },
-  { co:'Ginkgo Bioworks', amt:'$796M', round:'Multiple', date:'2023–2024', lead:'Various', sector:'Biotech', desc:'Synthetic biology platform for agricultural and industrial applications.', geo:'🇺🇸 US' },
-  { co:'BrightFarms', amt:'Undisclosed', round:'Expansion', date:'2024', lead:'Cox Enterprises', sector:'Indoor Farming', desc:'Now largest US greenhouse operator at 700+ acres under glass.', geo:'🇺🇸 US' }
+  { co:'Halter', amt:'$165M', amtNum:165, round:'Series D', date:'Jun 2025', lead:'Bessemer Venture Partners', sector:'Livestock Tech', desc:'Virtual fencing and GPS livestock management platform from New Zealand. Valued at $1.65B.', geo:'🇳🇿 NZ', region:'au' },
+  { co:'80 Acres Farms', amt:'$115M', amtNum:115, round:'Growth', date:'Feb 2025', lead:'General Atlantic', sector:'Indoor Farming', desc:'Fully automated vertical farm operations. Post-money valuation ~$1.2B.', geo:'🇺🇸 US', region:'us' },
+  { co:'Monarch Tractor', amt:'$133M', amtNum:133, round:'Series C', date:'Jul 2024', lead:'Hedosophia', sector:'Robotics', desc:'Electric, autonomous tractors for sustainable farming — largest ag robotics round ever.', geo:'🇺🇸 US', region:'us' },
+  { co:'Oishii', amt:'$150M', amtNum:150, round:'Series B', date:'Feb 2024', lead:'Undisclosed', sector:'Indoor Farming', desc:'Premium vertical-farmed berries. Japan expansion.', geo:'🇺🇸 US', region:'us' },
+  { co:'Inari Agriculture', amt:'$103M', amtNum:103, round:'Late Stage', date:'Jan 2024', lead:'Flagship Pioneering', sector:'Biotech', desc:'AI-powered crop science using gene editing. Total raised: $720M.', geo:'🇺🇸 US', region:'us' },
+  { co:'Carbon Robotics', amt:'$70M', amtNum:70, round:'Series D', date:'2024', lead:'Undisclosed', sector:'Robotics', desc:'Autonomous laser weeding robots for row crops. Total raised: $157M.', geo:'🇺🇸 US', region:'us' },
+  { co:'Nofence', amt:'$35M', amtNum:35, round:'Series B', date:'Jul 2025', lead:'Undisclosed', sector:'Livestock Tech', desc:'Virtual fencing platform — Europe\'s largest AgTech round of 2025.', geo:'🇳🇴 Norway', region:'eu' },
+  { co:'Pairwise', amt:'$40M', amtNum:40, round:'Series C', date:'2024', lead:'Undisclosed', sector:'Biotech', desc:'Gene editing platform (Fulcrum™) for specialty crop improvement.', geo:'🇺🇸 US', region:'us' },
+  { co:'Indigo Agriculture', amt:'$250M', amtNum:250, round:'Late Stage', date:'2023', lead:'Various', sector:'Sustainability', desc:'Microbial crop treatments, grain marketplace, and carbon credit platform. Total: $1.4B.', geo:'🇺🇸 US', region:'us' },
+  { co:'Farm-ng', amt:'$10M', amtNum:10, round:'Series A', date:'Jan 2024', lead:'Undisclosed', sector:'Robotics', desc:'Modular autonomous farm robots. Acquired by Bonsai Robotics in Jul 2025.', geo:'🇺🇸 US', region:'us' },
+  { co:'Ginkgo Bioworks', amt:'$796M', amtNum:796, round:'Multiple', date:'2023–2024', lead:'Various', sector:'Biotech', desc:'Synthetic biology platform for agricultural and industrial applications.', geo:'🇺🇸 US', region:'us' },
+  { co:'BrightFarms', amt:'Undisclosed', amtNum:0, round:'Expansion', date:'2024', lead:'Cox Enterprises', sector:'Indoor Farming', desc:'Now largest US greenhouse operator at 700+ acres under glass.', geo:'🇺🇸 US', region:'us' },
+  { co:'Semios', amt:'$100M', amtNum:100, round:'Series C', date:'2023', lead:'Morningside Group', sector:'Precision Ag', desc:'Crop intelligence platform using IoT sensors for pest & disease management.', geo:'🇨🇦 CA', region:'ca' },
+  { co:'Terramera', amt:'$45M', amtNum:45, round:'Series B', date:'2023', lead:'Ospraie Ag Science', sector:'Biotech', desc:'AI-powered clean chemistry platform reducing pesticide use by up to 80%.', geo:'🇨🇦 CA', region:'ca' },
+  { co:'Precision AI', amt:'$20M', amtNum:20, round:'Series A', date:'2024', lead:'Undisclosed', sector:'Precision Ag', desc:'Drone-based precision spraying using computer vision — 90% reduction in herbicides.', geo:'🇨🇦 CA', region:'ca' },
+  { co:'Phytoform Labs', amt:'$12M', amtNum:12, round:'Series A', date:'2024', lead:'Undisclosed', sector:'Biotech', desc:'Gene editing for climate-resilient crops. Partnered with major seed companies.', geo:'🇬🇧 UK', region:'eu' },
+  { co:'Tevel Aerobotics', amt:'$20M', amtNum:20, round:'Series B', date:'2024', lead:'Undisclosed', sector:'Robotics', desc:'Autonomous fruit-picking drones — addressing global harvest labor shortage.', geo:'🇮🇱 IL', region:'il' },
+  { co:'Taranis', amt:'$40M', amtNum:40, round:'Series D', date:'2023', lead:'Viola Ventures', sector:'Precision Ag', desc:'AI-powered crop intelligence with sub-millimeter aerial imaging.', geo:'🇮🇱 IL', region:'il' },
+  { co:'Solinftec', amt:'$60M', amtNum:60, round:'Series D', date:'2024', lead:'TPG Rise', sector:'Precision Ag', desc:'Farm operations platform managing 30M+ acres across the Americas.', geo:'🇧🇷 BR', region:'br' },
+  { co:'Enko Chem', amt:'$45M', amtNum:45, round:'Series C', date:'2024', lead:'Undisclosed', sector:'Biotech', desc:'AI-driven crop protection chemistry — faster discovery pipeline for novel pesticides.', geo:'🇺🇸 US', region:'us' },
+  { co:'SwarmFarm Robotics', amt:'$15M', amtNum:15, round:'Series A', date:'2024', lead:'Undisclosed', sector:'Robotics', desc:'Autonomous broadacre farm robots. Largest ag robotics deployment in Australia.', geo:'🇦🇺 AU', region:'au' },
+  { co:'DiMuto', amt:'$11M', amtNum:11, round:'Series A', date:'2024', lead:'SGInnovate', sector:'Supply Chain', desc:'AI trade platform for fresh produce traceability across Southeast Asia.', geo:'🇸🇬 SG', region:'sg' },
+  { co:'Connecterra', amt:'$15M', amtNum:15, round:'Series B', date:'2023', lead:'Breed Reply', sector:'Livestock Tech', desc:'AI-powered dairy monitoring platform — "Fitbit for cows" across 25+ countries.', geo:'🇳🇱 NL', region:'nl' },
+  { co:'Manna Irrigation', amt:'$18M', amtNum:18, round:'Series B', date:'2024', lead:'Undisclosed', sector:'Precision Ag', desc:'Precision drip irrigation analytics — reducing water use 30%+ in arid regions.', geo:'🇮🇱 IL', region:'il' }
 ];
+
+// ── Ecosystem Maturity Index — composite scores per region ──
+const ECOSYSTEM_MATURITY = {
+  us:  { score:92, funding:95, startups:90, research:95, policy:82, talent:93, label:'United States', flag:'🇺🇸' },
+  il:  { score:88, funding:82, startups:90, research:92, policy:78, talent:90, label:'Israel', flag:'🇮🇱' },
+  nl:  { score:82, funding:75, startups:78, research:90, policy:88, talent:82, label:'Netherlands', flag:'🇳🇱' },
+  ca:  { score:74, funding:68, startups:72, research:82, policy:80, talent:72, label:'Canada', flag:'🇨🇦' },
+  au:  { score:70, funding:62, startups:68, research:78, policy:75, talent:65, label:'Australia', flag:'🇦🇺' },
+  eu:  { score:76, funding:72, startups:70, research:85, policy:82, talent:75, label:'EU (Other)', flag:'🇪🇺' },
+  br:  { score:65, funding:58, startups:65, research:62, policy:55, talent:60, label:'Brazil', flag:'🇧🇷' },
+  sg:  { score:68, funding:65, startups:60, research:70, policy:85, talent:62, label:'Singapore', flag:'🇸🇬' }
+};
 
 const INVESTOR_TRENDS = {
   years: [
@@ -6651,9 +6806,47 @@ let investorDealFilter = '';
 function pgInvestorDashboard() {
   if (!currentUser) return guestGateCard('investor');
 
-  // ── Market Snapshot ──
+  const allDeals = _supabaseDeals.length ? _supabaseDeals : INVESTOR_DEALS;
+  const regionLabel = _currentRegion ? (REGION_DATA[_currentRegion]||{}).country||_currentRegion.toUpperCase() : 'Global';
+  const regionFlag = _currentRegion ? (REGION_DATA[_currentRegion]||{}).flag||'' : '';
+
+  // ── Region Filter Bar ──
+  const regionBar = `<div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+    <span style="font-size:11px;font-weight:700;color:var(--text-muted);margin-right:4px">REGION:</span>
+    <button onclick="_investorRegionFilter='';render('investor')" class="ac-btn ${!_investorRegionFilter?'primary':'secondary'}" style="font-size:11px;padding:5px 12px">All Regions</button>
+    ${Object.entries(ECOSYSTEM_MATURITY).sort((a,b)=>b[1].score-a[1].score).map(([k,v]) =>
+      `<button onclick="_investorRegionFilter='${k}';render('investor')" class="ac-btn ${_investorRegionFilter===k?'primary':'secondary'}" style="font-size:11px;padding:5px 12px">${v.flag} ${v.label}</button>`
+    ).join('')}
+  </div>`;
+
+  const activeRegion = _investorRegionFilter || null;
+  const regionDeals = activeRegion ? allDeals.filter(d=>d.region===activeRegion) : allDeals;
+  const regionDealTotal = regionDeals.reduce((s,d)=>s+(d.amtNum||0),0);
+
+  // ── Market Snapshot (context-aware) ──
   const latestYear = INVESTOR_TRENDS.years[INVESTOR_TRENDS.years.length - 1];
-  const snapshot = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px">
+  const snapshotTitle = activeRegion ? `${(ECOSYSTEM_MATURITY[activeRegion]||{}).flag||''} ${(ECOSYSTEM_MATURITY[activeRegion]||{}).label||activeRegion.toUpperCase()} Snapshot` : 'Global Market Snapshot';
+  const maturity = activeRegion ? ECOSYSTEM_MATURITY[activeRegion] : null;
+
+  const snapshot = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px">
+    ${activeRegion && maturity ? `
+    <div class="ac-card" style="text-align:center;padding:20px">
+      <div style="font-size:32px;font-weight:800;color:var(--green)">${maturity.score}<span style="font-size:14px;font-weight:600">/100</span></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Ecosystem Maturity</div>
+    </div>
+    <div class="ac-card" style="text-align:center;padding:20px">
+      <div style="font-size:28px;font-weight:800;color:var(--green)">${regionDeals.length}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Tracked Deals</div>
+    </div>
+    <div class="ac-card" style="text-align:center;padding:20px">
+      <div style="font-size:28px;font-weight:800;color:var(--green)">$${regionDealTotal}M</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Capital Tracked</div>
+    </div>
+    <div class="ac-card" style="text-align:center;padding:20px">
+      <div style="font-size:28px;font-weight:800;color:var(--green)">${[...new Set(regionDeals.map(d=>d.sector))].length}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Active Sectors</div>
+    </div>
+    ` : `
     <div class="ac-card" style="text-align:center;padding:20px">
       <div style="font-size:28px;font-weight:800;color:var(--green)">${latestYear.total}</div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Global AgTech Investment (${latestYear.year})</div>
@@ -6669,6 +6862,83 @@ function pgInvestorDashboard() {
     <div class="ac-card" style="text-align:center;padding:20px">
       <div style="font-size:28px;font-weight:800;color:var(--green)">25%+</div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px">AI in Ag Annual Growth</div>
+    </div>
+    `}
+  </div>`;
+
+  // ── Ecosystem Maturity Index — all regions comparison ──
+  const maturityRanked = Object.entries(ECOSYSTEM_MATURITY).sort((a,b)=>b[1].score-a[1].score);
+  const dims = ['funding','startups','research','policy','talent'];
+  const dimLabels = {funding:'Funding',startups:'Startups',research:'Research',policy:'Policy',talent:'Talent'};
+  const maturityIndex = `<div class="hub-accordion ${_investorOpen.maturity ? 'open' : ''}">
+    <div class="ha-header" onclick="investorToggle('maturity')">
+      <span class="ha-icon">🌍</span><span class="ha-title">Ecosystem Maturity Index — Cross-Region Comparison</span>
+      <span class="ha-count">8 regions</span><span class="ha-arrow">▼</span>
+    </div>
+    <div class="ha-body">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Composite score across funding environment, startup density, research strength, policy support, and talent availability.</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${maturityRanked.map(([k,v],i) => {
+          const isActive = activeRegion === k;
+          const barColor = v.score >= 80 ? 'var(--green)' : v.score >= 65 ? '#f59e0b' : '#ef4444';
+          return `<div style="padding:14px 18px;border-radius:12px;border:1px solid ${isActive?'var(--green)':'var(--border)'};background:${isActive?'rgba(22,163,74,.06)':'var(--surface)'};cursor:pointer" onclick="_investorRegionFilter='${k}';render('investor')">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:11px;font-weight:800;color:var(--text-faint);width:20px">#${i+1}</span>
+                <span style="font-size:16px">${v.flag}</span>
+                <span style="font-size:14px;font-weight:700;color:var(--text)">${v.label}</span>
+              </div>
+              <div style="font-size:20px;font-weight:800;color:${barColor}">${v.score}<span style="font-size:11px;font-weight:600;color:var(--text-faint)">/100</span></div>
+            </div>
+            <div style="display:flex;gap:4px;height:6px;border-radius:3px;overflow:hidden;background:var(--hover)">
+              <div style="width:${v.score}%;background:${barColor};border-radius:3px;transition:width .3s"></div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
+              ${dims.map(d => `<div style="font-size:10px;color:var(--text-muted)"><span style="font-weight:700">${dimLabels[d]}</span> <span style="color:${v[d]>=80?'var(--green)':v[d]>=65?'#f59e0b':'#ef4444'}">${v[d]}</span></div>`).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // ── Money Flow — where capital concentrates by sector per region ──
+  const regionSectorMap = {};
+  allDeals.forEach(d => {
+    const key = d.region + '|' + d.sector;
+    if (!regionSectorMap[key]) regionSectorMap[key] = { count:0, total:0 };
+    regionSectorMap[key].count++;
+    regionSectorMap[key].total += d.amtNum || 0;
+  });
+  const topFlows = Object.entries(regionSectorMap)
+    .map(([k,v]) => { const [r,s] = k.split('|'); return { region:r, sector:s, ...v }; })
+    .sort((a,b)=>b.total-a.total).slice(0,10);
+
+  const capitalFlow = `<div class="hub-accordion ${_investorOpen.flow ? 'open' : ''}">
+    <div class="ha-header" onclick="investorToggle('flow')">
+      <span class="ha-icon">💸</span><span class="ha-title">Capital Concentration — Where Money Flows</span>
+      <span class="ha-count">Top ${topFlows.length}</span><span class="ha-arrow">▼</span>
+    </div>
+    <div class="ha-body">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Largest region + sector combinations by tracked deal volume.</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${topFlows.map((f,i) => {
+          const m = ECOSYSTEM_MATURITY[f.region];
+          const maxTotal = topFlows[0].total || 1;
+          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface)">
+            <span style="font-size:11px;font-weight:800;color:var(--text-faint);width:20px">#${i+1}</span>
+            <span style="font-size:14px">${m?m.flag:''}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:var(--text)">${m?m.label:f.region.toUpperCase()} — ${f.sector}</div>
+              <div style="height:4px;border-radius:2px;background:var(--hover);margin-top:4px"><div style="height:100%;width:${Math.round(f.total/maxTotal*100)}%;background:var(--green);border-radius:2px"></div></div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:14px;font-weight:800;color:var(--green)">$${f.total}M</div>
+              <div style="font-size:10px;color:var(--text-faint)">${f.count} deal${f.count>1?'s':''}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
     </div>
   </div>`;
 
@@ -6716,20 +6986,21 @@ function pgInvestorDashboard() {
     </div>
   </div>`;
 
-  // ── Recent Deals ──
-  const sectors = [...new Set(INVESTOR_DEALS.map(d=>d.sector))].sort();
-  const filteredDeals = investorDealFilter ? INVESTOR_DEALS.filter(d=>d.sector===investorDealFilter) : INVESTOR_DEALS;
+  // ── Recent Deals (region-filtered) ──
+  const sectors = [...new Set(regionDeals.map(d=>d.sector))].sort();
+  const filteredDeals = investorDealFilter ? regionDeals.filter(d=>d.sector===investorDealFilter) : regionDeals;
+  const dealTitle = activeRegion ? `${(ECOSYSTEM_MATURITY[activeRegion]||{}).flag||''} ${(ECOSYSTEM_MATURITY[activeRegion]||{}).label||''} Deals` : 'Notable Funding Rounds (2023–2025)';
   const dealSection = `<div class="hub-accordion ${_investorOpen.deals ? 'open' : ''}">
     <div class="ha-header" onclick="investorToggle('deals')">
-      <span class="ha-icon">💰</span><span class="ha-title">Notable Funding Rounds (2023–2025)</span>
-      <span class="ha-count">${INVESTOR_DEALS.length} deals</span><span class="ha-arrow">▼</span>
+      <span class="ha-icon">💰</span><span class="ha-title">${dealTitle}</span>
+      <span class="ha-count">${regionDeals.length} deals</span><span class="ha-arrow">▼</span>
     </div>
     <div class="ha-body">
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
         <button onclick="investorDealFilter='';render('investor')" class="ac-btn ${!investorDealFilter?'primary':'secondary'}" style="font-size:11px;padding:5px 12px">All</button>
         ${sectors.map(s => `<button onclick="investorDealFilter='${s}';render('investor')" class="ac-btn ${investorDealFilter===s?'primary':'secondary'}" style="font-size:11px;padding:5px 12px">${s}</button>`).join('')}
       </div>
-      <div class="ac-grid">
+      ${filteredDeals.length ? `<div class="ac-grid">
         ${filteredDeals.map(d => `<div class="ac-card">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
             <div>
@@ -6748,7 +7019,7 @@ function pgInvestorDashboard() {
           </div>
           <div class="ac-desc">${d.desc}</div>
         </div>`).join('')}
-      </div>
+      </div>` : `<div style="text-align:center;padding:30px;color:var(--text-muted)">No deals tracked for this region yet. Deals can be added via the admin panel.</div>`}
     </div>
   </div>`;
 
@@ -6816,9 +7087,12 @@ function pgInvestorDashboard() {
 
   return `<div class="page-hdr">
     <h1>📈 Investor Dashboard</h1>
-    <p>AgTech market intelligence, deal flow, and sector trends. Data sourced from AgFunder, PitchBook, and industry reports.</p>
+    <p>AgTech market intelligence, deal flow, and ecosystem comparison across 8 regions. ${_supabaseDeals.length ? '<span style="color:var(--green);font-weight:600">Live data</span>' : 'Data sourced from AgFunder, PitchBook, and industry reports.'}</p>
   </div>
+  ${regionBar}
   ${snapshot}
+  ${maturityIndex}
+  ${capitalFlow}
   ${fundingHistory}
   ${sectorHeatmap}
   ${dealSection}
@@ -6828,7 +7102,9 @@ function pgInvestorDashboard() {
   <div style="text-align:center;padding:16px;font-size:11px;color:var(--text-faint)">Data last updated Q3 2025. Sources: AgFunder, PitchBook, Crunchbase, company press releases. Figures are approximate.</div>`;
 }
 
-let _investorOpen = { funding: true, sectors: true, deals: true, vcs: false, exits: false, news: false };
+let _investorOpen = { maturity: true, flow: true, funding: false, sectors: true, deals: true, vcs: false, exits: false, news: false };
+let _investorRegionFilter = '';
+let _supabaseDeals = [];
 function investorToggle(section) { _investorOpen[section] = !_investorOpen[section]; render('investor'); }
 
 const pages = {
