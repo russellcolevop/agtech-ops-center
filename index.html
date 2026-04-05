@@ -574,6 +574,12 @@
     .sidebar-footer .book-btn { font-size: 11px; }
     .go-mobile-close { display: block !important; }
     .ac-grid { grid-template-columns: 1fr !important; }
+    .crop-detail-kpis { grid-template-columns: 1fr 1fr !important; }
+    .crop-detail-kpis .kpi-val { font-size: 17px !important; }
+    .crop-detail-2col { grid-template-columns: 1fr !important; }
+    .crop-detail-h1 { font-size: 20px !important; }
+    .crop-src-badges { gap: 4px !important; }
+    .crop-src-badges a { font-size: 10px !important; padding: 3px 7px !important; }
     #user-menu-wrap { flex-shrink: 0; }
     .signin-btn { padding: 5px 10px; font-size: 11px; white-space: nowrap; }
     #admin-persona-switcher { max-width: 100px !important; font-size: 9px !important; }
@@ -584,6 +590,8 @@
     .hotspot-grid { grid-template-columns: 1fr !important; }
     .vc-grid { grid-template-columns: 1fr !important; }
     .funding-row { grid-template-columns: 1fr !important; }
+    .crop-detail-kpis { grid-template-columns: 1fr !important; }
+    .crop-detail-kpis .kpi-val { font-size: 20px !important; }
   }
 
   /* ── LANDING PAGE ── */
@@ -1764,6 +1772,31 @@ const LINKS = {
   'Texas A&M AgriLife':'https://agrilifeextension.tamu.edu',
   'Farm Foundation':'https://www.farmfoundation.org',
   'National Association of State Departments of Agriculture':'https://www.nasda.org',
+  // Crop Supporting Organizations (Canada)
+  'Canadian Wheat Research Coalition':'https://wheatresearch.ca',
+  'Western Grains Research Foundation':'https://wgrf.ca',
+  'Cereals Canada':'https://cerealscanada.ca',
+  'Prairie Grain Development Committee':'http://www.pgdc.ca',
+  'Alberta Barley Commission':'https://www.albertagrains.com',
+  'Canadian Malting Barley Technical Centre':'https://cmbtc.com',
+  'Canola Council of Canada':'https://www.canolacouncil.org',
+  'SaskCanola':'https://www.saskcanola.com',
+  'Alberta Canola Producers Commission':'https://albertacanola.com',
+  'Manitoba Canola Growers':'https://canolagrowers.com',
+  'Soy Canada':'https://soycanada.ca',
+  'Grain Farmers of Ontario':'https://gfo.ca',
+  'Manitoba Pulse & Soybean Growers':'https://manitobapulse.ca',
+  'Canadian Grain Commission':'https://www.grainscanada.gc.ca/en/',
+  'Saskatchewan Pulse Growers':'https://saskpulse.com',
+  'Pulse Canada':'https://pulsecanada.com',
+  'Canadian Special Crops Association':'https://cpsctrade.ca',
+  'Canadian Potato Council':'https://potatoresearchcluster.ca',
+  'PEI Potato Board':'https://www.peipotato.org',
+  'Potatoes New Brunswick':'https://www.potatoesnb.com',
+  'Manitoba Potato Production Days':'https://manitobapotatoes.ca',
+  'Producteurs de grains du Québec':'https://pgq.ca',
+  'Canadian Corn Pest Coalition':'https://cornpest.ca',
+  'AAFC Lentil Research Program':'https://agriculture.canada.ca',
   // Netherlands Resources
   'StartLife':'https://start-life.nl',
   'Food Valley NL':'https://www.foodvalley.nl',
@@ -1928,6 +1961,7 @@ function personLink(name, platform){
 // ── NAVIGATION ────────────────────────────────────────────────────
 let currentPage = 'overview';
 function go(page, btn){
+  if (page !== 'crops') _selectedCrop = null; // reset crop detail when leaving crops
   currentPage = page;
   try { localStorage.setItem('foc-page', page); } catch(e){}
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
@@ -3217,9 +3251,250 @@ function pgSegments(){
 }
 
 // ════════════════════════════════════════════════
-// PAGE: CROPS
+// PAGE: CROPS — DATA & DETAIL PAGES
 // ════════════════════════════════════════════════
+const CROP_DATA = {
+  'Wheat': {
+    revenue:'$4.2B CAD', revenueYoy:'+3.2% YoY',
+    acres:'24.5M acres', acresYoy:'+2.1% YoY',
+    farmers:'28,500', category:'Grains & Cereals',
+    yield:'48.2 bu/acre',
+    weatherGuidance:'Favorable spring conditions expected. Normal precipitation forecasted for key growing regions in Saskatchewan and Alberta.',
+    spring:'Favorable', summer:'Normal', fall:'Monitor',
+    exportValue:'$3.1B CAD (StatsCan/AAFC values, rounded)',
+    provinces:['Saskatchewan (47%)','Alberta (28%)','Manitoba (18%) — Prairie provinces dominate'],
+    challenges:['Fusarium head blight causing yield loss and mycotoxin contamination','Input costs for fertilizers and chemicals','Market volatility due to global supply chain disruptions','Climate adaptation for changing precipitation patterns'],
+    technologies:['GPS seeding and yield monitoring','Variable-rate fertilizer application','Disease-resistant varieties','Precision harvesting with moisture sensing'],
+    recTech:[{n:'Gene editing for drought tolerance',s:'Testing Phase'},{n:'Precision fungicide application using AI',s:'Testing Phase'},{n:'Blockchain grain traceability',s:'Testing Phase'},{n:'Autonomous harvesting equipment',s:'Testing Phase'}],
+    orgs:[{n:'Canadian Wheat Research Coalition'},{n:'Western Grains Research Foundation'},{n:'Cereals Canada'},{n:'Prairie Grain Development Committee'}],
+    listDesc:'Canada\'s #2 field crop by area (~24.5M acres). Spring and winter varieties. ~75% exported. Prairie provinces dominate.'
+  },
+  'Barley': {
+    revenue:'$1.8B CAD', revenueYoy:'+2.5% YoY',
+    acres:'5M acres', acresYoy:'+1.2% YoY',
+    farmers:'15,000', category:'Grains & Cereals',
+    yield:'62 bu/acre',
+    weatherGuidance:'Similar conditions to wheat. Watch for excess moisture during harvest in September affecting malting quality.',
+    spring:'Favorable', summer:'Normal', fall:'Monitor',
+    exportValue:'$800M CAD (StatsCan/AAFC values, rounded)',
+    provinces:['Alberta (42%)','Saskatchewan (35%)','Manitoba (15%) — Prairie provinces dominate'],
+    challenges:['Fusarium head blight in malting barley','Competition from other crops for acreage','Quality requirements for malting grade','Climate variability affecting harvest timing'],
+    technologies:['Precision seeding for optimal plant stand','Variable-rate fertilizer application','Near-infrared quality testing','Weather-based harvest timing tools'],
+    recTech:[{n:'Automated malting quality assessment',s:'Testing Phase'},{n:'Disease-resistant variety breeding using AI',s:'Testing Phase'}],
+    orgs:[{n:'Alberta Barley Commission'},{n:'Canadian Malting Barley Technical Centre'},{n:'Cereals Canada'},{n:'Western Grains Research Foundation'}],
+    listDesc:'~5M acres nationally. Used for malting (beer/whisky) and livestock feed. Alberta is the largest producer.'
+  },
+  'Canola': {
+    revenue:'$11.2B CAD', revenueYoy:'+5.8% YoY',
+    acres:'22M acres', acresYoy:'+4.3% YoY',
+    farmers:'43,000', category:'Oilseeds',
+    yield:'35.4 bu/acre',
+    weatherGuidance:'Early seeding window expected. Watch for flea beetle pressure in May–June. Good moisture conditions anticipated.',
+    spring:'Favorable', summer:'Normal', fall:'Monitor',
+    exportValue:'$8.9B CAD (StatsCan/AAFC values, rounded)',
+    provinces:['Saskatchewan (51%)','Alberta (32%)','Manitoba (15%) — Canada\'s largest cash crop'],
+    challenges:['Flea beetles and blackleg disease pressure','Clubroot disease expansion across prairie provinces','Market access issues with key export destinations','Herbicide resistance development in weeds'],
+    technologies:['Hybrid breeding and seed treatments','Clubroot-resistant varieties','Precision seeding technology','Sclerotinia forecasting models'],
+    recTech:[{n:'Pod shatter reduction through gene editing',s:'Testing Phase'},{n:'Automated insect scouting drones',s:'Testing Phase'}],
+    orgs:[{n:'Canola Council of Canada'},{n:'SaskCanola'},{n:'Alberta Canola Producers Commission'},{n:'Manitoba Canola Growers'}],
+    listDesc:'Canada\'s #1 field crop by value (~22M acres). World\'s largest canola exporter. Used for cooking oil, biodiesel, and high-protein meal.'
+  },
+  'Soybeans': {
+    revenue:'$2.8B CAD', revenueYoy:'+8.1% YoY',
+    acres:'5M acres', acresYoy:'+12.5% YoY',
+    farmers:'18,200', category:'Oilseeds',
+    yield:'35.8 bu/acre',
+    weatherGuidance:'Warm, dry conditions expected for planting. Adequate rainfall forecasted for pod fill period in August.',
+    spring:'Favorable', summer:'Normal', fall:'Monitor',
+    exportValue:'$1.9B CAD (StatsCan/AAFC values, rounded)',
+    provinces:['Ontario (52%)','Manitoba (28%)','Quebec (15%) — ON, QC, MB'],
+    challenges:['Short season in Prairies and pest management','White mold (Sclerotinia) management','Soybean cyst nematode spread','Need for shorter-season varieties in northern regions'],
+    technologies:['Inoculants and precision planting systems','SCN-resistant varieties','Multi-spectral crop monitoring','Rhizobia inoculant optimization'],
+    recTech:[{n:'Gene-edited high-oleic varieties',s:'Testing Phase'},{n:'AI-powered disease detection',s:'Testing Phase'}],
+    orgs:[{n:'Soy Canada'},{n:'Grain Farmers of Ontario'},{n:'Manitoba Pulse & Soybean Growers'},{n:'Canadian Grain Commission'}],
+    listDesc:'~5M acres, primarily in Ontario and Quebec. Used for food, animal feed, and biofuels. Growing non-GMO and organic market.'
+  },
+  'Lentils': {
+    revenue:'$1.9B CAD', revenueYoy:'+6.2% YoY',
+    acres:'3.8M acres', acresYoy:'+5.1% YoY',
+    farmers:'9,500', category:'Pulses',
+    yield:'1,385 lbs/acre',
+    weatherGuidance:'Dry seeding conditions ideal. Watch for adequate moisture during flowering. Heat stress potential in late July.',
+    spring:'Favorable', summer:'Normal', fall:'Monitor',
+    exportValue:'$1.7B CAD (StatsCan/AAFC values, rounded)',
+    provinces:['Saskatchewan (95%)','Alberta (4%)','Manitoba (1%) — SK = ~95%'],
+    challenges:['Aphanomyces and ascochyta disease management','Aphanomyces root rot management','Ascochyta blight in wet conditions','Export market access requirements'],
+    technologies:['Disease resistance and precision seeding','Disease-resistant varieties','Precision seeding for optimal plant stand','Color sorting and grading technology'],
+    recTech:[{n:'Machine learning for disease prediction',s:'Testing Phase'},{n:'Robotic harvesting for specialty lentils',s:'Testing Phase'}],
+    orgs:[{n:'Saskatchewan Pulse Growers'},{n:'Pulse Canada'},{n:'Canadian Special Crops Association'},{n:'AAFC Lentil Research Program'}],
+    listDesc:'Saskatchewan produces ~95% of Canada\'s lentils. World\'s largest lentil exporter. Strong demand from India, Turkey, and Bangladesh.'
+  },
+  'Potatoes': {
+    revenue:'$1.4B CAD', revenueYoy:'+2.8% YoY',
+    acres:'365K acres', acresYoy:'+1.9% YoY',
+    farmers:'2,800', category:'Vegetables',
+    yield:'315 cwt/acre',
+    weatherGuidance:'Cool, moist spring ideal for planting. Irrigation needs likely during summer dry periods.',
+    spring:'Favorable', summer:'Normal', fall:'Monitor',
+    exportValue:'$580M CAD (StatsCan/AAFC values, rounded)',
+    provinces:['Prince Edward Island (45%)','Manitoba (18%)','New Brunswick (15%) — MB, PEI, NB'],
+    challenges:['Disease pressure and water use','Late blight disease pressure','Colorado potato beetle resistance','Storage management and shrinkage'],
+    technologies:['Irrigation optimization and disease forecasting','GPS-guided planting and harvesting','Disease forecasting systems','Precision irrigation management'],
+    recTech:[{n:'Gene editing for disease resistance',s:'Testing Phase'},{n:'Machine vision for quality grading',s:'Testing Phase'}],
+    orgs:[{n:'Canadian Potato Council'},{n:'PEI Potato Board'},{n:'Potatoes New Brunswick'},{n:'Manitoba Potato Production Days'}],
+    listDesc:'~365K acres nationally. PEI, Manitoba, and New Brunswick are top producers. Used for fresh market, processing, and seed potatoes.'
+  },
+  'Corn': {
+    revenue:'$2.1B CAD', revenueYoy:'+4.7% YoY',
+    acres:'3.5M acres', acresYoy:'+3.9% YoY',
+    farmers:'12,800', category:'Grains & Cereals',
+    yield:'142 bu/acre',
+    weatherGuidance:'Favorable planting conditions. Warm summer temperatures expected. Monitor for potential drought stress in July–August.',
+    spring:'Favorable', summer:'Normal', fall:'Monitor',
+    exportValue:'$450M CAD (StatsCan/AAFC values, rounded)',
+    provinces:['Ontario (71%)','Quebec (22%)','Manitoba (5%) — mostly Ontario/Quebec'],
+    challenges:['Rootworm and drying costs','Corn rootworm and European corn borer pressure','Drying costs for high-moisture harvest','Market competition from ethanol demand fluctuations'],
+    technologies:['Nitrogen VRA and silage sensors','Bt and herbicide-tolerant traits','Variable-rate nitrogen application','Precision harvesting with moisture sensing'],
+    recTech:[{n:'RNA interference for rootworm control',s:'Testing Phase'},{n:'Hyperspectral imaging for nutrient management',s:'Testing Phase'},{n:'Automated kernel quality assessment',s:'Testing Phase'},{n:'Climate-adaptive hybrid selection tools',s:'Testing Phase'}],
+    orgs:[{n:'Grain Farmers of Ontario'},{n:'Producteurs de grains du Québec'},{n:'Canadian Corn Pest Coalition'},{n:'Cereals Canada'}],
+    listDesc:'~3.5M acres, primarily in Ontario and Quebec. Used for grain, silage, ethanol, and high-fructose corn syrup.'
+  }
+};
+
+let _selectedCrop = null;
+
+function pgCropDetail(cropName){
+  const c = CROP_DATA[cropName];
+  if (!c) return pgCrops();
+  const seasonColor = s => s === 'Favorable' ? 'var(--green)' : s === 'Normal' ? '#2563eb' : '#ea580c';
+  return `
+<div style="margin-bottom:16px">
+  <a href="#" onclick="_selectedCrop=null;go('crops');return false" style="color:var(--text-muted);font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">← Back to Crops</a>
+</div>
+<h1 class="crop-detail-h1" style="font-size:28px;font-weight:800;margin:0 0 4px">${cropName}</h1>
+<p style="color:var(--text-muted);font-size:14px;margin:0 0 20px">Comprehensive overview of ${cropName.toLowerCase()} production in Canada</p>
+
+<!-- KPI Row -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" class="crop-detail-kpis">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+    <div class="kpi-val" style="font-size:22px;font-weight:800;color:#16a34a">${c.revenue}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 6px">Total Revenue</div>
+    <span style="background:#16a34a;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px">${c.revenueYoy}</span>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+    <div class="kpi-val" style="font-size:22px;font-weight:800;color:#2563eb">${c.acres}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 6px">Total Acres</div>
+    <span style="background:#16a34a;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px">${c.acresYoy}</span>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+    <div class="kpi-val" style="font-size:22px;font-weight:800;color:#ea580c">${c.farmers}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 6px">Farmers</div>
+    <span style="font-size:11px;color:var(--text-muted)">${c.category}</span>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+    <div class="kpi-val" style="font-size:22px;font-weight:800;color:#ea580c">${c.yield}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin:2px 0 6px">Average Yield</div>
+    <span style="background:#1e40af;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px">National Average</span>
+  </div>
+</div>
+
+<!-- Weather + Production Stats -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" class="crop-detail-2col">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+    <h3 style="font-size:15px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px">🌡️ 2025 Season Weather Outlook</h3>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin:0 0 16px;font-style:italic">Illustrative guidance: ${c.weatherGuidance}</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div style="background:var(--hover);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:14px;font-weight:700;color:${seasonColor(c.spring)}">Spring</div>
+        <div style="font-size:12px;color:${seasonColor(c.spring)}">${c.spring}</div>
+      </div>
+      <div style="background:var(--hover);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:14px;font-weight:700;color:${seasonColor(c.summer)}">Summer</div>
+        <div style="font-size:12px;color:${seasonColor(c.summer)}">${c.summer}</div>
+      </div>
+      <div style="background:var(--hover);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:14px;font-weight:700;color:${seasonColor(c.fall)}">Fall</div>
+        <div style="font-size:12px;color:${seasonColor(c.fall)}">${c.fall}</div>
+      </div>
+    </div>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+    <h3 style="font-size:15px;font-weight:700;margin:0 0 14px">Production Statistics</h3>
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Export Value</div>
+      <div style="font-size:13px;color:var(--text-muted)">${c.exportValue}</div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Top Producing Provinces</div>
+      ${c.provinces.map(p=>`<div style="font-size:13px;color:var(--text-muted);line-height:1.8">${p}</div>`).join('')}
+    </div>
+  </div>
+</div>
+
+<!-- Challenges + Technologies -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" class="crop-detail-2col">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+    <h3 style="font-size:15px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:8px">⚠️ Current Challenges</h3>
+    ${c.challenges.map(ch=>`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px"><span style="color:#dc2626;font-size:10px;margin-top:5px">●</span><span style="font-size:13px;color:var(--text-muted);line-height:1.5">${ch}</span></div>`).join('')}
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+    <h3 style="font-size:15px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:8px">⚙️ Current Technologies</h3>
+    ${c.technologies.map(t=>`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px"><span style="color:#16a34a;font-size:10px;margin-top:5px">●</span><span style="font-size:13px;color:var(--text-muted);line-height:1.5">${t}</span></div>`).join('')}
+  </div>
+</div>
+
+<!-- Recommended Technologies -->
+<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+  <h3 style="font-size:15px;font-weight:700;margin:0 0 4px;display:flex;align-items:center;gap:8px">🚀 Recommended Technologies to Test</h3>
+  <p style="font-size:13px;color:var(--text-muted);margin:0 0 14px">Emerging technologies showing promise for ${cropName.toLowerCase()} production</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="crop-detail-2col">
+    ${c.recTech.map(t=>`<div style="background:var(--hover);border-radius:8px;padding:14px;display:flex;align-items:flex-start;gap:10px">
+      <span style="color:#9333ea;font-size:10px;margin-top:4px">●</span>
+      <div><div style="font-size:13px;font-weight:600;color:var(--text)">${t.n}</div>
+      <span style="display:inline-block;margin-top:6px;background:#7c3aed;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px">${t.s}</span></div>
+    </div>`).join('')}
+  </div>
+</div>
+
+<!-- Supporting Organizations -->
+<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+    <h3 style="font-size:15px;font-weight:700;margin:0">Supporting Organizations &amp; Associations</h3>
+    <a href="#crop-sources-${cropName.replace(/\s/g,'')}" onclick="document.getElementById('crop-sources-${cropName.replace(/\s/g,'')}').scrollIntoView({behavior:'smooth'});return false" style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;text-decoration:none;cursor:pointer">ⓘ Sources</a>
+  </div>
+  <p style="font-size:13px;color:var(--text-muted);margin:0 0 14px">Key industry organizations providing support for ${cropName.toLowerCase()} growers</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" class="crop-detail-2col">
+    ${c.orgs.map(o=>{
+      const url = LINKS[o.n] || '';
+      return `<div style="background:var(--hover);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;${url?'cursor:pointer':''}" ${url?`onclick="window.open('${url}','_blank')"`:''}><span style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${o.n}</span>${url?'<span style="color:var(--text-faint);font-size:12px;flex-shrink:0">↗</span>':''}</div>`;
+    }).join('')}
+  </div>
+</div>
+
+<!-- Data Sources & Disclaimer -->
+<div id="crop-sources-${cropName.replace(/\s/g,'')}" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+  <h3 style="font-size:15px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px">📊 Data Sources</h3>
+  <div style="font-size:12px;color:var(--text-muted);line-height:1.8">
+    <div style="margin-bottom:8px">Revenue, acreage, yield, and export figures are compiled from publicly available data published by:</div>
+    <div class="crop-src-badges" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      <a href="https://www150.statcan.gc.ca/n1/en/subjects/agriculture_and_food" target="_blank" rel="noopener" style="display:inline-block;padding:4px 10px;background:var(--hover);border-radius:6px;font-size:11px;font-weight:600;color:var(--text);text-decoration:none">Statistics Canada (StatsCan) ↗</a>
+      <a href="https://agriculture.canada.ca" target="_blank" rel="noopener" style="display:inline-block;padding:4px 10px;background:var(--hover);border-radius:6px;font-size:11px;font-weight:600;color:var(--text);text-decoration:none">Agriculture &amp; Agri-Food Canada (AAFC) ↗</a>
+      <a href="https://www.grainscanada.gc.ca/en/" target="_blank" rel="noopener" style="display:inline-block;padding:4px 10px;background:var(--hover);border-radius:6px;font-size:11px;font-weight:600;color:var(--text);text-decoration:none">Canadian Grain Commission ↗</a>
+      ${c.orgs.map(o=>{const u=LINKS[o.n]||'';return u?'<a href="'+u+'" target="_blank" rel="noopener" style="display:inline-block;padding:4px 10px;background:var(--hover);border-radius:6px;font-size:11px;font-weight:600;color:var(--text);text-decoration:none">'+o.n+' ↗</a>':'';}).join('')}
+    </div>
+    <div style="padding:10px 14px;background:rgba(22,163,74,.06);border-radius:8px;border-left:3px solid var(--green);font-size:11px;color:var(--text-muted);line-height:1.7">
+      <strong>Disclaimer:</strong> All figures are rounded estimates based on the most recent publicly available data (2024–25 crop year where available). Year-over-year changes are approximate. Weather outlooks are illustrative guidance only and should not replace professional agronomic advice. Farmer counts are estimated from census and industry data. Consult official sources for decision-making.
+    </div>
+  </div>
+</div>
+`;
+}
+
 function pgCrops(){
+  // If a crop is selected, show detail page
+  if (_selectedCrop && CROP_DATA[_selectedCrop]) {
+    return pgCropDetail(_selectedCrop);
+  }
   // For non-Canada regions, show a message directing to Ecosystem
   if (_currentRegion !== 'ca') {
     const rd = REGION_DATA[_currentRegion];
@@ -3234,35 +3509,25 @@ function pgCrops(){
 </div>`;
   }
   const groups=[
-    {id:'grains',cat:'🌾 Grains & Cereals',count:2,crops:[
-      {n:'Wheat',d:'Canada\'s #2 field crop by area (~9M acres). Spring and winter varieties. ~75% of production is exported. Prairie provinces dominate production.'},
-      {n:'Barley',d:'~5M acres nationally. Used for malting (beer/whisky) and livestock feed. Alberta is the largest producer.'},
-    ]},
-    {id:'oils',cat:'🟡 Oilseeds',count:2,crops:[
-      {n:'Canola',d:'Canada\'s #1 field crop by value (~21M acres). Record production of 21.8M tonnes in 2024–25. Canada is the world\'s largest canola exporter. Used for cooking oil, biodiesel, and high-protein meal.'},
-      {n:'Soybeans',d:'~5M acres, primarily in Ontario and Quebec. Used for food, animal feed, and biofuels. Growing non-GMO and organic varieties market.'},
-    ]},
-    {id:'pulses',cat:'🟤 Pulses',count:1,crops:[
-      {n:'Lentils',d:'Saskatchewan produces ~95% of Canada\'s lentils. Canada is the world\'s largest lentil exporter. Strong demand from India, Turkey, and Bangladesh.'},
-    ]},
-    {id:'veg',cat:'🥔 Vegetables',count:1,crops:[
-      {n:'Potatoes',d:'~400,000 acres nationally. PEI, Manitoba, and Alberta are top producers. Used for fresh market, processing (fries, chips), and seed potatoes.'},
-    ]},
+    {id:'grains',cat:'🌾 Grains & Cereals',count:3,crops:['Wheat','Barley','Corn']},
+    {id:'oils',cat:'🟡 Oilseeds',count:2,crops:['Canola','Soybeans']},
+    {id:'pulses',cat:'🟤 Pulses',count:1,crops:['Lentils']},
+    {id:'veg',cat:'🥔 Vegetables',count:1,crops:['Potatoes']},
   ];
   return `<div class="page-hdr"><h1>Canadian Crop Production Overview</h1>
-<p>Comprehensive data and insights for major crops grown across Canada.</p></div>
+<p>Comprehensive data and insights for major crops grown across Canada. Click any crop for detailed market data.</p></div>
 <div class="crop-stats">
 <div class="crop-stat"><div class="v">~65–70M</div><div class="l">Field Crop Acres</div></div>
 <div class="crop-stat"><div class="v">~190,000</div><div class="l">Farms Nationally</div></div>
 <div class="crop-stat"><div class="v">107M tonnes</div><div class="l">Record Grain &amp; Oilseed Production (2024–25)</div></div>
-<div class="crop-stat"><div class="v">6</div><div class="l">Major Crop Categories Tracked</div></div>
+<div class="crop-stat"><div class="v">7</div><div class="l">Major Crops Tracked</div></div>
 </div>
 <div class="crop-grid">${groups.map(g=>`<div class="crop-card">
 <div class="crop-hdr" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.crop-chev').style.transform=this.nextElementSibling.classList.contains('open')?'rotate(180deg)':''">
   <h4>${g.cat}</h4>
   <div style="display:flex;align-items:center;gap:8px"><span class="badge b-green">${g.count} crop${g.count>1?'s':''}</span><span class="crop-chev" style="font-size:11px;color:var(--text-faint);transition:transform .2s">▼</span></div>
 </div>
-<div class="crop-body open">${g.crops.map(c=>`<div class="crop-item"><h5>${c.n}</h5><p>${c.d}</p></div>`).join('')}</div>
+<div class="crop-body open">${g.crops.map(cn=>{const cd=CROP_DATA[cn];return `<div class="crop-item" style="cursor:pointer;transition:background .15s" onclick="_selectedCrop='${cn}';render('crops');document.getElementById('page').scrollTop=0" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''"><div style="display:flex;align-items:center;justify-content:space-between"><h5 style="margin:0">${cn}</h5><span style="color:var(--green);font-size:12px;font-weight:600">View Details →</span></div><p style="margin:4px 0 0">${cd?cd.listDesc:''}</p><div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap"><span style="font-size:11px;color:#16a34a;font-weight:600">${cd?cd.revenue:''}</span><span style="font-size:11px;color:#2563eb;font-weight:600">${cd?cd.acres:''}</span><span style="font-size:11px;color:#ea580c;font-weight:600">${cd?cd.farmers+' farmers':''}</span></div></div>`;}).join('')}</div>
 </div>`).join('')}</div>`;
 }
 
