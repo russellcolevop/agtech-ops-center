@@ -781,6 +781,7 @@
       <option value="government">🏛️ Government</option>
     </select>
     <button id="admin-preview-wiz-btn" style="display:none;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:10px;background:var(--surface);color:var(--text);font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0" onclick="previewWizard()" title="Preview onboarding wizard for the selected persona">🧙 Wizard</button>
+    <button id="notif-bell" style="display:none;position:relative;background:none;border:none;font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1" onclick="go('action',null)" title="Notifications">🔔<span id="notif-badge" style="display:none;position:absolute;top:-2px;right:-4px;background:#ef4444;color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 4px;line-height:1;border:2px solid var(--surface)"></span></button>
     <div style="position:relative;flex-shrink:0" id="user-menu-wrap">
       <button class="signin-btn" id="topbar-user-btn" onclick="openModal('signin-modal')">→ Sign In</button>
       <div id="user-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:200px;z-index:200;overflow:hidden">
@@ -994,6 +995,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
     const mts = document.getElementById('sidebar-my-tools'); if (mts) mts.style.display = 'none';
     const ps = document.getElementById('admin-persona-switcher'); if (ps) { ps.style.display = 'none'; ps.value = ''; }
     const pwb = document.getElementById('admin-preview-wiz-btn'); if (pwb) pwb.style.display = 'none';
+    const nb = document.getElementById('notif-bell'); if (nb) nb.style.display = 'none';
     _adminPersonaOverride = null;
     // Reset branding to default on signout
     const lt = document.querySelector('.logo-text'); if (lt) lt.textContent = 'Founder Ops Center';
@@ -1122,6 +1124,8 @@ function applyUser(user, isNew) {
       // Re-render to show any verification banners
       if (currentPage) render(currentPage);
     }
+    // Update notification bell after any profile state change
+    updateNotifBell();
   });
 }
 
@@ -1384,7 +1388,7 @@ function showLandingPage(isSignedOut) {
   <div class="lp-hero">
     ${isSignedOut
       ? '<div class="lp-badge">You\'ve been signed out. Welcome back anytime.</div>'
-      : '<div class="lp-badge"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green)"></span> Early access. Canada-first, expanding globally.</div>'
+      : '<div class="lp-badge"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green)"></span> Free to use. 8 regions worldwide.</div>'
     }
     <h1 class="lp-h1">The operating system for<br><span>AgTech ecosystems</span></h1>
     <p class="lp-sub">Founders build better companies when they're connected to the right investors, advisors, and farmers. We make that happen with market intelligence, AI-powered matching, and a trusted network that grows stronger with every connection.</p>
@@ -3528,6 +3532,7 @@ async function submitCheckin(type) {
       ? '✅ Check-in recorded — you\'re all set!'
       : `✅ Check-in complete!${newBadges.length ? ' ' + newBadges.length + ' new milestone(s) claimed!' : ''}`;
     toast(msg);
+    updateNotifBell();
     render(currentPage);
   } else {
     toast('❌ Error saving check-in');
@@ -3675,6 +3680,66 @@ const TIER_DEFS = [
   { id:'operator', icon:'⚡', label:'Operator', min:6, color:'#7e22ce' },
   { id:'leader', icon:'👑', label:'Leader', min:9, color:'#f59e0b' },
 ];
+
+// ── NOTIFICATIONS ────────────────────────────────────────────────
+function getNotifications() {
+  const notifs = [];
+  if (!currentUser || !_userProfile) return notifs;
+  const p = _userProfile;
+
+  // 1. Profile not complete
+  if (!p.onboarding_complete) {
+    notifs.push({ icon:'👤', title:'Complete your profile', desc:'Set up your profile so Russell can connect you with the right people.', action:'profile', priority:1 });
+  } else {
+    const completeness = calcCompleteness(p);
+    if (completeness < 100) {
+      notifs.push({ icon:'✏️', title:'Finish your profile (' + completeness + '%)', desc:'Fill in missing fields to earn the Verified Profile badge and unlock higher tiers.', action:'profile', priority:2 });
+    }
+  }
+
+  // 2. Quarterly check-in overdue or upcoming
+  const lastCheckin = p.last_checkin ? new Date(p.last_checkin) : null;
+  const daysSince = lastCheckin ? Math.floor((Date.now() - lastCheckin.getTime()) / 864e5) : 999;
+  if (daysSince > 90) {
+    notifs.push({ icon:'🚨', title:'Quarterly check-in overdue', desc:lastCheckin ? 'Last check-in was ' + daysSince + ' days ago. Update your milestones to stay active.' : 'You haven\'t completed a check-in yet.', action:'profile', priority:1 });
+  } else if (daysSince > 60) {
+    notifs.push({ icon:'⏰', title:'Check-in coming up', desc:'Your quarterly check-in is due in ' + (90 - daysSince) + ' days. Stay ahead of it.', action:'profile', priority:3 });
+  }
+
+  // 3. Profile needs review (pre-created account)
+  if (p.needs_review) {
+    notifs.push({ icon:'📋', title:'Review your profile', desc:'Russell pre-loaded your profile. Please review it and make any changes.', action:'profile', priority:1 });
+  }
+
+  // 4. No LinkedIn URL
+  if (p.onboarding_complete && !p.linkedin_url) {
+    notifs.push({ icon:'🔗', title:'Add your LinkedIn', desc:'Adding your LinkedIn helps Russell make better introductions for you.', action:'profile', priority:4 });
+  }
+
+  // Sort by priority (lower = more urgent)
+  notifs.sort((a, b) => a.priority - b.priority);
+  return notifs;
+}
+
+function updateNotifBell() {
+  const bell = document.getElementById('notif-bell');
+  const badge = document.getElementById('notif-badge');
+  if (!bell || !badge) return;
+
+  if (!currentUser || !_userProfile) {
+    bell.style.display = 'none';
+    return;
+  }
+
+  const notifs = getNotifications();
+  bell.style.display = '';
+  if (notifs.length > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = notifs.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
 
 function calcCompleteness(p) {
   if (!p) return 0;
@@ -4437,6 +4502,7 @@ async function wizSave() {
   if (hbtn) hbtn.style.display = 'block';
   // Apply persona-tailored UI after wizard completion
   applyPersonaUI(_userProfile);
+  updateNotifBell();
   render(currentPage);
 }
 
@@ -6426,8 +6492,26 @@ function pgActionCenter() {
 
   const personaLabel = { 'early-stage':'Early-Stage Founder', 'growth-stage':'Growth-Stage Founder', 'investor':'Investor / Advisor', 'researcher':'Researcher' };
 
+  // Pending notifications
+  const notifs = getNotifications();
+  const notifSection = notifs.length ? `<div class="ac-section" style="border-left:3px solid ${notifs[0].priority <= 1 ? '#ef4444' : '#f59e0b'}">
+    <div class="ac-section-hdr"><h3>🔔 Pending Actions</h3><span class="ac-count">${notifs.length}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+      ${notifs.map(n => `<div class="rec-card" style="cursor:pointer;border-left:3px solid ${n.priority<=1?'#ef4444':n.priority<=2?'#f59e0b':'var(--green)'}" onclick="go('${n.action}')">
+        <div class="rec-icon">${n.icon}</div>
+        <div class="rec-body">
+          <div class="rec-title">${n.title}</div>
+          <div class="rec-sub">${n.desc}</div>
+        </div>
+        <div style="color:var(--green);font-size:14px">→</div>
+      </div>`).join('')}
+    </div>
+  </div>` : '';
+
   return `<div class="page-hdr"><h1>🎯 Action Center</h1>
     <p>What you should be doing this week — personalized for you as ${personaLabel[persona] || 'an AgTech professional'}.</p></div>
+
+    ${notifSection}
 
     <div class="ac-section">
       <div class="ac-section-hdr"><h3>⚡ Recommended For You</h3></div>
