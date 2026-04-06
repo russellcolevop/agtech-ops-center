@@ -7709,10 +7709,17 @@ async function resetMyAccount() {
 }
 
 function showBlockedScreen() {
+  const reason = _userProfile?.blocked_reason || '';
+  const reasonHtml = reason
+    ? `<div style="background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);border-radius:10px;padding:14px 20px;margin:0 auto 24px;max-width:440px">
+        <p style="font-size:13px;color:var(--text);margin:0"><strong>Reason:</strong> ${reason}</p>
+       </div>`
+    : '';
   document.getElementById('page').innerHTML = `<div style="text-align:center;padding:80px 20px">
     <div style="font-size:64px;margin-bottom:16px">🚫</div>
     <h2 style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px">Access Restricted</h2>
-    <p style="font-size:14px;color:var(--text-muted);max-width:400px;margin:0 auto 24px;line-height:1.7">Your access to Founder Ops Center has been restricted. If you believe this is an error, please contact the administrator.</p>
+    <p style="font-size:14px;color:var(--text-muted);max-width:440px;margin:0 auto 16px;line-height:1.7">Your access to Founder Ops Center has been restricted. If you believe this is an error, please contact the administrator.</p>
+    ${reasonHtml}
     <a href="mailto:russellcolevop@gmail.com" style="padding:11px 28px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block">Contact Russell Cole</a>
     <div style="margin-top:16px"><button onclick="signOut()" style="padding:8px 20px;background:none;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted);cursor:pointer">Sign Out</button></div>
   </div>`;
@@ -8088,18 +8095,17 @@ function profileVerificationBanner(p) {
 }
 
 async function checkAutoSuspend(profile) {
-  if (!profile || !profile.onboarding_complete) return false;
-  const completeness = calcCompleteness(profile);
-  if (completeness >= 100) return false;
+  // Never auto-suspend if user already completed onboarding wizard successfully
+  if (!profile) return false;
+  if (profile.onboarding_complete) return false;
+  // Only auto-suspend users who signed up but never finished the wizard
   const created = new Date(profile.created_at || Date.now());
   const hoursElapsed = (Date.now() - created.getTime()) / 36e5;
   if (hoursElapsed >= 48 && !profile.blocked) {
-    // Auto-suspend after 48 hours with incomplete profile
-    await blockUser(profile.id, 'Auto-suspended: incomplete profile after 48 hours');
+    await blockUser(profile.id, 'Auto-suspended: profile onboarding not completed within 48 hours. Please sign in and complete your profile to regain access.');
     return true;
   }
   if (hoursElapsed >= 24 && !profile.suspension_warned_at) {
-    // Send warning at 24 hours
     await _supabase.from('profiles').update({ suspension_warned_at: new Date().toISOString() }).eq('id', profile.id);
     profile.suspension_warned_at = new Date().toISOString();
   }
