@@ -1256,8 +1256,11 @@ function applyUser(user, isNew) {
     }
     // Update notification bell after any profile state change
     updateNotifBell();
-    // Load Supabase deals for investor dashboard
-    if (currentUser) loadSupabaseDeals().then(d => { if (d.length) { _supabaseDeals = d; } });
+    // Load Supabase deals for investor dashboard + venture submissions for admin bell
+    if (currentUser) {
+      loadSupabaseDeals().then(d => { if (d.length) { _supabaseDeals = d; } });
+      loadVentureSubmissions().then(() => updateNotifBell());
+    }
   });
 }
 
@@ -2234,6 +2237,7 @@ let currentPage = 'overview';
 function go(page, btn){
   // Handle compound navigation (e.g. 'admin_deals' → admin page + deals tab)
   if (page === 'admin_deals') { adminTab = 'deals'; page = 'admin'; }
+  if (page === 'admin_venture') { adminTab = 'venture_studio'; page = 'admin'; }
   if (page === 'admin_claims') { adminTab = 'eco_claims'; page = 'admin'; }
   if (page !== 'crops') _selectedCrop = null; // reset crop detail when leaving crops
   _selectedMentor = null; // always reset mentor detail when navigating (allows back button to work)
@@ -8070,15 +8074,15 @@ function getNotifications() {
     }
   }
 
-  // 8. Admin: New venture studio submissions — route to admin deals tab
+  // 8. Admin: New venture studio submissions — route to admin venture studio tab
   if (isAdmin && _ventureSubmissions.length) {
     const newSubs = _ventureSubmissions.filter(s => s.status === 'New');
     if (newSubs.length) {
-      notifs.push({ icon:'🚀', title:newSubs.length + ' new Venture Studio submission' + (newSubs.length > 1 ? 's' : ''), desc:'Review ' + (newSubs.length > 1 ? 'these ideas' : 'this idea') + ' in the admin Deal Manager.', action:'admin_deals', priority:1 });
+      notifs.push({ icon:'🚀', title:newSubs.length + ' new Venture Studio submission' + (newSubs.length > 1 ? 's' : ''), desc:'Review ' + (newSubs.length > 1 ? 'these ideas' : 'this idea') + ' in the Venture Studio tab.', action:'admin_venture', priority:1 });
     }
     const reviewSubs = _ventureSubmissions.filter(s => s.status === 'Under Review');
     if (reviewSubs.length) {
-      notifs.push({ icon:'📋', title:reviewSubs.length + ' submission' + (reviewSubs.length > 1 ? 's' : '') + ' under review', desc:'Continue reviewing in the admin Deal Manager.', action:'admin_deals', priority:2 });
+      notifs.push({ icon:'📋', title:reviewSubs.length + ' submission' + (reviewSubs.length > 1 ? 's' : '') + ' under review', desc:'Continue reviewing in the Venture Studio tab.', action:'admin_venture', priority:2 });
     }
   }
 
