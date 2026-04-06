@@ -879,6 +879,69 @@
   </div>
 </div>
 
+<!-- ECOSYSTEM CLAIM MODAL -->
+<div class="overlay" id="eco-claim-modal" onclick="if(event.target===this)closeModal('eco-claim-modal')">
+  <div class="modal" style="max-width:540px">
+    <button class="modal-close" onclick="closeModal('eco-claim-modal')">✕</button>
+    <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <div style="font-size:18px;font-weight:800;color:var(--text)">🔑 Claim Ecosystem</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Two ways to verify you manage this program</div>
+    </div>
+
+    <!-- Path 1: Invite Code -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:16px">🎟️</span>
+        <div><div style="font-weight:700;color:var(--text);font-size:14px">Have an invite code?</div>
+        <div style="font-size:11px;color:var(--text-muted)">Enter the code shared by the platform admin for instant access</div></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="eco-claim-code" type="text" placeholder="e.g. VISTA-2026-JC" style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;font-family:monospace;letter-spacing:1px;text-transform:uppercase">
+        <button onclick="ecoClaimWithCode()" style="padding:10px 20px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Claim Now</button>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:11px;color:var(--text-faint);font-weight:600">OR</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+
+    <!-- Path 2: Verification Request -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:16px">📋</span>
+        <div><div style="font-weight:700;color:var(--text);font-size:14px">Request verification</div>
+        <div style="font-size:11px;color:var(--text-muted)">Submit your credentials for admin review. We'll verify you manage this program.</div></div>
+      </div>
+      <div style="display:grid;gap:10px">
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px">Full Name *</label>
+          <input id="eco-verify-name" type="text" placeholder="Jose Cobos" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px">Work Email *</label>
+          <input id="eco-verify-email" type="email" placeholder="jose@ucmerced.edu" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px">LinkedIn Profile *</label>
+          <input id="eco-verify-linkedin" type="url" placeholder="https://linkedin.com/in/josecobos" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px">Your Role at This Program</label>
+          <input id="eco-verify-role" type="text" placeholder="Program Director, Executive Director, etc." style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px">Additional Notes</label>
+          <textarea id="eco-verify-note" placeholder="Anything else that helps verify your role (e.g. 'I spoke with Russell Cole about joining the platform')" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;min-height:60px;resize:vertical;box-sizing:border-box"></textarea>
+        </div>
+        <button onclick="ecoClaimRequestVerify()" style="padding:11px 20px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px">📨 Submit Verification Request</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- STAT DETAIL MODAL -->
 <div class="overlay" id="stat-modal" onclick="if(event.target===this)closeModal('stat-modal')">
   <div class="modal" style="max-width:520px">
@@ -5138,8 +5201,100 @@ const ACCELERATORS = [
   }
 ];
 
+// ── PARTNER ECOSYSTEMS — real programs with managers we know ──
+const PARTNER_ECOSYSTEMS = [
+  {
+    id:'vista', slug:'uc-merced-vista',
+    name:'VISTA — Valley Institute for Sustainability, Technology & Agriculture',
+    shortName:'UC Merced VISTA',
+    org:'UC Merced',
+    manager:'Jose Cobos',
+    managerTitle:'Program Director',
+    location:'Merced, California',
+    country:'US',
+    type:'University Program',
+    focus:['Sustainability','Water Tech','Climate-Smart Ag','Precision Agriculture'],
+    description:'UC Merced\'s VISTA connects Central Valley agriculture with cutting-edge university research. Bridges the gap between academic innovation and farm-level adoption, focusing on sustainability, water management, and climate-resilient agriculture in one of the world\'s most productive farming regions.',
+    highlights:['University research pipeline','Central Valley agricultural corridor','Water & sustainability focus','Student-startup mentorship'],
+    website:'https://vista.ucmerced.edu/',
+    logo:'ucmerced',
+    color:'#003366',
+    accentColor:'#C69214',
+    startupCount:'10+',
+    founded:'2020',
+    claimed:false,
+    inviteCode:'VISTA-2026-JC'
+  },
+  {
+    id:'grandfarm', slug:'grand-farm',
+    name:'Grand Farm',
+    shortName:'Grand Farm',
+    org:'Grand Farm / Emerging Prairie',
+    manager:'John Mann',
+    managerTitle:'Program Director',
+    location:'Fargo, North Dakota',
+    country:'US',
+    type:'Innovation Hub',
+    focus:['Autonomous Systems','Precision Agriculture','Drone Technology','Farm Robotics'],
+    description:'Grand Farm is building the farm of the future in the heart of America\'s agricultural corridor. A collaborative innovation ecosystem connecting startups, researchers, farmers, and investors to test and scale next-generation agricultural technologies on real working farmland.',
+    highlights:['120-acre testbed facility','Autonomous systems focus','Industry-university collaboration','Real-farm testing environment'],
+    website:'https://www.grandfarm.com/',
+    logo:'grandfarm',
+    color:'#2d6a4f',
+    accentColor:'#95d5b2',
+    startupCount:'25+',
+    founded:'2019',
+    claimed:false,
+    inviteCode:'GRANDFARM-2026-JM'
+  },
+  {
+    id:'pnp', slug:'plug-and-play',
+    name:'Plug and Play Food & AgTech',
+    shortName:'Plug and Play',
+    org:'Plug and Play Tech Center',
+    manager:'Robert Grey',
+    managerTitle:'Program Director, Food & AgTech',
+    location:'Sunnyvale, CA / Topeka, KS / Global',
+    country:'US',
+    type:'Corporate Venture',
+    focus:['Animal Health','Supply Chain','Food Production','AgTech','Sustainability'],
+    description:'The world\'s largest innovation platform with 40+ locations globally. Plug and Play\'s Food & AgTech vertical connects early-stage startups with major corporate partners for pilot programs, investment, and scale-up support.',
+    highlights:['40+ global locations','70% follow-on capital rate','24-26 startups per cohort','Corporate partner network'],
+    website:'https://www.plugandplaytechcenter.com/industries/agtech',
+    logo:'pnp',
+    color:'#070e34',
+    accentColor:'#4f46e5',
+    startupCount:'100+',
+    founded:'2006',
+    claimed:false,
+    inviteCode:'PNP-2026-RG'
+  },
+  {
+    id:'aiva', slug:'aiva-emili',
+    name:'AIVA × EMILI',
+    shortName:'AIVA / EMILI',
+    org:'Artificial Intelligence in Value-Added Agriculture × EMILI',
+    manager:'Russell Cole',
+    managerTitle:'Ecosystem Lead',
+    location:'Winnipeg, Manitoba / Global',
+    country:'CA',
+    type:'Tech Validator',
+    focus:['AI/ML in Agriculture','Cross-Ecosystem Intelligence','Founder Ops','AgTech Validation'],
+    description:'AIVA (Artificial Intelligence in Value-Added Agriculture) and EMILI combine AI expertise with agricultural domain knowledge to validate and accelerate AgTech startups. Operates the Founder Ops Center — the platform you\'re on right now — connecting founders, investors, and ecosystem managers across the global AgTech landscape.',
+    highlights:['AI-first approach','Cross-ecosystem connectivity','Founder Ops Center platform','Global AgTech intelligence layer'],
+    website:'https://founderopscenter.com',
+    logo:'aiva',
+    color:'#16a34a',
+    accentColor:'#22c55e',
+    startupCount:'15+',
+    founded:'2024',
+    claimed:true
+  }
+];
+
 let _selectedMentor = null;
 let _selectedAccelerator = null;
+let _selectedPartnerEco = null;
 let _accelFilter = { region: 'all', requirement: 'all' };
 let _founderProfile = {};
 let _ventureStep = 0;
@@ -6626,7 +6781,7 @@ async function submitVentureApplication(){
 // PAGE: ACCELERATOR HUB
 // ════════════════════════════════════════════════
 function pgAccelerators(){
-  let _accelTab = 'browse';
+  let _accelTab = 'partners';
   const countryFlags = {'US':'🇺🇸','France':'🇫🇷','Netherlands':'🇳🇱','Israel':'🇮🇱','Australia':'🇦🇺','Singapore':'🇸🇬','Canada':'🇨🇦','Poland':'🇵🇱','EU':'🇪🇺','Global':'🌐','Multiple':'🌎'};
   const regionMap = {'na':'North America','eu':'Europe','il':'Israel','au':'Australia/APAC','apac':'Asia-Pacific','latam':'Latin America'};
   const regionNames = {'all':'All','na':'North America','eu':'Europe','il':'Israel','au':'Australia/APAC','apac':'Asia-Pacific','latam':'Latin America'};
@@ -6958,8 +7113,110 @@ function pgAccelerators(){
     return renderDetailView();
   }
 
-  let tabHtml = '<div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap" class="accel-tabs"><button onclick="_accelTab=\'browse\';render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'browse' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'browse' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">Browse Programs</button><button onclick="_accelTab=\'profile\';render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'profile' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'profile' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">My Application Profile</button><button onclick="_accelTab=\'tracker\';render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'tracker' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'tracker' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">Application Tracker</button></div>';
+  function renderPartnerEcosystems() {
+    if (_selectedPartnerEco) {
+      const eco = PARTNER_ECOSYSTEMS.find(e => e.id === _selectedPartnerEco);
+      if (!eco) { _selectedPartnerEco = null; return renderPartnerEcosystems(); }
+      const isCurrentUser = currentUser && currentUser.email && eco.manager === 'Russell Cole';
+      const persona = getProfile()?.persona;
+      const isFounder = persona === 'founder';
+      const isEcoMgr = persona === 'ecosystem_manager';
 
+      let detailHtml = '<div style="max-width:800px"><button onclick="_selectedPartnerEco=null;render(\'accelerators\')" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;margin-bottom:20px">← Back to Partner Ecosystems</button>';
+
+      detailHtml += '<div style="background:var(--card);border:2px solid ' + eco.color + '33;border-radius:16px;padding:28px;margin-bottom:20px">';
+      detailHtml += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap">';
+      detailHtml += '<div style="width:60px;height:60px;border-radius:12px;background:' + eco.color + ';display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:white;flex-shrink:0">' + eco.shortName.charAt(0) + '</div>';
+      detailHtml += '<div style="flex:1;min-width:200px"><div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px">' + eco.name + '</div>';
+      detailHtml += '<div style="font-size:13px;color:var(--text-muted)">' + eco.org + '</div></div>';
+      if (eco.claimed) detailHtml += '<span style="padding:6px 14px;background:#ecfdf5;color:#059669;border-radius:20px;font-size:12px;font-weight:600">✅ Active on Platform</span>';
+      else detailHtml += '<span style="padding:6px 14px;background:#fef3c7;color:#92400e;border-radius:20px;font-size:12px;font-weight:600">🔓 Open — Claim as Manager</span>';
+      detailHtml += '</div>';
+
+      detailHtml += '<p style="font-size:14px;line-height:1.7;color:var(--text);margin-bottom:20px">' + eco.description + '</p>';
+
+      detailHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px">';
+      detailHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center"><div style="font-size:20px;font-weight:800;color:' + eco.color + '">' + eco.startupCount + '</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px">Startups Supported</div></div>';
+      detailHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center"><div style="font-size:20px;font-weight:800;color:' + eco.color + '">' + eco.founded + '</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px">Founded</div></div>';
+      detailHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center"><div style="font-size:14px;font-weight:700;color:' + eco.color + '">📍 ' + eco.location + '</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px">Location</div></div>';
+      detailHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center"><div style="font-size:14px;font-weight:700;color:' + eco.color + '">' + eco.type + '</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px">Program Type</div></div>';
+      detailHtml += '</div>';
+
+      detailHtml += '<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;margin-bottom:8px">Focus Areas</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+      eco.focus.forEach(f => { detailHtml += '<span style="padding:5px 12px;background:' + eco.color + '15;color:' + eco.color + ';border-radius:6px;font-size:12px;font-weight:500">' + f + '</span>'; });
+      detailHtml += '</div></div>';
+
+      detailHtml += '<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;margin-bottom:8px">Program Highlights</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+      eco.highlights.forEach(h => { detailHtml += '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text)"><span style="color:' + eco.color + ';font-weight:700">✦</span> ' + h + '</div>'; });
+      detailHtml += '</div></div>';
+
+      detailHtml += '<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;margin-bottom:8px">Program Manager</div>';
+      detailHtml += '<div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px">';
+      detailHtml += '<div style="width:44px;height:44px;border-radius:50%;background:' + eco.color + ';display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px">' + eco.manager.split(' ').map(w=>w[0]).join('') + '</div>';
+      detailHtml += '<div><div style="font-weight:700;color:var(--text)">' + eco.manager + '</div><div style="font-size:12px;color:var(--text-muted)">' + eco.managerTitle + ' · ' + eco.org + '</div></div></div></div>';
+
+      // Action buttons
+      detailHtml += '<div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border)">';
+      if (eco.website) {
+        detailHtml += '<button onclick="window.open(\'' + eco.website + '\',\'_blank\')" style="padding:12px 20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer">🌐 Visit Website</button>';
+      }
+      if (isFounder) {
+        detailHtml += '<button onclick="alert(\'Application flow coming soon! For now, reach out directly to ' + eco.manager + ' or apply through their website.\')" style="padding:12px 20px;background:' + eco.color + ';border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;cursor:pointer">🚀 Apply to This Program</button>';
+      }
+      if (!eco.claimed && (isEcoMgr || isAdmin)) {
+        detailHtml += '<button onclick="ecoClaimPartner(\'' + eco.id + '\')" style="padding:12px 20px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;cursor:pointer">🔑 Claim as Manager</button>';
+      }
+      detailHtml += '</div></div></div>';
+      return detailHtml;
+    }
+
+    // Grid view
+    let html = '<div><div class="page-hdr"><h1>🤝 Partner Ecosystems</h1><p>' + PARTNER_ECOSYSTEMS.length + ' verified programs actively managing startups on the platform. These are real programs run by people we know.</p></div>';
+
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">';
+    PARTNER_ECOSYSTEMS.forEach(eco => {
+      html += '<div style="background:var(--card);border:2px solid ' + eco.color + '22;border-radius:14px;padding:20px;cursor:pointer;transition:all .2s" onclick="_selectedPartnerEco=\'' + eco.id + '\';render(\'accelerators\')" onmouseover="this.style.boxShadow=\'0 8px 20px ' + eco.color + '22\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.boxShadow=\'\';this.style.transform=\'translateY(0)\'">';
+
+      // Header
+      html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">';
+      html += '<div style="width:48px;height:48px;border-radius:10px;background:' + eco.color + ';display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:white;flex-shrink:0">' + eco.shortName.charAt(0) + '</div>';
+      html += '<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + eco.shortName + '</div>';
+      html += '<div style="font-size:11px;color:var(--text-muted)">' + eco.org + '</div></div>';
+      if (eco.claimed) html += '<span style="padding:3px 8px;background:#ecfdf5;color:#059669;border-radius:10px;font-size:10px;font-weight:600">Active</span>';
+      else html += '<span style="padding:3px 8px;background:#fef3c7;color:#92400e;border-radius:10px;font-size:10px;font-weight:600">Open</span>';
+      html += '</div>';
+
+      // Info
+      html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">📍 ' + eco.location + ' · ' + eco.type + '</div>';
+
+      // Focus tags
+      html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">';
+      eco.focus.slice(0, 3).forEach(f => { html += '<span style="padding:3px 8px;background:' + eco.color + '12;color:' + eco.color + ';border-radius:4px;font-size:10px;font-weight:500">' + f + '</span>'; });
+      if (eco.focus.length > 3) html += '<span style="padding:3px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;font-size:10px;color:var(--text-muted)">+' + (eco.focus.length - 3) + '</span>';
+      html += '</div>';
+
+      // Manager
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px">';
+      html += '<div style="width:28px;height:28px;border-radius:50%;background:' + eco.color + ';display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:10px">' + eco.manager.split(' ').map(w=>w[0]).join('') + '</div>';
+      html += '<div><div style="font-size:12px;font-weight:600;color:var(--text)">' + eco.manager + '</div><div style="font-size:10px;color:var(--text-muted)">' + eco.managerTitle + '</div></div></div>';
+
+      // Stats
+      html += '<div style="display:flex;gap:16px;font-size:11px;color:var(--text-muted)">';
+      html += '<span><strong style="color:var(--text)">' + eco.startupCount + '</strong> startups</span>';
+      html += '<span>Est. <strong style="color:var(--text)">' + eco.founded + '</strong></span>';
+      html += '</div>';
+
+      // Footer
+      html += '<div style="margin-top:12px;color:' + eco.color + ';font-size:12px;font-weight:600">View Details →</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+    return html;
+  }
+
+  let tabHtml = '<div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap" class="accel-tabs"><button onclick="_accelTab=\'partners\';_selectedPartnerEco=null;render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'partners' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'partners' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">🤝 Partner Ecosystems</button><button onclick="_accelTab=\'browse\';render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'browse' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'browse' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">Browse Programs</button><button onclick="_accelTab=\'profile\';render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'profile' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'profile' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">My Application Profile</button><button onclick="_accelTab=\'tracker\';render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'tracker' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'tracker' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">Application Tracker</button></div>';
+
+  if(_accelTab === 'partners') return tabHtml + renderPartnerEcosystems();
   if(_accelTab === 'profile') return tabHtml + renderProfile();
   if(_accelTab === 'tracker') return tabHtml + renderTracker();
   return tabHtml + renderBrowse();
@@ -8733,9 +8990,10 @@ function pgAdmin(){
   const filterBtn = (id, label, count) => `<button class="admin-filter-btn ${adminFilter===id?'active':''}" onclick="adminFilter='${id}';render('admin')">${label}${count !== undefined ? ` (${count})` : ''}</button>`;
 
   // Admin tab bar helper
+  const pendingClaims = _ecoClaimRequests.filter(r => r.status === 'pending').length;
   const adminTabBar = (active) => `<div style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border);flex-wrap:wrap">
-    ${['directory','connections','deals','roadmap','investor'].map(t => {
-      const labels = {directory:'👥 User Directory', connections:'🧠 Smart Connections', deals:'📈 Deal Manager', roadmap:'🗺️ Product Roadmap', investor:'💼 Investor Opportunity'};
+    ${['directory','connections','deals','eco_claims','roadmap','investor'].map(t => {
+      const labels = {directory:'👥 User Directory', connections:'🧠 Smart Connections', deals:'📈 Deal Manager', eco_claims:'🏗️ Ecosystem Claims' + (pendingClaims > 0 ? ' (' + pendingClaims + ')' : ''), roadmap:'🗺️ Product Roadmap', investor:'💼 Investor Opportunity'};
       const isActive = active === t;
       return `<button onclick="adminTab='${t}';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:${isActive?'var(--green)':'var(--text-muted)'};border-bottom:2px solid ${isActive?'var(--green)':'transparent'};margin-bottom:-2px">${labels[t]}</button>`;
     }).join('')}
@@ -8746,6 +9004,104 @@ function pgAdmin(){
     return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
     <p>Ecosystem intelligence — see who's using the platform and make great connections.</p></div>
     ${adminTabBar('connections')}` + pgConnections();
+  }
+
+  // Ecosystem claims approval tab
+  if (adminTab === 'eco_claims') {
+    const pending = _ecoClaimRequests.filter(r => r.status === 'pending');
+    const reviewed = _ecoClaimRequests.filter(r => r.status !== 'pending');
+
+    let claimsHtml = `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
+    <p>Review and approve ecosystem manager claim requests.</p></div>
+    ${adminTabBar('eco_claims')}`;
+
+    // Partner Ecosystems overview
+    claimsHtml += `<div class="card" style="margin-bottom:20px"><h3 style="margin-top:0">🤝 Partner Ecosystems</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:12px">`;
+    PARTNER_ECOSYSTEMS.forEach(eco => {
+      claimsHtml += `<div style="padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="width:36px;height:36px;border-radius:8px;background:${eco.color};display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px">${eco.shortName.charAt(0)}</div>
+          <div><div style="font-weight:700;font-size:13px;color:var(--text)">${eco.shortName}</div>
+          <div style="font-size:10px;color:var(--text-muted)">${eco.manager}</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          ${eco.claimed
+            ? '<span style="font-size:11px;padding:3px 10px;background:#ecfdf5;color:#059669;border-radius:6px;font-weight:600">✅ Claimed</span>'
+            : '<span style="font-size:11px;padding:3px 10px;background:#fef3c7;color:#92400e;border-radius:6px;font-weight:600">🔓 Unclaimed</span>'}
+          <span style="font-size:10px;color:var(--text-faint);font-family:monospace">${eco.inviteCode || '—'}</span>
+        </div>
+      </div>`;
+    });
+    claimsHtml += `</div></div>`;
+
+    // Pending requests
+    claimsHtml += `<div class="card" style="margin-bottom:20px"><h3 style="margin-top:0">📨 Pending Verification Requests ${pending.length > 0 ? '<span style="background:#ef4444;color:white;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px">' + pending.length + '</span>' : ''}</h3>`;
+    if (pending.length === 0) {
+      claimsHtml += `<div style="text-align:center;padding:30px;color:var(--text-faint)">No pending requests. When someone submits a verification request to claim an ecosystem, it will appear here.</div>`;
+    } else {
+      pending.forEach(req => {
+        const eco = PARTNER_ECOSYSTEMS.find(e => e.id === req.ecoId);
+        const submitted = new Date(req.submitted_at);
+        const daysAgo = Math.floor((Date.now() - submitted.getTime()) / (1000*60*60*24));
+        claimsHtml += `<div style="padding:16px;border:2px solid #f59e0b;border-radius:12px;background:#fffbeb;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-size:16px;font-weight:800;color:var(--text)">${req.name}</div>
+              <div style="font-size:12px;color:var(--text-muted)">${req.role || 'Program Manager'} · Claiming: <strong>${req.ecoName}</strong></div>
+            </div>
+            <span style="padding:4px 12px;background:#fef3c7;color:#92400e;border-radius:6px;font-size:11px;font-weight:700">⏳ PENDING</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div style="padding:10px;background:white;border:1px solid var(--border);border-radius:8px">
+              <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Email</div>
+              <div style="font-size:13px;color:var(--text)">${req.email}</div>
+            </div>
+            <div style="padding:10px;background:white;border:1px solid var(--border);border-radius:8px">
+              <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Auth Email</div>
+              <div style="font-size:13px;color:var(--text)">${req.userAuthEmail || '—'}</div>
+            </div>
+            <div style="padding:10px;background:white;border:1px solid var(--border);border-radius:8px;grid-column:span 2">
+              <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">LinkedIn</div>
+              <a href="${req.linkedin}" target="_blank" style="font-size:13px;color:#2563eb;text-decoration:underline">${req.linkedin}</a>
+            </div>
+            ${req.note ? `<div style="padding:10px;background:white;border:1px solid var(--border);border-radius:8px;grid-column:span 2">
+              <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Note from Applicant</div>
+              <div style="font-size:13px;color:var(--text)">${req.note}</div>
+            </div>` : ''}
+          </div>
+          <div style="font-size:11px;color:var(--text-faint);margin-bottom:12px">Submitted ${daysAgo === 0 ? 'today' : daysAgo + ' day' + (daysAgo !== 1 ? 's' : '') + ' ago'} · ${submitted.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}</div>
+          <div style="display:flex;gap:10px">
+            <button onclick="ecoAdminApproveClaim('${req.id}')" style="padding:10px 24px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✅ Approve — Grant Access</button>
+            <button onclick="ecoAdminDenyClaim('${req.id}')" style="padding:10px 24px;background:#ef4444;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">❌ Deny</button>
+          </div>
+        </div>`;
+      });
+    }
+    claimsHtml += `</div>`;
+
+    // Reviewed history
+    if (reviewed.length > 0) {
+      claimsHtml += `<div class="card"><h3 style="margin-top:0">📋 Review History</h3>`;
+      reviewed.forEach(req => {
+        const statusColor = req.status === 'approved' ? '#22c55e' : '#ef4444';
+        const statusIcon = req.status === 'approved' ? '✅' : '❌';
+        claimsHtml += `<div style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:14px">${statusIcon}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${req.name} → ${req.ecoName}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${req.email} · ${req.role || 'Program Manager'} · <a href="${req.linkedin}" target="_blank" style="color:#2563eb">LinkedIn</a></div>
+          </div>
+          <div style="text-align:right">
+            <span style="padding:3px 10px;background:${statusColor}15;color:${statusColor};border-radius:6px;font-size:11px;font-weight:700">${req.status.toUpperCase()}</span>
+            ${req.reviewed_at ? '<div style="font-size:10px;color:var(--text-faint);margin-top:4px">' + new Date(req.reviewed_at).toLocaleDateString() + '</div>' : ''}
+          </div>
+        </div>`;
+      });
+      claimsHtml += `</div>`;
+    }
+
+    return claimsHtml;
   }
 
   // Deals management tab
@@ -11608,6 +11964,220 @@ async function ecoSubmitApplication() {
   render(currentPage);
 }
 
+// ── BULK STARTUP IMPORT ──
+let _ecoBulkMode = false;
+let _ecoBulkRows = [{ name:'', founder:'', email:'', sector:'', stage:'idea', notes:'' }];
+
+function ecoBulkToggle() {
+  _ecoBulkMode = !_ecoBulkMode;
+  if (_ecoBulkMode) _ecoBulkRows = [{ name:'', founder:'', email:'', sector:'', stage:'idea', notes:'' }];
+  render('ecosystem_ws');
+}
+
+function ecoBulkAddRow() {
+  _ecoBulkRows.push({ name:'', founder:'', email:'', sector:'', stage:'idea', notes:'' });
+  render('ecosystem_ws');
+}
+
+function ecoBulkRemoveRow(idx) {
+  _ecoBulkRows.splice(idx, 1);
+  if (_ecoBulkRows.length === 0) _ecoBulkRows = [{ name:'', founder:'', email:'', sector:'', stage:'idea', notes:'' }];
+  render('ecosystem_ws');
+}
+
+function ecoBulkUpdateRow(idx, field, value) {
+  if (_ecoBulkRows[idx]) _ecoBulkRows[idx][field] = value;
+}
+
+async function ecoBulkSubmit() {
+  // Read from DOM in case render hasn't captured latest inputs
+  _ecoBulkRows.forEach((row, i) => {
+    const nameEl = document.getElementById('bulk-name-' + i);
+    const founderEl = document.getElementById('bulk-founder-' + i);
+    const emailEl = document.getElementById('bulk-email-' + i);
+    const sectorEl = document.getElementById('bulk-sector-' + i);
+    const stageEl = document.getElementById('bulk-stage-' + i);
+    const notesEl = document.getElementById('bulk-notes-' + i);
+    if (nameEl) row.name = nameEl.value;
+    if (founderEl) row.founder = founderEl.value;
+    if (emailEl) row.email = emailEl.value;
+    if (sectorEl) row.sector = sectorEl.value;
+    if (stageEl) row.stage = stageEl.value;
+    if (notesEl) row.notes = notesEl.value;
+  });
+
+  const valid = _ecoBulkRows.filter(r => r.name.trim());
+  if (valid.length === 0) { toast('⚠️ Add at least one startup name'); return; }
+  let added = 0;
+  for (const row of valid) {
+    await ecoAddStartup({
+      name: row.name.trim(),
+      founder: row.founder.trim() || 'TBD',
+      email: row.email.trim(),
+      sector: row.sector.trim() || 'General AgTech',
+      stage: row.stage || 'idea',
+      notes: row.notes.trim(),
+      source: 'bulk_import'
+    });
+    added++;
+  }
+  toast('✅ Imported ' + added + ' startup' + (added > 1 ? 's' : '') + ' to your pipeline');
+  _ecoBulkMode = false;
+  _ecoBulkRows = [{ name:'', founder:'', email:'', sector:'', stage:'idea', notes:'' }];
+  render('ecosystem_ws');
+}
+
+function ecoBulkPasteCSV() {
+  const raw = prompt('Paste CSV data (one startup per line).\nFormat: Name, Founder, Email, Sector, Stage\n\nExample:\nCropSense AI, Sarah Chen, sarah@cropsense.ai, Precision Agriculture, mvp\nAgriChain, Miguel Torres, miguel@agrichain.io, Supply Chain, idea');
+  if (!raw) return;
+  const lines = raw.split('\n').filter(l => l.trim());
+  _ecoBulkRows = lines.map(line => {
+    const parts = line.split(',').map(p => p.trim());
+    return {
+      name: parts[0] || '',
+      founder: parts[1] || '',
+      email: parts[2] || '',
+      sector: parts[3] || 'General AgTech',
+      stage: (parts[4] || 'idea').toLowerCase(),
+      notes: ''
+    };
+  });
+  if (_ecoBulkRows.length === 0) _ecoBulkRows = [{ name:'', founder:'', email:'', sector:'', stage:'idea', notes:'' }];
+  render('ecosystem_ws');
+}
+
+// ── CLAIM PARTNER ECOSYSTEM ──
+// Two paths: (1) Invite code → instant access (2) Verification request → admin approves
+let _ecoClaimRequests = JSON.parse(localStorage.getItem('foc_eco_claim_requests') || '[]');
+
+function saveClaimRequests() {
+  localStorage.setItem('foc_eco_claim_requests', JSON.stringify(_ecoClaimRequests));
+}
+
+function ecoClaimPartner(ecoId) {
+  const eco = PARTNER_ECOSYSTEMS.find(e => e.id === ecoId);
+  if (!eco) return;
+  if (!currentUser) {
+    toast('🔐 Sign in first, then select Ecosystem Manager during onboarding');
+    return;
+  }
+  const profile = getProfile();
+  if (!profile || profile.persona !== 'ecosystem_manager') {
+    toast('ℹ️ Switch to Ecosystem Manager persona to claim this program. Use the admin persona switcher or re-onboard as Ecosystem Manager.');
+    return;
+  }
+
+  // Check if already has a pending request
+  const existing = _ecoClaimRequests.find(r => r.ecoId === ecoId && r.userId === currentUser.id && r.status === 'pending');
+  if (existing) {
+    toast('⏳ You already have a pending claim request for ' + eco.shortName + '. The platform admin will review it shortly.');
+    return;
+  }
+
+  // Show claim modal with two paths
+  _ecoClaimTarget = eco;
+  openModal('eco-claim-modal');
+}
+
+let _ecoClaimTarget = null;
+
+function ecoClaimWithCode() {
+  if (!_ecoClaimTarget) return;
+  const code = document.getElementById('eco-claim-code')?.value?.trim();
+  if (!code) { toast('⚠️ Enter your invite code'); return; }
+  if (code.toUpperCase() !== (_ecoClaimTarget.inviteCode || '').toUpperCase()) {
+    toast('❌ Invalid invite code. Check the code sent by the platform admin, or submit a verification request instead.');
+    return;
+  }
+  // Instant claim
+  finalizeClaim(_ecoClaimTarget.id);
+  closeModal('eco-claim-modal');
+}
+
+function ecoClaimRequestVerify() {
+  if (!_ecoClaimTarget || !currentUser) return;
+  const name = document.getElementById('eco-verify-name')?.value?.trim();
+  const email = document.getElementById('eco-verify-email')?.value?.trim();
+  const linkedin = document.getElementById('eco-verify-linkedin')?.value?.trim();
+  const role = document.getElementById('eco-verify-role')?.value?.trim();
+  const note = document.getElementById('eco-verify-note')?.value?.trim();
+
+  if (!name || !email) { toast('⚠️ Please provide your name and email'); return; }
+  if (!linkedin) { toast('⚠️ LinkedIn profile is required for verification'); return; }
+
+  const request = {
+    id: 'claim-' + Date.now(),
+    ecoId: _ecoClaimTarget.id,
+    ecoName: _ecoClaimTarget.shortName,
+    userId: currentUser.id,
+    userAuthEmail: currentUser.email,
+    name: name,
+    email: email,
+    linkedin: linkedin,
+    role: role || 'Program Manager',
+    note: note || '',
+    status: 'pending',
+    submitted_at: new Date().toISOString()
+  };
+
+  _ecoClaimRequests.push(request);
+  saveClaimRequests();
+
+  // Also persist to Supabase if available (via eco_activity_log as a workaround)
+  if (_ecoUseSupabase && currentUser) {
+    _supabase.from('eco_activity_log').insert({
+      manager_id: currentUser.id,
+      action: 'CLAIM_REQUEST:' + JSON.stringify({ ecoId: request.ecoId, ecoName: request.ecoName, name, email, linkedin, role })
+    }).then(() => {});
+  }
+
+  closeModal('eco-claim-modal');
+  toast('📨 Verification request submitted for ' + _ecoClaimTarget.shortName + '. The platform admin will review your credentials and respond shortly.');
+  _ecoClaimTarget = null;
+}
+
+function finalizeClaim(ecoId) {
+  const eco = PARTNER_ECOSYSTEMS.find(e => e.id === ecoId);
+  if (!eco) return;
+  if (_ecoSettings) {
+    _ecoSettings.program_name = _ecoSettings.program_name || eco.shortName;
+    _ecoSettings.partner_ecosystem_id = eco.id;
+  } else {
+    _ecoSettings = { program_name: eco.shortName, program_type: eco.type, partner_ecosystem_id: eco.id, description: eco.description, website: eco.website };
+  }
+  saveEcoData();
+  eco.claimed = true;
+  toast('🎉 ' + eco.shortName + ' linked to your Ecosystem Workspace!');
+  go('ecosystem_ws');
+}
+
+// Admin: approve or deny claim requests
+function ecoAdminApproveClaim(requestId) {
+  const req = _ecoClaimRequests.find(r => r.id === requestId);
+  if (!req) return;
+  req.status = 'approved';
+  req.reviewed_at = new Date().toISOString();
+  req.reviewed_by = currentUser?.email || 'admin';
+  saveClaimRequests();
+  // Note: The claimant will see "approved" next time they visit and can finalize.
+  // For now, we directly finalize since admin is approving
+  const eco = PARTNER_ECOSYSTEMS.find(e => e.id === req.ecoId);
+  if (eco) eco.claimed = true;
+  toast('✅ Approved ' + req.name + ' as manager of ' + req.ecoName);
+  render(currentPage);
+}
+
+function ecoAdminDenyClaim(requestId) {
+  const req = _ecoClaimRequests.find(r => r.id === requestId);
+  if (!req) return;
+  req.status = 'denied';
+  req.reviewed_at = new Date().toISOString();
+  req.reviewed_by = currentUser?.email || 'admin';
+  saveClaimRequests();
+  toast('❌ Denied claim request from ' + req.name);
+  render(currentPage);
+}
+
 function pgEcosystemWorkspace() {
   if (!_ecoLoaded) { loadEcoData().then(() => render('ecosystem_ws')); return '<div style="text-align:center;padding:60px"><div style="font-size:24px;margin-bottom:12px">🏗️</div><div style="color:var(--text-muted)">Loading workspace...</div></div>'; }
   const profile = _userProfile || {};
@@ -11747,10 +12317,62 @@ function pgEcosystemWorkspace() {
       </div>`;
     }).join('');
 
+    let bulkHtml = '';
+    if (_ecoBulkMode) {
+      bulkHtml = `<div style="background:var(--surface);border:2px solid var(--green);border-radius:14px;padding:20px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div><h3 style="margin:0;font-size:16px;font-weight:800;color:var(--text)">📦 Bulk Import Startups</h3>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Add multiple startups at once — great for loading your existing portfolio</div></div>
+          <div style="display:flex;gap:8px">
+            <button onclick="ecoBulkPasteCSV()" style="padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer" title="Paste CSV formatted data">📋 Paste CSV</button>
+            <button onclick="ecoBulkToggle()" style="padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer">✕ Cancel</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--hover)">
+            <th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text);border-bottom:1px solid var(--border)">Startup Name *</th>
+            <th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text);border-bottom:1px solid var(--border)">Founder</th>
+            <th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text);border-bottom:1px solid var(--border)">Email</th>
+            <th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text);border-bottom:1px solid var(--border)">Sector</th>
+            <th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text);border-bottom:1px solid var(--border)">Stage</th>
+            <th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text);border-bottom:1px solid var(--border)">Notes</th>
+            <th style="padding:8px 6px;width:36px;border-bottom:1px solid var(--border)"></th>
+          </tr></thead>
+          <tbody>` +
+          _ecoBulkRows.map((row, i) => `<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:4px 3px"><input id="bulk-name-${i}" value="${row.name}" oninput="ecoBulkUpdateRow(${i},'name',this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:12px" placeholder="Startup name"></td>
+            <td style="padding:4px 3px"><input id="bulk-founder-${i}" value="${row.founder}" oninput="ecoBulkUpdateRow(${i},'founder',this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:12px" placeholder="Founder name"></td>
+            <td style="padding:4px 3px"><input id="bulk-email-${i}" value="${row.email}" oninput="ecoBulkUpdateRow(${i},'email',this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:12px" placeholder="email@..."></td>
+            <td style="padding:4px 3px"><input id="bulk-sector-${i}" value="${row.sector}" oninput="ecoBulkUpdateRow(${i},'sector',this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:12px" placeholder="Sector"></td>
+            <td style="padding:4px 3px"><select id="bulk-stage-${i}" onchange="ecoBulkUpdateRow(${i},'stage',this.value)" style="padding:6px 4px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:11px">
+              <option value="idea" ${row.stage==='idea'?'selected':''}>Idea</option>
+              <option value="mvp" ${row.stage==='mvp'?'selected':''}>MVP</option>
+              <option value="revenue" ${row.stage==='revenue'?'selected':''}>Revenue</option>
+              <option value="growth" ${row.stage==='growth'?'selected':''}>Growth</option>
+            </select></td>
+            <td style="padding:4px 3px"><input id="bulk-notes-${i}" value="${row.notes}" oninput="ecoBulkUpdateRow(${i},'notes',this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:12px" placeholder="Notes..."></td>
+            <td style="padding:4px 3px"><button onclick="ecoBulkRemoveRow(${i})" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:11px;color:var(--text-muted)">✕</button></td>
+          </tr>`).join('') +
+          `</tbody></table></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+          <button onclick="ecoBulkAddRow()" style="padding:6px 14px;background:none;border:1px dashed var(--border);border-radius:6px;font-size:12px;color:var(--text-muted);cursor:pointer">+ Add Row</button>
+          <div style="display:flex;gap:8px">
+            <span style="font-size:11px;color:var(--text-muted);padding:8px 0">${_ecoBulkRows.filter(r=>r.name.trim()).length} startup${_ecoBulkRows.filter(r=>r.name.trim()).length!==1?'s':''} ready</span>
+            <button onclick="ecoBulkSubmit()" style="padding:8px 20px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Import All →</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
     content = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
       <div style="display:flex;gap:6px;flex-wrap:wrap">${filterBtns}</div>
-      <button onclick="ecoAddStartup()" style="padding:8px 18px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">+ Add Startup</button>
+      <div style="display:flex;gap:8px">
+        <button onclick="ecoBulkToggle()" style="padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--text);cursor:pointer" title="Import multiple startups at once">📦 Bulk Import</button>
+        <button onclick="ecoAddStartup()" style="padding:8px 18px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">+ Add Startup</button>
+      </div>
     </div>
+    ${bulkHtml}
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">${cards || '<div style="text-align:center;padding:40px;color:var(--text-faint)">No startups in this view</div>'}</div>`;
 
   } else if (_ecoTab === 'applications') {
