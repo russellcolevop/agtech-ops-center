@@ -11299,130 +11299,319 @@ let _supabaseDeals = [];
 function investorToggle(section) { _investorOpen[section] = !_investorOpen[section]; render('investor'); }
 
 // ══════════════════════════════════════════════════════════════
-// ECOSYSTEM MANAGER WORKSPACE
+// ECOSYSTEM MANAGER WORKSPACE — Enterprise Grade
+// Supabase-backed with localStorage fallback for demo mode
 // ══════════════════════════════════════════════════════════════
 let _ecoTab = 'pipeline';
 let _ecoPipelineFilter = 'all';
 let _ecoStartups = [];
-let _ecoMentorAssignments = [];
+let _ecoApplications = [];
 let _ecoActivityLog = [];
+let _ecoSettings = null;
+let _ecoUseSupabase = false;
+let _ecoLoaded = false;
+let _ecoDetailId = null;
+let _ecoAppDetailId = null;
 
-// Initialize ecosystem workspace data from localStorage
-function loadEcoData() {
+// ── DATA LAYER: Supabase with localStorage fallback ──
+async function loadEcoData() {
+  if (_ecoLoaded) return;
+  // Try Supabase first
+  if (currentUser) {
+    try {
+      const { data: startups, error: sErr } = await _supabase.from('eco_startups')
+        .select('*').eq('manager_id', currentUser.id).order('created_at', { ascending: false });
+      if (sErr) throw sErr;
+      _ecoStartups = (startups || []).map(s => ({
+        ...s, founder: s.founder_name, email: s.founder_email,
+        mentors: s.mentor_names || [], milestones: s.milestones || [],
+        joined: s.created_at ? s.created_at.split('T')[0] : ''
+      }));
+
+      const { data: apps } = await _supabase.from('eco_applications')
+        .select('*').eq('manager_id', currentUser.id).order('submitted_at', { ascending: false });
+      _ecoApplications = apps || [];
+
+      const { data: activity } = await _supabase.from('eco_activity_log')
+        .select('*').eq('manager_id', currentUser.id).order('created_at', { ascending: false }).limit(100);
+      _ecoActivityLog = (activity || []).map(a => ({ text: a.action, ts: a.created_at }));
+
+      const { data: settings } = await _supabase.from('eco_program_settings')
+        .select('*').eq('manager_id', currentUser.id).maybeSingle();
+      _ecoSettings = settings;
+
+      _ecoUseSupabase = true;
+      _ecoLoaded = true;
+      console.log('✅ Ecosystem workspace: Supabase connected (' + _ecoStartups.length + ' startups)');
+      return;
+    } catch(e) {
+      console.log('ℹ️ Ecosystem Supabase tables not ready, using localStorage demo mode:', e.message);
+    }
+  }
+
+  // Fallback: localStorage demo mode
   try {
     _ecoStartups = JSON.parse(localStorage.getItem('foc_eco_startups') || '[]');
-    _ecoMentorAssignments = JSON.parse(localStorage.getItem('foc_eco_mentor_assign') || '[]');
+    _ecoApplications = JSON.parse(localStorage.getItem('foc_eco_applications') || '[]');
     _ecoActivityLog = JSON.parse(localStorage.getItem('foc_eco_activity') || '[]');
-  } catch(e) { _ecoStartups = []; _ecoMentorAssignments = []; _ecoActivityLog = []; }
+    _ecoSettings = JSON.parse(localStorage.getItem('foc_eco_settings') || 'null');
+  } catch(e) { _ecoStartups = []; _ecoApplications = []; _ecoActivityLog = []; }
+
   // Seed demo data if empty
   if (_ecoStartups.length === 0) {
+    const cohort = _ecoSettings?.cohort_name || 'Spring 2026';
     _ecoStartups = [
-      { id:1, name:'CropSense AI', founder:'Sarah Chen', email:'sarah@cropsense.ai', stage:'mvp', sector:'Precision Agriculture', status:'active', cohort:'Spring 2026', joined:'2026-01-15', mentors:['Walt Duflock'], notes:'Computer vision for pest detection. Strong technical team.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:true},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:65 },
-      { id:2, name:'AgriChain', founder:'Miguel Torres', email:'miguel@agrichain.io', stage:'idea', sector:'Supply Chain', status:'screening', cohort:'Spring 2026', joined:'2026-02-20', mentors:[], notes:'Blockchain-based traceability for organic produce.', milestones:[{name:'MVP Complete',done:false},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:20 },
-      { id:3, name:'SoilSync', founder:'Priya Patel', email:'priya@soilsync.com', stage:'revenue', sector:'Soil & Water Tech', status:'active', cohort:'Fall 2025', joined:'2025-09-01', mentors:['Bob Lawson','Lisa Chen'], notes:'IoT soil sensors with ML analytics. $45K MRR.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:true},{name:'LOI Secured',done:true},{name:'Seed Round',done:false}], readiness:85 },
-      { id:4, name:'FarmBot Plus', founder:'James Wright', email:'james@farmbotplus.com', stage:'mvp', sector:'Robotics & Automation', status:'active', cohort:'Spring 2026', joined:'2026-01-10', mentors:['Walt Duflock'], notes:'Autonomous weeding robot for row crops. Hardware prototype v2.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:45 },
-      { id:5, name:'GreenVault', founder:'Amara Osei', email:'amara@greenvault.ag', stage:'idea', sector:'Sustainability / Climate', status:'graduated', cohort:'Fall 2025', joined:'2025-06-15', mentors:['Diana Torres'], notes:'Carbon credit marketplace for smallholder farms. Raised $1.2M seed.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:true},{name:'LOI Secured',done:true},{name:'Seed Round',done:true}], readiness:100 },
-      { id:6, name:'AquaYield', founder:'Tom Baker', email:'tom@aquayield.co', stage:'mvp', sector:'Indoor / Vertical Farming', status:'paused', cohort:'Spring 2026', joined:'2026-02-01', mentors:[], notes:'Hydroponic nutrient optimization. Founder taking personal leave.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:35 }
+      { id:1, name:'CropSense AI', founder:'Sarah Chen', email:'sarah@cropsense.ai', stage:'mvp', sector:'Precision Agriculture', status:'active', cohort, joined:'2026-01-15', mentors:['Walt Duflock'], notes:'Computer vision for pest detection. Strong technical team.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:true},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:65, source:'introduction' },
+      { id:2, name:'AgriChain', founder:'Miguel Torres', email:'miguel@agrichain.io', stage:'idea', sector:'Supply Chain', status:'screening', cohort, joined:'2026-02-20', mentors:[], notes:'Blockchain-based traceability for organic produce.', milestones:[{name:'MVP Complete',done:false},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:20, source:'application' },
+      { id:3, name:'SoilSync', founder:'Priya Patel', email:'priya@soilsync.com', stage:'revenue', sector:'Soil & Water Tech', status:'active', cohort:'Fall 2025', joined:'2025-09-01', mentors:['Bob Lawson','Lisa Chen'], notes:'IoT soil sensors with ML analytics. $45K MRR.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:true},{name:'LOI Secured',done:true},{name:'Seed Round',done:false}], readiness:85, source:'introduction' },
+      { id:4, name:'FarmBot Plus', founder:'James Wright', email:'james@farmbotplus.com', stage:'mvp', sector:'Robotics & Automation', status:'active', cohort, joined:'2026-01-10', mentors:['Walt Duflock'], notes:'Autonomous weeding robot for row crops. Hardware prototype v2.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:45, source:'manual' },
+      { id:5, name:'GreenVault', founder:'Amara Osei', email:'amara@greenvault.ag', stage:'idea', sector:'Sustainability / Climate', status:'graduated', cohort:'Fall 2025', joined:'2025-06-15', mentors:['Diana Torres'], notes:'Carbon credit marketplace for smallholder farms. Raised $1.2M seed.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:true},{name:'LOI Secured',done:true},{name:'Seed Round',done:true}], readiness:100, source:'application' },
+      { id:6, name:'AquaYield', founder:'Tom Baker', email:'tom@aquayield.co', stage:'mvp', sector:'Indoor / Vertical Farming', status:'paused', cohort, joined:'2026-02-01', mentors:[], notes:'Hydroponic nutrient optimization. Founder taking personal leave.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:35, source:'manual' }
+    ];
+    _ecoApplications = [
+      { id:'app-1', company_name:'DroneHarvest', founder_name:'Kai Nakamura', founder_email:'kai@droneharvest.io', stage:'mvp', sector:'Robotics & Automation', pitch:'Autonomous drone swarms for precision crop monitoring and targeted spraying. Reduces chemical use by 40%.', team_size:'4', why_this_program:'Your mentor network in precision ag is exactly what we need to land our first commercial pilot.', status:'pending', submitted_at:'2026-03-28T14:30:00Z' },
+      { id:'app-2', company_name:'BioTrace', founder_name:'Elena Rodriguez', founder_email:'elena@biotrace.ag', stage:'idea', sector:'AgBiotech', pitch:'Rapid soil microbiome analysis kit — results in 24hrs instead of 2 weeks. Lab-on-chip technology.', team_size:'2', why_this_program:'We need help transitioning from research to a commercial product. Your program has deep biotech expertise.', status:'pending', submitted_at:'2026-04-01T09:15:00Z' },
+      { id:'app-3', company_name:'FeedOptix', founder_name:'David Okafor', founder_email:'david@feedoptix.com', stage:'revenue', sector:'Livestock Tech', pitch:'AI-powered livestock feed optimization. Currently deployed on 3 dairy farms, saving $2.3K/month per farm.', team_size:'6', why_this_program:'Looking to scale from dairy to poultry and swine. Need investor introductions and supply chain mentors.', status:'reviewing', submitted_at:'2026-03-15T11:00:00Z', reviewer_notes:'Strong traction. Schedule interview.' }
     ];
     saveEcoData();
   }
+  _ecoLoaded = true;
 }
 
-function saveEcoData() {
+async function saveEcoData() {
+  if (_ecoUseSupabase && currentUser) {
+    // Supabase saves happen per-operation (insert/update/delete)
+    // localStorage is also updated as backup
+  }
   try {
     localStorage.setItem('foc_eco_startups', JSON.stringify(_ecoStartups));
-    localStorage.setItem('foc_eco_mentor_assign', JSON.stringify(_ecoMentorAssignments));
+    localStorage.setItem('foc_eco_applications', JSON.stringify(_ecoApplications));
     localStorage.setItem('foc_eco_activity', JSON.stringify(_ecoActivityLog));
+    if (_ecoSettings) localStorage.setItem('foc_eco_settings', JSON.stringify(_ecoSettings));
   } catch(e) {}
 }
 
-function ecoAddActivity(text) {
-  _ecoActivityLog.unshift({ text, ts: new Date().toISOString() });
+async function ecoAddActivity(text) {
+  const entry = { text, ts: new Date().toISOString() };
+  _ecoActivityLog.unshift(entry);
   if (_ecoActivityLog.length > 100) _ecoActivityLog = _ecoActivityLog.slice(0, 100);
+  if (_ecoUseSupabase && currentUser) {
+    await _supabase.from('eco_activity_log').insert({ manager_id: currentUser.id, action: text });
+  }
   saveEcoData();
 }
 
 function ecoSwitchTab(tab) { _ecoTab = tab; render('ecosystem_ws'); }
 function ecoPipelineFilter(f) { _ecoPipelineFilter = f; render('ecosystem_ws'); }
+function ecoShowDetail(id) { _ecoDetailId = id; render('ecosystem_ws'); }
+function ecoCloseDetail() { _ecoDetailId = null; render('ecosystem_ws'); }
+function ecoShowAppDetail(id) { _ecoAppDetailId = id; _ecoTab = 'applications'; render('ecosystem_ws'); }
+function ecoCloseAppDetail() { _ecoAppDetailId = null; render('ecosystem_ws'); }
 
-function ecoAddStartup() {
-  const name = prompt('Startup name:');
-  if (!name) return;
-  const founder = prompt('Founder name:');
-  const email = prompt('Founder email:');
-  const sector = prompt('Sector (e.g. Precision Agriculture, Supply Chain):') || 'General AgTech';
-  const id = Math.max(0, ..._ecoStartups.map(s=>s.id)) + 1;
-  _ecoStartups.push({
-    id, name, founder: founder||'TBD', email: email||'', stage:'idea', sector,
-    status:'screening', cohort:'Spring 2026', joined: new Date().toISOString().split('T')[0],
-    mentors:[], notes:'', milestones:[{name:'MVP Complete',done:false},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:0
-  });
-  ecoAddActivity('Added startup: ' + name);
+async function ecoAddStartup(prefill) {
+  let name, founder, email, sector;
+  if (prefill) {
+    name = prefill.name; founder = prefill.founder; email = prefill.email; sector = prefill.sector;
+  } else {
+    name = prompt('Startup name:');
+    if (!name) return;
+    founder = prompt('Founder name:') || 'TBD';
+    email = prompt('Founder email:') || '';
+    sector = prompt('Sector (e.g. Precision Agriculture, Supply Chain):') || 'General AgTech';
+  }
+  const cohort = _ecoSettings?.cohort_name || 'Spring 2026';
+  const newStartup = {
+    id: _ecoUseSupabase ? undefined : (Math.max(0, ..._ecoStartups.map(s=>s.id||0)) + 1),
+    name, founder: founder, email: email, stage: prefill?.stage || 'idea', sector,
+    status:'screening', cohort, joined: new Date().toISOString().split('T')[0],
+    mentors:[], notes: prefill?.notes || '', source: prefill?.source || 'manual',
+    milestones:[{name:'MVP Complete',done:false},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:0
+  };
+
+  if (_ecoUseSupabase && currentUser) {
+    const { data, error } = await _supabase.from('eco_startups').insert({
+      manager_id: currentUser.id, name, founder_name: founder, founder_email: email,
+      stage: newStartup.stage, sector, status: 'screening', cohort,
+      milestones: newStartup.milestones, readiness: 0, mentor_names: [],
+      notes: newStartup.notes, source: newStartup.source
+    }).select().single();
+    if (!error && data) { newStartup.id = data.id; }
+  }
+  _ecoStartups.unshift(newStartup);
+  ecoAddActivity('Added startup: ' + name + (prefill?.source === 'application' ? ' (from application)' : ''));
   saveEcoData();
   render('ecosystem_ws');
 }
 
-function ecoUpdateStatus(id, newStatus) {
-  const s = _ecoStartups.find(x=>x.id===id);
+async function ecoUpdateStatus(id, newStatus) {
+  const s = _ecoStartups.find(x => x.id === id);
   if (!s) return;
   const old = s.status;
   s.status = newStatus;
+  if (_ecoUseSupabase && currentUser) {
+    await _supabase.from('eco_startups').update({ status: newStatus }).eq('id', id);
+  }
   ecoAddActivity(s.name + ': ' + old + ' → ' + newStatus);
   saveEcoData();
   render('ecosystem_ws');
 }
 
-function ecoToggleMilestone(startupId, milestoneIdx) {
-  const s = _ecoStartups.find(x=>x.id===startupId);
+async function ecoToggleMilestone(startupId, milestoneIdx) {
+  const s = _ecoStartups.find(x => x.id === startupId);
   if (!s || !s.milestones[milestoneIdx]) return;
   s.milestones[milestoneIdx].done = !s.milestones[milestoneIdx].done;
-  s.readiness = Math.round((s.milestones.filter(m=>m.done).length / s.milestones.length) * 100);
+  s.readiness = Math.round((s.milestones.filter(m => m.done).length / s.milestones.length) * 100);
+  if (_ecoUseSupabase && currentUser) {
+    await _supabase.from('eco_startups').update({ milestones: s.milestones, readiness: s.readiness }).eq('id', startupId);
+  }
   ecoAddActivity(s.name + ': ' + (s.milestones[milestoneIdx].done ? '✅' : '⬜') + ' ' + s.milestones[milestoneIdx].name);
   saveEcoData();
   render('ecosystem_ws');
 }
 
-function ecoAssignMentor(startupId) {
-  const s = _ecoStartups.find(x=>x.id===startupId);
+async function ecoAssignMentor(startupId) {
+  const s = _ecoStartups.find(x => x.id === startupId);
   if (!s) return;
   const mentorName = prompt('Mentor name to assign to ' + s.name + ':');
-  if (!mentorName) return;
-  if (!s.mentors.includes(mentorName)) {
-    s.mentors.push(mentorName);
-    ecoAddActivity('Assigned ' + mentorName + ' → ' + s.name);
-    saveEcoData();
-    render('ecosystem_ws');
+  if (!mentorName || s.mentors.includes(mentorName)) return;
+  s.mentors.push(mentorName);
+  if (_ecoUseSupabase && currentUser) {
+    await _supabase.from('eco_startups').update({ mentor_names: s.mentors }).eq('id', startupId);
   }
+  ecoAddActivity('Assigned ' + mentorName + ' → ' + s.name);
+  saveEcoData();
+  render('ecosystem_ws');
 }
 
-function ecoRemoveMentor(startupId, mentorName) {
-  const s = _ecoStartups.find(x=>x.id===startupId);
+async function ecoRemoveMentor(startupId, mentorName) {
+  const s = _ecoStartups.find(x => x.id === startupId);
   if (!s) return;
   s.mentors = s.mentors.filter(m => m !== mentorName);
+  if (_ecoUseSupabase && currentUser) {
+    await _supabase.from('eco_startups').update({ mentor_names: s.mentors }).eq('id', startupId);
+  }
   ecoAddActivity('Removed ' + mentorName + ' from ' + s.name);
   saveEcoData();
   render('ecosystem_ws');
 }
 
-function ecoEditNotes(startupId) {
-  const s = _ecoStartups.find(x=>x.id===startupId);
+async function ecoEditNotes(startupId) {
+  const s = _ecoStartups.find(x => x.id === startupId);
   if (!s) return;
   const notes = prompt('Notes for ' + s.name + ':', s.notes);
-  if (notes !== null) {
-    s.notes = notes;
-    saveEcoData();
-    render('ecosystem_ws');
+  if (notes === null) return;
+  s.notes = notes;
+  if (_ecoUseSupabase && currentUser) {
+    await _supabase.from('eco_startups').update({ notes }).eq('id', startupId);
   }
+  saveEcoData();
+  render('ecosystem_ws');
 }
 
-let _ecoDetailId = null;
-function ecoShowDetail(id) { _ecoDetailId = id; render('ecosystem_ws'); }
-function ecoCloseDetail() { _ecoDetailId = null; render('ecosystem_ws'); }
+// ── APPLICATION MANAGEMENT ──
+async function ecoReviewApp(appId, decision) {
+  const app = _ecoApplications.find(a => a.id === appId);
+  if (!app) return;
+  app.status = decision; // 'accepted', 'rejected', 'waitlisted', 'reviewing'
+  app.reviewed_at = new Date().toISOString();
+  if (_ecoUseSupabase && currentUser) {
+    await _supabase.from('eco_applications').update({ status: decision, reviewed_at: app.reviewed_at, reviewer_notes: app.reviewer_notes }).eq('id', appId);
+  }
+  if (decision === 'accepted') {
+    // Move to pipeline
+    await ecoAddStartup({ name: app.company_name, founder: app.founder_name, email: app.founder_email, stage: app.stage || 'idea', sector: app.sector || 'General AgTech', source: 'application', notes: 'Applied: ' + (app.pitch || '').slice(0, 200) });
+    toast('✅ ' + app.company_name + ' accepted and added to pipeline');
+  } else if (decision === 'rejected') {
+    toast('❌ ' + app.company_name + ' rejected');
+  } else if (decision === 'waitlisted') {
+    toast('⏳ ' + app.company_name + ' waitlisted');
+  } else {
+    toast('👁️ ' + app.company_name + ' marked as under review');
+  }
+  ecoAddActivity(app.company_name + ': application ' + decision);
+  saveEcoData();
+  _ecoAppDetailId = null;
+  render('ecosystem_ws');
+}
+
+function ecoAppAddNote(appId) {
+  const app = _ecoApplications.find(a => a.id === appId);
+  if (!app) return;
+  const note = prompt('Reviewer notes for ' + app.company_name + ':', app.reviewer_notes || '');
+  if (note === null) return;
+  app.reviewer_notes = note;
+  saveEcoData();
+  render('ecosystem_ws');
+}
+
+// ── PROGRAM SETTINGS ──
+async function ecoSaveSettings() {
+  const name = document.getElementById('eco-set-name')?.value || '';
+  const type = document.getElementById('eco-set-type')?.value || '';
+  const desc = document.getElementById('eco-set-desc')?.value || '';
+  const website = document.getElementById('eco-set-web')?.value || '';
+  const cohort = document.getElementById('eco-set-cohort')?.value || '';
+  const deadline = document.getElementById('eco-set-deadline')?.value || '';
+  const accepting = document.getElementById('eco-set-accepting')?.checked ?? true;
+
+  _ecoSettings = {
+    ..._ecoSettings,
+    program_name: name, program_type: type, description: desc,
+    website, cohort_name: cohort, application_deadline: deadline,
+    accepting_applications: accepting
+  };
+
+  if (_ecoUseSupabase && currentUser) {
+    const payload = { manager_id: currentUser.id, ..._ecoSettings };
+    if (_ecoSettings.id) {
+      await _supabase.from('eco_program_settings').update(payload).eq('id', _ecoSettings.id);
+    } else {
+      const { data } = await _supabase.from('eco_program_settings').upsert(payload, { onConflict: 'manager_id' }).select().single();
+      if (data) _ecoSettings.id = data.id;
+    }
+  }
+  saveEcoData();
+  toast('✅ Program settings saved');
+  ecoAddActivity('Updated program settings');
+}
+
+// ── FOUNDER-FACING: Apply to a program ──
+let _ecoApplyingTo = null; // manager_id of program to apply to
+function ecoShowApplyForm(managerId, programName) {
+  _ecoApplyingTo = { managerId, programName };
+  render('ecosystem_ws_apply');
+}
+async function ecoSubmitApplication() {
+  if (!_ecoApplyingTo) return;
+  const form = {
+    manager_id: _ecoApplyingTo.managerId,
+    applicant_user_id: currentUser?.id || null,
+    company_name: document.getElementById('eco-apply-company')?.value || '',
+    founder_name: document.getElementById('eco-apply-name')?.value || (currentUser?.name || ''),
+    founder_email: document.getElementById('eco-apply-email')?.value || (currentUser?.email || ''),
+    stage: document.getElementById('eco-apply-stage')?.value || '',
+    sector: document.getElementById('eco-apply-sector')?.value || '',
+    pitch: document.getElementById('eco-apply-pitch')?.value || '',
+    team_size: document.getElementById('eco-apply-team')?.value || '',
+    why_this_program: document.getElementById('eco-apply-why')?.value || '',
+    status: 'pending',
+    submitted_at: new Date().toISOString()
+  };
+  if (!form.company_name || !form.founder_name) { toast('⚠️ Please fill in company name and your name'); return; }
+
+  if (_ecoUseSupabase) {
+    const { error } = await _supabase.from('eco_applications').insert(form);
+    if (error) { console.error('Application submit error:', error); toast('❌ Error submitting application'); return; }
+  }
+  toast('✅ Application submitted to ' + _ecoApplyingTo.programName + '! They will review and get back to you.');
+  _ecoApplyingTo = null;
+  render(currentPage);
+}
 
 function pgEcosystemWorkspace() {
-  loadEcoData();
+  if (!_ecoLoaded) { loadEcoData().then(() => render('ecosystem_ws')); return '<div style="text-align:center;padding:60px"><div style="font-size:24px;margin-bottom:12px">🏗️</div><div style="color:var(--text-muted)">Loading workspace...</div></div>'; }
   const profile = _userProfile || {};
-  const programName = profile.company_name || profile.organization || 'My Program';
+  const programName = _ecoSettings?.program_name || profile.company_name || profile.organization || 'My Program';
 
   // Stats
   const total = _ecoStartups.length;
@@ -11432,16 +11621,23 @@ function pgEcosystemWorkspace() {
   const paused = _ecoStartups.filter(s=>s.status==='paused').length;
   const avgReadiness = total ? Math.round(_ecoStartups.reduce((a,s)=>a+s.readiness,0)/total) : 0;
   const totalMentors = [...new Set(_ecoStartups.flatMap(s=>s.mentors))].length;
-  const needMentors = _ecoStartups.filter(s=>s.status==='active' && s.mentors.length===0).length;
+  const pendingApps = _ecoApplications.filter(a=>a.status==='pending').length;
+
+  // Persistence badge
+  const modeBadge = _ecoUseSupabase
+    ? '<span style="padding:3px 8px;background:#dcfce7;color:#166534;border-radius:4px;font-size:10px;font-weight:700">☁️ Live — Supabase</span>'
+    : '<span style="padding:3px 8px;background:#fef3c7;color:#92400e;border-radius:4px;font-size:10px;font-weight:700">💾 Demo — localStorage</span>';
 
   // Tabs
   const tabs = [
-    {id:'pipeline',label:'Startup Pipeline',icon:'📊'},
-    {id:'mentors',label:'Mentor Coordination',icon:'🧑‍🏫'},
-    {id:'metrics',label:'Program Metrics',icon:'📈'},
-    {id:'activity',label:'Activity Log',icon:'📋'}
+    {id:'pipeline',label:'Startup Pipeline',icon:'📊',badge:null},
+    {id:'applications',label:'Applications',icon:'📩',badge:pendingApps||null},
+    {id:'mentors',label:'Mentor Coordination',icon:'🧑‍🏫',badge:null},
+    {id:'metrics',label:'Program Metrics',icon:'📈',badge:null},
+    {id:'activity',label:'Activity Log',icon:'📋',badge:null},
+    {id:'settings',label:'Settings',icon:'⚙️',badge:null}
   ];
-  const tabBar = tabs.map(t => `<button onclick="ecoSwitchTab('${t.id}')" style="padding:10px 18px;border:none;background:${_ecoTab===t.id?'var(--green)':'var(--hover)'};color:${_ecoTab===t.id?'#fff':'var(--text-muted)'};border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s">${t.icon} ${t.label}</button>`).join('');
+  const tabBar = tabs.map(t => `<button onclick="ecoSwitchTab('${t.id}')" style="padding:10px 18px;border:none;background:${_ecoTab===t.id?'var(--green)':'var(--hover)'};color:${_ecoTab===t.id?'#fff':'var(--text-muted)'};border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;position:relative">${t.icon} ${t.label}${t.badge?`<span style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px">${t.badge}</span>`:''}</button>`).join('');
 
   // Detail view
   if (_ecoDetailId) {
@@ -11557,10 +11753,70 @@ function pgEcosystemWorkspace() {
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">${cards || '<div style="text-align:center;padding:40px;color:var(--text-faint)">No startups in this view</div>'}</div>`;
 
+  } else if (_ecoTab === 'applications') {
+    // Application detail view
+    if (_ecoAppDetailId) {
+      const app = _ecoApplications.find(a=>a.id===_ecoAppDetailId);
+      if (app) {
+        const statusColors = {pending:'#6366f1',reviewing:'#f59e0b',accepted:'#22c55e',rejected:'#ef4444',waitlisted:'#8b5cf6'};
+        const submitted = new Date(app.submitted_at);
+        const timeAgo = Math.floor((Date.now()-submitted.getTime())/(1000*60*60*24));
+        content = `<div style="max-width:700px">
+          <button onclick="ecoCloseAppDetail()" style="background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;margin-bottom:16px">← Back to Applications</button>
+          <div style="padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+              <div>
+                <h2 style="font-size:22px;font-weight:900;color:var(--text);margin:0 0 4px">${app.company_name}</h2>
+                <div style="font-size:13px;color:var(--text-muted)">${app.founder_name} · ${app.founder_email || 'No email'}</div>
+              </div>
+              <span style="padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;background:${statusColors[app.status]||'#6b7280'}20;color:${statusColors[app.status]||'#6b7280'}">${app.status.toUpperCase()}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-faint);margin-bottom:16px">Submitted ${timeAgo} day${timeAgo!==1?'s':''} ago · ${submitted.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}${app.stage?' · Stage: '+app.stage:''}${app.sector?' · '+app.sector:''}${app.team_size?' · Team: '+app.team_size:''}</div>
+            ${app.pitch?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:4px">WHAT THEY'RE BUILDING</div><div style="font-size:13px;color:var(--text);line-height:1.7;padding:12px;background:var(--hover);border-radius:8px">${app.pitch}</div></div>`:''}
+            ${app.why_this_program?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:4px">WHY THIS PROGRAM</div><div style="font-size:13px;color:var(--text);line-height:1.7;padding:12px;background:var(--hover);border-radius:8px">${app.why_this_program}</div></div>`:''}
+            ${app.additional_info?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:4px">ADDITIONAL INFO</div><div style="font-size:13px;color:var(--text);line-height:1.7;padding:12px;background:var(--hover);border-radius:8px">${app.additional_info}</div></div>`:''}
+            <div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:4px">REVIEWER NOTES</div>
+              <div style="font-size:12px;color:var(--text);padding:10px;background:var(--hover);border-radius:8px;min-height:40px">${app.reviewer_notes||'<em style="color:var(--text-faint)">No notes yet</em>'}</div>
+              <button onclick="ecoAppAddNote('${app.id}')" style="margin-top:6px;padding:4px 10px;background:none;border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--text-muted);cursor:pointer">Edit Notes</button>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)">
+              ${app.status!=='accepted'?`<button onclick="ecoReviewApp('${app.id}','accepted')" style="padding:10px 20px;background:#22c55e;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✅ Accept → Pipeline</button>`:''}
+              ${app.status!=='reviewing'?`<button onclick="ecoReviewApp('${app.id}','reviewing')" style="padding:10px 20px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">👁️ Under Review</button>`:''}
+              ${app.status!=='waitlisted'?`<button onclick="ecoReviewApp('${app.id}','waitlisted')" style="padding:10px 20px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">⏳ Waitlist</button>`:''}
+              ${app.status!=='rejected'?`<button onclick="ecoReviewApp('${app.id}','rejected')" style="padding:10px 20px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">❌ Reject</button>`:''}
+            </div>
+          </div>
+        </div>`;
+      } else { _ecoAppDetailId = null; }
+    }
+    if (!_ecoAppDetailId) {
+      // Application list
+      const statusOrder = ['pending','reviewing','waitlisted','accepted','rejected'];
+      const statusLabels = {pending:'⏳ Pending',reviewing:'👁️ Reviewing',accepted:'✅ Accepted',rejected:'❌ Rejected',waitlisted:'⏸️ Waitlisted'};
+      const statusColors = {pending:'#6366f1',reviewing:'#f59e0b',accepted:'#22c55e',rejected:'#ef4444',waitlisted:'#8b5cf6'};
+      const appCards = _ecoApplications.map(app => {
+        const submitted = new Date(app.submitted_at);
+        const timeAgo = Math.floor((Date.now()-submitted.getTime())/(1000*60*60*24));
+        return `<div onclick="ecoShowAppDetail('${app.id}')" style="padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;border-left:4px solid ${statusColors[app.status]||'var(--border)'}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+            <div style="font-size:14px;font-weight:800;color:var(--text)">${app.company_name}</div>
+            <span style="padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;background:${statusColors[app.status]||'#6b7280'}18;color:${statusColors[app.status]||'#6b7280'}">${app.status}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">${app.founder_name}${app.sector?' · '+app.sector:''}${app.stage?' · '+app.stage:''}</div>
+          <div style="font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${app.pitch||'No pitch provided'}</div>
+          <div style="font-size:10px;color:var(--text-faint);margin-top:6px">${timeAgo}d ago</div>
+        </div>`;
+      }).join('');
+      content = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:13px;color:var(--text-muted)">${_ecoApplications.length} application${_ecoApplications.length!==1?'s':''} · ${pendingApps} pending review</div>
+      </div>
+      ${appCards || '<div style="text-align:center;padding:50px"><div style="font-size:28px;margin-bottom:8px">📩</div><div style="color:var(--text-faint);font-size:13px">No applications yet. Share your program link for founders to apply.</div></div>'}`;
+    }
+
   } else if (_ecoTab === 'mentors') {
     // Mentor coordination view
     const allMentors = [...new Set(_ecoStartups.flatMap(s=>s.mentors))].sort();
-    const unmentored = _ecoStartups.filter(s=>s.status==='active' && s.mentors.length===0);
+    const unassigned = _ecoStartups.filter(s=>s.status==='active' && s.mentors.length===0);
 
     const mentorCards = allMentors.map(m => {
       const assigned = _ecoStartups.filter(s=>s.mentors.includes(m));
@@ -11569,7 +11825,7 @@ function pgEcosystemWorkspace() {
           <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--green-dark));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff">${m.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
           <div>
             <div style="font-size:13px;font-weight:700;color:var(--text)">${m}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${assigned.length} startup${assigned.length!==1?'s':''} assigned</div>
+            <div style="font-size:11px;color:var(--text-muted)">${assigned.length} startup${assigned.length!==1?'s':''}</div>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px">${assigned.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--hover);border-radius:6px;font-size:11px">
@@ -11579,17 +11835,18 @@ function pgEcosystemWorkspace() {
       </div>`;
     }).join('');
 
-    const unmentoredCards = unmentored.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface);border:1px solid #fde68a;border-radius:8px">
+    const unassignedCards = unassigned.length ? unassigned.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
       <div>
         <div style="font-size:13px;font-weight:700;color:var(--text)">${s.name}</div>
         <div style="font-size:11px;color:var(--text-muted)">${s.founder} · ${s.sector}</div>
       </div>
       <button onclick="ecoAssignMentor(${s.id})" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Assign</button>
-    </div>`).join('');
+    </div>`).join('') : '';
 
-    content = `${unmentored.length ? `<div style="margin-bottom:20px">
-      <h3 style="font-size:14px;font-weight:800;color:#f59e0b;margin:0 0 10px">⚠️ Active Startups Without Mentors (${unmentored.length})</h3>
-      <div style="display:flex;flex-direction:column;gap:8px">${unmentoredCards}</div>
+    content = `${unassigned.length ? `<div style="margin-bottom:20px">
+      <h3 style="font-size:14px;font-weight:800;color:var(--text);margin:0 0 10px">Active Startups Without Mentors (${unassigned.length})</h3>
+      <p style="font-size:11px;color:var(--text-muted);margin:0 0 10px">Not every startup needs a mentor — but if you want to assign one, click below.</p>
+      <div style="display:flex;flex-direction:column;gap:8px">${unassignedCards}</div>
     </div>` : ''}
     <h3 style="font-size:14px;font-weight:800;color:var(--text);margin:0 0 12px">Mentor Assignments</h3>
     ${allMentors.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">${mentorCards}</div>` : '<div style="text-align:center;padding:40px;color:var(--text-faint)">No mentors assigned yet. Open a startup detail to assign mentors.</div>'}`;
@@ -11648,9 +11905,9 @@ function pgEcosystemWorkspace() {
             <div style="font-size:24px;font-weight:900;color:var(--text)">${totalMentors}</div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Active Mentors</div>
           </div>
-          <div style="text-align:center;padding:14px;background:${needMentors>0?'#fef3c7':'var(--hover)'};border-radius:8px">
-            <div style="font-size:24px;font-weight:900;color:${needMentors>0?'#f59e0b':'var(--text)'}">${needMentors}</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Need Mentors</div>
+          <div style="text-align:center;padding:14px;background:var(--hover);border-radius:8px">
+            <div style="font-size:24px;font-weight:900;color:var(--text)">${_ecoStartups.filter(s=>s.status==='active'&&s.mentors.length===0).length}</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">No Mentor</div>
           </div>
           <div style="text-align:center;padding:14px;background:#f0fdf4;border-radius:8px">
             <div style="font-size:24px;font-weight:900;color:#8b5cf6">${graduated}</div>
@@ -11674,6 +11931,46 @@ function pgEcosystemWorkspace() {
       <h3 style="font-size:14px;font-weight:800;color:var(--text);margin:0 0 16px">Recent Activity</h3>
       ${logItems || '<div style="text-align:center;padding:40px;color:var(--text-faint)">No activity yet. Start managing your startups to see activity here.</div>'}
     </div>`;
+
+  } else if (_ecoTab === 'settings') {
+    const s = _ecoSettings || {};
+    const inputStyle = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit';
+    content = `<div style="max-width:680px">
+      <div style="padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:20px">
+        <h3 style="font-size:16px;font-weight:800;color:var(--text);margin:0 0 16px">Program Information</h3>
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">Program Name</label>
+        <input id="eco-set-name" style="${inputStyle};margin-bottom:12px" value="${s.program_name||profile.company_name||profile.organization||''}" placeholder="e.g. Grand Farm, WET Center, AIVA">
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">Program Type</label>
+        <select id="eco-set-type" style="${inputStyle};margin-bottom:12px;cursor:pointer">
+          ${['Accelerator','Incubator','Innovation Hub','University Program','Government Program','Corporate Venture','Tech Validator','Regional Hub'].map(t=>`<option value="${t}" ${(s.program_type||'')=== t?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">Description</label>
+        <textarea id="eco-set-desc" style="${inputStyle};margin-bottom:12px;min-height:80px;resize:vertical" placeholder="Describe your program, focus areas, and what makes it unique...">${s.description||''}</textarea>
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">Website</label>
+        <input id="eco-set-web" style="${inputStyle};margin-bottom:12px" value="${s.website||''}" placeholder="https://yourprogram.com">
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">Current Cohort Name</label>
+        <input id="eco-set-cohort" style="${inputStyle}" value="${s.cohort_name||'Spring 2026'}" placeholder="e.g. Spring 2026, Cohort 5">
+      </div>
+
+      <div style="padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:20px">
+        <h3 style="font-size:16px;font-weight:800;color:var(--text);margin:0 0 16px">Application Settings</h3>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <input type="checkbox" id="eco-set-accepting" ${s.accepting_applications!==false?'checked':''} style="width:18px;height:18px;accent-color:var(--green);cursor:pointer">
+          <label for="eco-set-accepting" style="font-size:13px;font-weight:600;color:var(--text);cursor:pointer">Accepting applications</label>
+        </div>
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">Application Deadline</label>
+        <input id="eco-set-deadline" style="${inputStyle}" value="${s.application_deadline||''}" placeholder="e.g. Rolling, June 30 2026, Open until filled">
+        <p style="font-size:11px;color:var(--text-faint);margin:8px 0 0">When accepting applications is enabled, founders can apply to your program directly through the platform.</p>
+      </div>
+
+      <div style="padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:20px">
+        <h3 style="font-size:16px;font-weight:800;color:var(--text);margin:0 0 8px">Data Persistence</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;line-height:1.6">${_ecoUseSupabase ? 'Your workspace is connected to Supabase. All data persists across devices and sessions. Enterprise-grade.' : 'Currently in demo mode using browser storage. To enable persistent cloud storage, ask Russell to run the Supabase migration script.'}</p>
+        ${modeBadge}
+      </div>
+
+      <button onclick="ecoSaveSettings()" style="padding:12px 32px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;width:100%">Save Settings</button>
+    </div>`;
   }
 
   // Stat cards
@@ -11683,7 +11980,8 @@ function pgEcosystemWorkspace() {
     {label:'Screening',value:screening,icon:'🔍',color:'#6366f1'},
     {label:'Graduated',value:graduated,icon:'🎓',color:'#8b5cf6'},
     {label:'Avg Readiness',value:avgReadiness+'%',icon:'📊',color:avgReadiness>=60?'#22c55e':avgReadiness>=30?'#f59e0b':'#ef4444'},
-    {label:'Mentors Active',value:totalMentors,icon:'🧑‍🏫',color:'var(--green)'}
+    {label:'Pending Apps',value:pendingApps,icon:'📩',color:pendingApps>0?'#6366f1':'var(--text)'},
+    {label:'Mentors Assigned',value:totalMentors,icon:'🧑‍🏫',color:'var(--green)'}
   ].map(s => `<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:center">
     <div style="font-size:20px;margin-bottom:4px">${s.icon}</div>
     <div style="font-size:22px;font-weight:900;color:${s.color}">${s.value}</div>
@@ -11695,7 +11993,7 @@ function pgEcosystemWorkspace() {
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
         <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#16a34a,#22c55e);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:900">🏗️</div>
         <div>
-          <h1 style="font-size:24px;font-weight:900;color:var(--text);margin:0">Ecosystem Workspace</h1>
+          <h1 style="font-size:24px;font-weight:900;color:var(--text);margin:0">Ecosystem Workspace ${modeBadge}</h1>
           <div style="font-size:13px;color:var(--text-muted)">${programName} · Your command center for managing startups, mentors, and program outcomes</div>
         </div>
       </div>
