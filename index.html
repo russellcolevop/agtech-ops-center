@@ -8339,8 +8339,7 @@ function editWizard() {
     secondary_role: p.secondary_role || '',
     consent_accepted: !!p.consent_accepted
   };
-  // If persona is already set, skip straight to basics (step 2)
-  if (wizData.persona) wizStep = 1;
+  // Always start at step 0 so users can change their persona if needed
   wizRender();
 }
 
@@ -8552,6 +8551,7 @@ function wizSelectPersona(id) {
 
 function wizCollectInputs() {
   const v = id => (document.getElementById(id)||{}).value || '';
+  // Step 0 (persona) — persona is set via wizSelectPersona, nothing to collect from DOM
   if (WIZ_STEPS[wizStep] === 'basics') {
     wizData.organization = v('wiz-org');
     wizData.job_title = v('wiz-title');
@@ -8577,6 +8577,10 @@ function wizCollectInputs() {
     } else if (wizData.persona === 'advisor') {
       wizData.advising_count = v('wiz-advcount');
       wizData.advisor_interests = v('wiz-advinterests');
+    } else if (wizData.persona === 'ecosystem_manager') {
+      wizData.company_name = v('wiz-program-name') || wizData.company_name;
+      wizData.team_size = v('wiz-cohort-size') || wizData.team_size;
+      wizData.what_building = v('wiz-eco-desc') || wizData.what_building;
     } else if (wizData.persona === 'researcher') {
       wizData.institution = v('wiz-institution');
       wizData.research_focus = v('wiz-research');
