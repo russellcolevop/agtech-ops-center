@@ -807,6 +807,7 @@
       <option value="advisor">🧭 Advisor</option>
       <option value="farmer">🌾 Farmer</option>
     </select>
+    <button id="admin-save-persona-btn" style="display:none;padding:4px 8px;border:1px solid var(--green-mid);border-radius:6px;font-size:10px;background:var(--green-light);color:var(--green);font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0;font-weight:700" onclick="adminSavePersona()" title="Permanently save the selected persona to your profile">💾 Save as My Persona</button>
     <button id="admin-preview-wiz-btn" style="display:none;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:10px;background:var(--surface);color:var(--text);font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0" onclick="previewWizard()" title="Preview onboarding wizard for the selected persona">🧙 Wizard</button>
     <button id="notif-bell" style="display:none;position:relative;background:none;border:none;font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1" onclick="go('action',null)" title="Notifications">🔔<span id="notif-badge" style="display:none;position:absolute;top:-2px;right:-4px;background:#ef4444;color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 4px;line-height:1;border:2px solid var(--surface)"></span></button>
     <div style="position:relative;flex-shrink:0" id="user-menu-wrap">
@@ -1136,6 +1137,8 @@ function applyUser(user, isNew) {
   // Show persona switcher for admin
   const personaSwitcher = document.getElementById('admin-persona-switcher');
   if (personaSwitcher) personaSwitcher.style.display = isAdmin ? 'inline-block' : 'none';
+  const savePersonaBtn = document.getElementById('admin-save-persona-btn');
+  if (savePersonaBtn) savePersonaBtn.style.display = isAdmin ? 'inline-block' : 'none';
   const previewWizBtn = document.getElementById('admin-preview-wiz-btn');
   if (previewWizBtn) previewWizBtn.style.display = isAdmin ? 'inline-block' : 'none';
   // Roadmap nav only for non-admin users with access (admin sees it in the admin dashboard tabs)
@@ -1360,7 +1363,30 @@ function adminSwitchPersona(persona) {
   applyPersonaUI(fakeProfile);
   render(currentPage);
   const label = (PERSONAS.find(p=>p.id===persona)||{}).label || persona;
-  toast('👁️ Previewing as: ' + label);
+  toast('👁️ Previewing as: ' + label + ' (preview only — use "Save as My Persona" to make permanent)');
+}
+
+async function adminSavePersona() {
+  const switcher = document.getElementById('admin-persona-switcher');
+  const persona = switcher ? switcher.value : '';
+  if (!persona) { toast('⚠️ Select a persona from the dropdown first'); return; }
+  if (!currentUser || !_userProfile) { toast('⚠️ Sign in first'); return; }
+
+  const label = (PERSONAS.find(p=>p.id===persona)||{}).label || persona;
+  if (!confirm('Permanently change your persona to "' + label + '"? This updates your stored profile.')) return;
+
+  _userProfile.persona = persona;
+  _adminPersonaOverride = null;
+  const { data, error } = await upsertProfile({ id: currentUser.id, persona });
+  if (error) {
+    toast('❌ Error saving persona: ' + (error.message || 'Unknown error'));
+    console.error('adminSavePersona error:', error);
+    return;
+  }
+  if (data) _userProfile = { ..._userProfile, ...data };
+  applyPersonaUI(_userProfile);
+  render(currentPage);
+  toast('✅ Persona permanently changed to ' + label);
 }
 
 let _wizPreviewMode = false; // false, 'preview', or 'create'
@@ -8622,6 +8648,18 @@ async function wizSave() {
   const saveBtns = document.querySelectorAll('.wiz-btn.wiz-btn-primary');
   saveBtns.forEach(b => { b.disabled = true; b.textContent = '⏳ Saving...'; });
 
+  // Only include fields that exist as columns in the profiles table
+  const PROFILE_COLUMNS = [
+    'id','email','full_name','avatar_url','persona','organization','job_title','linkedin_url',
+    'location','company_name','company_stage','what_building','funding_status','team_size',
+    'biggest_needs','investment_stages','check_size','portfolio_agtech','deal_interests',
+    'expertise_areas','advising_count','advisor_interests','institution','research_focus',
+    'open_to_collab','service_type','startup_experience','agtech_focus','goals_platform',
+    'goals_general','how_heard','secondary_role','consent_accepted','consent_accepted_at',
+    'onboarding_complete','needs_review','pre_created','admin_notes','admin_tags','badges',
+    'tier','intro_tier_pref','profile_completeness','blocked','blocked_reason','last_checkin'
+  ];
+
   const profile = {
     id: currentUser.id,
     email: currentUser.email,
@@ -8634,7 +8672,14 @@ async function wizSave() {
     pre_created: false,
     ...wizData
   };
-  const { data, error } = await upsertProfile(profile);
+
+  // Filter to only known columns to prevent Supabase column errors
+  const cleanProfile = {};
+  for (const key of Object.keys(profile)) {
+    if (PROFILE_COLUMNS.includes(key)) cleanProfile[key] = profile[key];
+  }
+
+  const { data, error } = await upsertProfile(cleanProfile);
   if (error) {
     saveBtns.forEach(b => { b.disabled = false; b.textContent = 'Complete Profile →'; });
     const msg = error.message || '';
@@ -11778,7 +11823,8 @@ async function loadEcoData() {
       { id:3, name:'SoilSync', founder:'Priya Patel', email:'priya@soilsync.com', stage:'revenue', sector:'Soil & Water Tech', status:'active', cohort:'Fall 2025', joined:'2025-09-01', mentors:['Bob Lawson','Lisa Chen'], notes:'IoT soil sensors with ML analytics. $45K MRR.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:true},{name:'LOI Secured',done:true},{name:'Seed Round',done:false}], readiness:85, source:'introduction' },
       { id:4, name:'FarmBot Plus', founder:'James Wright', email:'james@farmbotplus.com', stage:'mvp', sector:'Robotics & Automation', status:'active', cohort, joined:'2026-01-10', mentors:['Walt Duflock'], notes:'Autonomous weeding robot for row crops. Hardware prototype v2.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:45, source:'manual' },
       { id:5, name:'GreenVault', founder:'Amara Osei', email:'amara@greenvault.ag', stage:'idea', sector:'Sustainability / Climate', status:'graduated', cohort:'Fall 2025', joined:'2025-06-15', mentors:['Diana Torres'], notes:'Carbon credit marketplace for smallholder farms. Raised $1.2M seed.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:true},{name:'LOI Secured',done:true},{name:'Seed Round',done:true}], readiness:100, source:'application' },
-      { id:6, name:'AquaYield', founder:'Tom Baker', email:'tom@aquayield.co', stage:'mvp', sector:'Indoor / Vertical Farming', status:'paused', cohort, joined:'2026-02-01', mentors:[], notes:'Hydroponic nutrient optimization. Founder taking personal leave.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:35, source:'manual' }
+      { id:6, name:'AquaYield', founder:'Tom Baker', email:'tom@aquayield.co', stage:'mvp', sector:'Indoor / Vertical Farming', status:'paused', cohort, joined:'2026-02-01', mentors:[], notes:'Hydroponic nutrient optimization. Founder taking personal leave.', milestones:[{name:'MVP Complete',done:true},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:35, source:'manual' },
+      { id:7, name:'Smart Crop System', founder:'Oleksandr (Alexander) Ivanov', email:'alexander.ivanov@smartcropsystem.com', stage:'idea', sector:'Precision Agriculture', status:'screening', cohort:'2027 Candidate', joined:'2026-04-05', mentors:[], notes:'Pitched for AIVA 2026 season — strong potential but timing didn\'t work out. Confirmed for 2027 cohort consideration. Connected via Russell.', milestones:[{name:'MVP Complete',done:false},{name:'First Pilot',done:false},{name:'LOI Secured',done:false},{name:'Seed Round',done:false}], readiness:0, source:'introduction' }
     ];
     _ecoApplications = [
       { id:'app-1', company_name:'DroneHarvest', founder_name:'Kai Nakamura', founder_email:'kai@droneharvest.io', stage:'mvp', sector:'Robotics & Automation', pitch:'Autonomous drone swarms for precision crop monitoring and targeted spraying. Reduces chemical use by 40%.', team_size:'4', why_this_program:'Your mentor network in precision ag is exactly what we need to land our first commercial pilot.', status:'pending', submitted_at:'2026-03-28T14:30:00Z' },
