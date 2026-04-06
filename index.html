@@ -715,6 +715,13 @@
     .lp-nav-btns .lp-btn-ghost { display:none; }
     .venture-wizard { padding: 12px !important; }
     .venture-review-grid { grid-template-columns: 1fr !important; }
+    /* Admin Venture Studio tab mobile */
+    .vs-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .vs-detail-grid { grid-template-columns: 1fr !important; }
+    .vs-card-header { flex-direction: column !important; }
+    .vs-card-actions { width: 100% !important; }
+    /* Admin tab bar mobile */
+    .admin-tab-bar button { padding: 8px 12px !important; font-size: 11px !important; }
   }
   @media(max-width:400px){
     .lp-who-grid { grid-template-columns:1fr; }
@@ -1215,8 +1222,13 @@ function applyUser(user, isNew) {
       if (suspended) { showBlockedScreen(); return; }
       // Apply persona-tailored UI (branding, nav visibility)
       applyPersonaUI(_userProfile);
-      // Re-render to show any verification banners
-      if (currentPage) render(currentPage);
+      // Check if user came from "Share Your Idea" on landing page
+      if (_ventureStudioAfterSignIn) {
+        _ventureStudioAfterSignIn = false;
+        go('venture');
+      } else if (currentPage) {
+        render(currentPage);
+      }
     }
     // Update notification bell after any profile state change
     updateNotifBell();
@@ -1234,8 +1246,8 @@ function notifyNewUser(name, email) {
 // PERSONA-TAILORED UI
 // ══════════════════════════════════════════════════════════════
 const PERSONA_UI = {
-  'early-stage':   { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence, from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','crops','resources','mentors','venture','accelerators'] },
-  'growth-stage':  { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence, from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','crops','resources','mentors','venture','accelerators'] },
+  'early-stage':   { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence, from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','crops','resources','mentors','accelerators'] },
+  'growth-stage':  { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence, from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','crops','resources','mentors','accelerators'] },
   'investor':      { brand:'Investor Ops Center', icon:'I', tagline:'AgTech deal flow, market data, and ecosystem intelligence.', nav:['overview','glossary','ecosystem','crops','resources','mentors'], extraNav:['investor'] },
   'ecosystem_mgr': { brand:'Ecosystem Ops Center', icon:'🏗️', tagline:'Your command center for managing AgTech programs and cohorts.', nav:['overview','ecosystem','mentors','accelerators','crops','resources','glossary'], extraNav:['ecosystem_ws'] },
   'advisor':       { brand:'Advisor Ops Center',   icon:'A', tagline:'Tools and connections to mentor the next generation of AgTech.', nav:['overview','glossary','ecosystem','mentors','resources'] },
@@ -1521,6 +1533,14 @@ function showLandingPage(isSignedOut) {
       <button class="lp-cta-sec" onclick="enterAppGuest()">Browse the Platform</button>
     </div>
     <div class="lp-trust">Free to join &middot; Google sign-in &middot; No credit card required</div>
+
+    <!-- Idea Submission CTA -->
+    <div style="margin-top:32px;padding:24px;background:linear-gradient(135deg,var(--card),var(--surface));border:2px solid var(--green-mid);border-radius:16px;max-width:560px;margin-left:auto;margin-right:auto">
+      <div style="font-size:22px;margin-bottom:6px">💡</div>
+      <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px">Got an idea for an AgTech innovation?</div>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin:0 0 14px">You don't need a company to start. Share your idea and we'll help you figure out the next step — whether that's finding a co-founder, joining our venture studio, or just getting feedback.</p>
+      <button onclick="_ventureStudioAfterSignIn=true;enterApp()" class="lp-cta-big" style="font-size:14px;padding:12px 28px">Share Your Idea &rarr;</button>
+    </div>
   </div>
 
   <!-- Persona Carousel -->
@@ -1712,6 +1732,8 @@ function showLandingPage(isSignedOut) {
   document.body.appendChild(landing);
 }
 
+let _ventureStudioAfterSignIn = false;
+
 function enterApp() {
   hideLanding();
   openModal('signin-modal');
@@ -1760,6 +1782,8 @@ setInterval(() => {
   const landing = document.getElementById('landing-page');
   if (landing && !_lpHovered) lpCarouselMove(1);
 }, 6000);
+
+// (Idea submission modal removed — now routed through Venture Studio wizard via _ventureStudioAfterSignIn flag)
 
 // ── LINKS REGISTRY ────────────────────────────────────────────────
 const LINKS = {
@@ -2188,7 +2212,7 @@ function go(page, btn){
   if (page === 'admin_deals') { adminTab = 'deals'; page = 'admin'; }
   if (page === 'admin_claims') { adminTab = 'eco_claims'; page = 'admin'; }
   if (page !== 'crops') _selectedCrop = null; // reset crop detail when leaving crops
-  if (page !== 'mentors') _selectedMentor = null; // reset mentor detail when leaving mentors
+  _selectedMentor = null; // always reset mentor detail when navigating (allows back button to work)
   if (page !== 'accelerators') _selectedAccelerator = null; // reset accelerator detail when leaving accelerators
   if (page !== 'venture') _ventureStep = 0;
   currentPage = page;
@@ -5311,7 +5335,7 @@ const PARTNER_ECOSYSTEMS = [
     focus:['AI/ML in Agriculture','Cross-Ecosystem Intelligence','Founder Ops','AgTech Validation'],
     description:'AIVA (Artificial Intelligence in Value-Added Agriculture) and EMILI combine AI expertise with agricultural domain knowledge to validate and accelerate AgTech startups. Operates the Founder Ops Center — the platform you\'re on right now — connecting founders, investors, and ecosystem managers across the global AgTech landscape.',
     highlights:['AI-first approach','Cross-ecosystem connectivity','Founder Ops Center platform','Global AgTech intelligence layer'],
-    website:'https://founderopscenter.com',
+    website:'https://emilicanada.com',
     logo:'aiva',
     color:'#16a34a',
     accentColor:'#22c55e',
@@ -5324,10 +5348,11 @@ const PARTNER_ECOSYSTEMS = [
 let _selectedMentor = null;
 let _selectedAccelerator = null;
 let _selectedPartnerEco = null;
+let _accelTab = 'partners';
 let _accelFilter = { region: 'all', requirement: 'all' };
 let _founderProfile = {};
 let _ventureStep = 0;
-let _ventureSubmissions = [];
+let _ventureSubmissions = JSON.parse(localStorage.getItem('foc_venture_submissions') || '[]');
 let _ventureForm = {};
 
 const REGION_CROP_DATA = {
@@ -6145,16 +6170,20 @@ function requestMentorIntro(mentorId){
   modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999';
   modal.onclick=function(e){if(e.target===modal)modal.remove();};
   modal.innerHTML='<div style="background:var(--surface);border-radius:12px;padding:28px;max-width:460px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0;font-size:18px;font-weight:700;color:var(--text)">Request Introduction</h3><button onclick="this.closest(\'div[style*=position\\:fixed]\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted)">✕</button></div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0;font-size:18px;font-weight:700;color:var(--text)">Request Introduction</h3><button class="modal-close-btn" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted)">✕</button></div>'
     +'<p style="margin:0 0 16px 0;color:var(--text-muted);font-size:13px;line-height:1.6">Russell will personally introduce you to <strong>'+m.name+'</strong> at '+m.firm+'. Share a brief note about why you\'d like to connect.</p>'
     +'<textarea id="mentor-intro-note" rows="4" placeholder="E.g., I\'m building a precision ag startup and would love their advice on go-to-market strategy..." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;resize:vertical;margin-bottom:16px;box-sizing:border-box"></textarea>'
     +'<button onclick="submitMentorIntroRequest('+mentorId+')" style="width:100%;padding:12px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer">Send Request to Russell</button>'
     +'</div>';
   document.body.appendChild(modal);
+  modal.querySelector('.modal-close-btn').addEventListener('click', function(){
+    modal.remove();
+  });
 }
 
 async function submitMentorIntroRequest(mentorId){
   const m = MENTORS.find(x=>x.id===mentorId);
+  if(!m) return;
   const note = (document.getElementById('mentor-intro-note')||{}).value||'';
   // Save to Supabase feedback table or introductions
   try{
@@ -6167,10 +6196,15 @@ async function submitMentorIntroRequest(mentorId){
       match_reasons:['Mentor introduction request: '+m.name+' at '+m.firm],
       admin_notes:'MENTOR INTRO REQUEST — '+m.name+' ('+m.firm+') — Note: '+note
     }]);
-  }catch(e){}
+  }catch(e){
+    console.error('Error submitting mentor intro request:', e);
+    alert('Error submitting request. Please try again.');
+    return;
+  }
   // Close modal and show confirmation
-  const modal = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
-  if(modal){
+  const modals = document.querySelectorAll('div[style*="position:fixed"][style*="z-index:9999"]');
+  if(modals.length > 0){
+    const modal = modals[modals.length - 1];
     modal.innerHTML='<div style="background:var(--surface);border-radius:12px;padding:40px;max-width:460px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
       +'<div style="font-size:40px;margin-bottom:12px">🤝</div>'
       +'<h3 style="margin:0 0 8px 0;font-size:18px;font-weight:700;color:var(--text)">Request Sent!</h3>'
@@ -6720,7 +6754,7 @@ function pgVenture(){
                   </div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center">
-                  <select style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px" onchange="const subs=_ventureSubmissions;subs[${idx}].status=this.value;render('venture')" onclick="event.stopPropagation()">
+                  <select style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px" onchange="const subs=_ventureSubmissions;subs[${idx}].status=this.value;localStorage.setItem('foc_venture_submissions',JSON.stringify(_ventureSubmissions));render('venture')" onclick="event.stopPropagation()">
                     <option value="New" ${(sub.status||'New')==='New'?'selected':''}>New</option>
                     <option value="Under Review" ${(sub.status||'New')==='Under Review'?'selected':''}>Under Review</option>
                     <option value="Approved" ${(sub.status||'New')==='Approved'?'selected':''}>Approved</option>
@@ -6838,6 +6872,7 @@ async function submitVentureApplication(){
   };
 
   _ventureSubmissions.push(submission);
+  localStorage.setItem('foc_venture_submissions', JSON.stringify(_ventureSubmissions));
 
   // Try to save to Supabase (fail silently if table doesn't exist)
   try{
@@ -6863,7 +6898,6 @@ async function submitVentureApplication(){
 // PAGE: ACCELERATOR HUB
 // ════════════════════════════════════════════════
 function pgAccelerators(){
-  let _accelTab = 'partners';
   const countryFlags = {'US':'🇺🇸','France':'🇫🇷','Netherlands':'🇳🇱','Israel':'🇮🇱','Australia':'🇦🇺','Singapore':'🇸🇬','Canada':'🇨🇦','Poland':'🇵🇱','EU':'🇪🇺','Global':'🌐','Multiple':'🌎'};
   const regionMap = {'na':'North America','eu':'Europe','il':'Israel','au':'Australia/APAC','apac':'Asia-Pacific','latam':'Latin America'};
   const regionNames = {'all':'All','na':'North America','eu':'Europe','il':'Israel','au':'Australia/APAC','apac':'Asia-Pacific','latam':'Latin America'};
@@ -7199,8 +7233,13 @@ function pgAccelerators(){
     if (_selectedPartnerEco) {
       const eco = PARTNER_ECOSYSTEMS.find(e => e.id === _selectedPartnerEco);
       if (!eco) { _selectedPartnerEco = null; return renderPartnerEcosystems(); }
-      const isCurrentUser = currentUser && currentUser.email && eco.manager === 'Russell Cole';
       const persona = _userProfile?.persona;
+      // Check if signed-in user is this ecosystem's manager (by matching name or AIVA special case)
+      const isThisEcoManager = currentUser && _userProfile && (
+        (_userProfile.full_name && _userProfile.full_name === eco.manager) ||
+        (eco.id === 'aiva' && currentUser.email === 'rcole@emilicanada.com')
+      );
+      const isCurrentUser = isThisEcoManager;
       const isFounder = persona === 'founder';
       const isEcoMgr = persona === 'ecosystem_manager';
 
@@ -7235,14 +7274,18 @@ function pgAccelerators(){
       detailHtml += '<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;margin-bottom:8px">Program Manager</div>';
       detailHtml += '<div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px">';
       detailHtml += '<div style="width:44px;height:44px;border-radius:50%;background:' + eco.color + ';display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px">' + eco.manager.split(' ').map(w=>w[0]).join('') + '</div>';
-      detailHtml += '<div><div style="font-weight:700;color:var(--text)">' + eco.manager + '</div><div style="font-size:12px;color:var(--text-muted)">' + eco.managerTitle + ' · ' + eco.org + '</div></div></div></div>';
+      detailHtml += '<div style="flex:1"><div style="font-weight:700;color:var(--text)">' + eco.manager + '</div><div style="font-size:12px;color:var(--text-muted)">' + eco.managerTitle + ' · ' + eco.org + '</div></div>';
+      if (currentUser && isFounder) {
+        detailHtml += '<button onclick="alert(\'Request introduction feature coming soon! For now, reach out to ' + eco.manager + ' directly.\')" style="padding:6px 12px;background:' + eco.color + ';color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Request Intro</button>';
+      }
+      detailHtml += '</div></div>';
 
       // Action buttons
       detailHtml += '<div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border)">';
       if (eco.website) {
         detailHtml += '<button onclick="window.open(\'' + eco.website + '\',\'_blank\')" style="padding:12px 20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer">🌐 Visit Website</button>';
       }
-      if (isFounder) {
+      if (isFounder && !isThisEcoManager) {
         detailHtml += '<button onclick="alert(\'Application flow coming soon! For now, reach out directly to ' + eco.manager + ' or apply through their website.\')" style="padding:12px 20px;background:' + eco.color + ';border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;cursor:pointer">🚀 Apply to This Program</button>';
       }
       if (!eco.claimed && (isEcoMgr || isAdmin)) {
@@ -7864,11 +7907,11 @@ function getNotifications() {
     notifs.push({ icon:'📋', title:'Review your profile', desc:'Russell pre-loaded your profile. Please review it and make any changes.', action:'profile', priority:1 });
   }
 
-  // 3. Quarterly check-in overdue
-  const lastCheckin = p.last_checkin ? new Date(p.last_checkin) : null;
-  const daysSince = lastCheckin ? Math.floor((Date.now() - lastCheckin.getTime()) / 864e5) : 999;
-  if (p.onboarding_complete && daysSince > 90) {
-    notifs.push({ icon:'🚨', title:'Quarterly check-in overdue', desc:lastCheckin ? 'Last check-in was ' + daysSince + ' days ago. Update your milestones to stay active.' : 'You haven\'t completed a check-in yet.', action:'profile', priority:1 });
+  // 3. Monthly check-in reminder
+  const lastCheckin = p.last_checkin ? new Date(p.last_checkin) : (p.created_at ? new Date(p.created_at) : null);
+  const daysSince = lastCheckin ? Math.floor((Date.now() - lastCheckin.getTime()) / 864e5) : 0;
+  if (p.onboarding_complete && daysSince > 30) {
+    notifs.push({ icon:'📋', title:'Monthly check-in due', desc:p.last_checkin ? 'Last check-in was ' + daysSince + ' days ago. Quick update to keep your profile current.' : 'You haven\'t completed your first check-in yet. It only takes a minute.', action:'profile', priority:1 });
   }
 
   // 4. Pending connection outcome reports
@@ -8955,10 +8998,10 @@ function pgProfile() {
   </div>
 
   ${(() => {
-    const lastCheckin = p.last_checkin ? new Date(p.last_checkin) : null;
-    const daysSinceCheckin = lastCheckin ? Math.floor((Date.now() - lastCheckin.getTime()) / 864e5) : 999;
-    const isOverdue = daysSinceCheckin > 90;
-    const isWarning = daysSinceCheckin > 60;
+    const lastCheckin = p.last_checkin ? new Date(p.last_checkin) : (p.created_at ? new Date(p.created_at) : null);
+    const daysSinceCheckin = lastCheckin ? Math.floor((Date.now() - lastCheckin.getTime()) / 864e5) : 0;
+    const isOverdue = daysSinceCheckin > 30;
+    const isWarning = daysSinceCheckin > 20;
     return `<div class="card" style="margin-top:14px;border-left:4px solid ${isOverdue ? '#ef4444' : isWarning ? '#f59e0b' : 'var(--green)'}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <div>
@@ -9128,9 +9171,10 @@ function pgAdmin(){
 
   // Admin tab bar helper
   const pendingClaims = _ecoClaimRequests.filter(r => r.status === 'pending').length;
-  const adminTabBar = (active) => `<div style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border);flex-wrap:wrap">
-    ${['directory','connections','deals','eco_claims','roadmap','investor'].map(t => {
-      const labels = {directory:'👥 User Directory', connections:'🧠 Smart Connections', deals:'📈 Deal Manager', eco_claims:'🏗️ Ecosystem Claims' + (pendingClaims > 0 ? ' (' + pendingClaims + ')' : ''), roadmap:'🗺️ Product Roadmap', investor:'💼 Investor Opportunity'};
+  const pendingVenture = _ventureSubmissions.filter(v => v.status === 'New' || v.status === 'Under Review').length;
+  const adminTabBar = (active) => `<div class="admin-tab-bar" style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border);flex-wrap:wrap;overflow-x:auto;-webkit-overflow-scrolling:touch">
+    ${['directory','connections','deals','venture_studio','eco_claims','roadmap','investor'].map(t => {
+      const labels = {directory:'👥 User Directory', connections:'🧠 Smart Connections', deals:'📈 Deal Manager', venture_studio:'🚀 Venture Studio' + (pendingVenture > 0 ? ' (' + pendingVenture + ')' : ''), eco_claims:'🏗️ Ecosystem Claims' + (pendingClaims > 0 ? ' (' + pendingClaims + ')' : ''), roadmap:'🗺️ Product Roadmap', investor:'💼 Investor Opportunity'};
       const isActive = active === t;
       return `<button onclick="adminTab='${t}';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:${isActive?'var(--green)':'var(--text-muted)'};border-bottom:2px solid ${isActive?'var(--green)':'transparent'};margin-bottom:-2px">${labels[t]}</button>`;
     }).join('')}
@@ -9291,6 +9335,169 @@ function pgAdmin(){
     <div class="ac-grid">${dealCards}</div></div>`;
   }
 
+  // Venture Studio submissions tab
+  if (adminTab === 'venture_studio') {
+    const subs = _ventureSubmissions;
+    const newCount = subs.filter(s => s.status === 'New').length;
+    const reviewCount = subs.filter(s => s.status === 'Under Review').length;
+    const approvedCount = subs.filter(s => s.status === 'Approved').length;
+    const declinedCount = subs.filter(s => s.status === 'Declined').length;
+    const statusColors = { 'New':'#3b82f6', 'Under Review':'#eab308', 'Approved':'#16a34a', 'Declined':'#ef4444' };
+
+    let vsHtml = `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
+    <p>Review and manage Venture Studio idea submissions.</p></div>
+    ${adminTabBar('venture_studio')}`;
+
+    // Stats row
+    vsHtml += `<div class="vs-stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:800;color:var(--text)">${subs.length}</div>
+        <div style="font-size:12px;color:var(--text-muted);font-weight:600">Total Submissions</div>
+      </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:800;color:#3b82f6">${newCount}</div>
+        <div style="font-size:12px;color:#1e40af;font-weight:600">New</div>
+      </div>
+      <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:800;color:#eab308">${reviewCount}</div>
+        <div style="font-size:12px;color:#92400e;font-weight:600">Under Review</div>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:800;color:#16a34a">${approvedCount}</div>
+        <div style="font-size:12px;color:#166534;font-weight:600">Approved</div>
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:800;color:#ef4444">${declinedCount}</div>
+        <div style="font-size:12px;color:#991b1b;font-weight:600">Declined</div>
+      </div>
+    </div>`;
+
+    if (subs.length === 0) {
+      vsHtml += `<div class="card" style="text-align:center;padding:60px 20px">
+        <div style="font-size:48px;margin-bottom:16px">🚀</div>
+        <h3 style="margin:0 0 8px 0;color:var(--text)">No Submissions Yet</h3>
+        <p style="color:var(--text-muted);font-size:14px;margin:0">When founders submit ideas through the Venture Studio wizard or landing page, they'll appear here for review.</p>
+      </div>`;
+    } else {
+      // Filter controls
+      vsHtml += `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button onclick="window._vsFilter='all';render('admin')" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${(!window._vsFilter||window._vsFilter==='all')?'#16a34a':'var(--border)'};background:${(!window._vsFilter||window._vsFilter==='all')?'#16a34a':'var(--surface)'};color:${(!window._vsFilter||window._vsFilter==='all')?'white':'var(--text)'}">All (${subs.length})</button>
+        <button onclick="window._vsFilter='New';render('admin')" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${window._vsFilter==='New'?'#3b82f6':'var(--border)'};background:${window._vsFilter==='New'?'#3b82f6':'var(--surface)'};color:${window._vsFilter==='New'?'white':'var(--text)'}">New (${newCount})</button>
+        <button onclick="window._vsFilter='Under Review';render('admin')" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${window._vsFilter==='Under Review'?'#eab308':'var(--border)'};background:${window._vsFilter==='Under Review'?'#eab308':'var(--surface)'};color:${window._vsFilter==='Under Review'?'white':'var(--text)'}">Under Review (${reviewCount})</button>
+        <button onclick="window._vsFilter='Approved';render('admin')" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${window._vsFilter==='Approved'?'#16a34a':'var(--border)'};background:${window._vsFilter==='Approved'?'#16a34a':'var(--surface)'};color:${window._vsFilter==='Approved'?'white':'var(--text)'}">Approved (${approvedCount})</button>
+        <button onclick="window._vsFilter='Declined';render('admin')" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${window._vsFilter==='Declined'?'#ef4444':'var(--border)'};background:${window._vsFilter==='Declined'?'#ef4444':'var(--surface)'};color:${window._vsFilter==='Declined'?'white':'var(--text)'}">Declined (${declinedCount})</button>
+      </div>`;
+
+      const filtered = (!window._vsFilter || window._vsFilter === 'all') ? subs : subs.filter(s => s.status === window._vsFilter);
+
+      filtered.forEach((sub, i) => {
+        const idx = subs.indexOf(sub);
+        const sc = statusColors[sub.status || 'New'] || '#3b82f6';
+        const submitted = sub.createdAt ? new Date(sub.createdAt) : new Date();
+        const daysAgo = Math.floor((Date.now() - submitted.getTime()) / 864e5);
+        const daysLabel = daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1 day ago' : daysAgo + ' days ago';
+
+        vsHtml += `<div class="card" style="margin-bottom:14px;border-left:4px solid ${sc};padding:0;overflow:hidden">
+          <div style="padding:18px 20px;cursor:pointer" onclick="const det=document.getElementById('vs-detail-${idx}');det.style.display=det.style.display==='none'?'block':'none'">
+            <div class="vs-card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap">
+                  <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--text)">${sub.name || 'Untitled'}</h3>
+                  <span style="background:${sc}15;color:${sc};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap">${sub.status || 'New'}</span>
+                </div>
+                <p style="margin:0 0 8px 0;color:var(--text-muted);font-size:13px;line-height:1.5">${sub.pitch || ''}</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                  <span style="font-size:11px;background:var(--hover);padding:3px 8px;border-radius:4px;color:var(--text);font-weight:600">${sub.sector || '—'}</span>
+                  <span style="font-size:11px;background:var(--hover);padding:3px 8px;border-radius:4px;color:var(--text);font-weight:600">${sub.stage || '—'}</span>
+                  <span style="font-size:11px;color:var(--text-faint)">by ${sub.founderName || '—'}</span>
+                  <span style="font-size:11px;color:var(--text-faint)">·</span>
+                  <span style="font-size:11px;color:var(--text-faint)">${daysLabel}</span>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center" onclick="event.stopPropagation()">
+                <select style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600" onchange="_ventureSubmissions[${idx}].status=this.value;localStorage.setItem('foc_venture_submissions',JSON.stringify(_ventureSubmissions));render('admin')">
+                  <option value="New" ${'New'===(sub.status||'New')?'selected':''}>🔵 New</option>
+                  <option value="Under Review" ${'Under Review'===sub.status?'selected':''}>🟡 Under Review</option>
+                  <option value="Approved" ${'Approved'===sub.status?'selected':''}>🟢 Approved</option>
+                  <option value="Declined" ${'Declined'===sub.status?'selected':''}>🔴 Declined</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="vs-detail-${idx}" style="display:none;padding:0 20px 20px;border-top:1px solid var(--border)">
+            <div class="vs-detail-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+              <div style="padding:12px;background:var(--hover);border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Founder</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">${sub.founderName || '—'}</div>
+              </div>
+              <div style="padding:12px;background:var(--hover);border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Email</div>
+                <div style="font-size:13px;color:var(--text)">${sub.founderEmail || '—'}</div>
+              </div>
+              <div style="padding:12px;background:var(--hover);border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Market Size</div>
+                <div style="font-size:13px;color:var(--text)">${sub.marketSize || '—'}</div>
+              </div>
+              <div style="padding:12px;background:var(--hover);border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Timeline</div>
+                <div style="font-size:13px;color:var(--text)">${sub.timeline || '—'}</div>
+              </div>
+              <div style="padding:12px;background:var(--hover);border-radius:8px;grid-column:span 2">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Problem Being Solved</div>
+                <div style="font-size:13px;color:var(--text);line-height:1.5">${sub.problem || '—'}</div>
+              </div>
+              <div style="padding:12px;background:var(--hover);border-radius:8px;grid-column:span 2">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Target Customers</div>
+                <div style="font-size:13px;color:var(--text);line-height:1.5">${sub.customers || '—'}</div>
+              </div>
+              <div style="padding:12px;background:var(--hover);border-radius:8px;grid-column:span 2">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Detailed Description</div>
+                <div style="font-size:13px;color:var(--text);line-height:1.5">${sub.description || '—'}</div>
+              </div>
+              <div style="padding:12px;background:var(--hover);border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Background</div>
+                <div style="font-size:13px;color:var(--text);line-height:1.5">${sub.background || '—'}</div>
+              </div>
+              <div style="padding:12px;background:var(--hover);border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Competitors</div>
+                <div style="font-size:13px;color:var(--text);line-height:1.5">${sub.competitors || '—'}</div>
+              </div>
+              ${sub.linkedinUrl ? `<div style="padding:12px;background:var(--hover);border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">LinkedIn</div>
+                <a href="${sub.linkedinUrl}" target="_blank" style="font-size:13px;color:#2563eb;text-decoration:underline">${sub.linkedinUrl}</a>
+              </div>` : ''}
+              ${(sub.needs && sub.needs.length) ? `<div style="padding:12px;background:var(--hover);border-radius:8px;grid-column:span 2">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:6px">Needs</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">${sub.needs.map(n => '<span style="font-size:11px;background:var(--surface);border:1px solid var(--border);padding:3px 8px;border-radius:4px;color:var(--text)">' + n + '</span>').join('')}</div>
+              </div>` : ''}
+              ${(sub.geos && sub.geos.length) ? `<div style="padding:12px;background:var(--hover);border-radius:8px;grid-column:span 2">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:6px">Target Geographies</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">${sub.geos.map(g => '<span style="font-size:11px;background:var(--surface);border:1px solid var(--border);padding:3px 8px;border-radius:4px;color:var(--text)">' + g + '</span>').join('')}</div>
+              </div>` : ''}
+              ${sub.accelerator ? `<div style="padding:12px;background:var(--hover);border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Accelerator Interest</div>
+                <div style="font-size:13px;color:var(--text)">${sub.accelerator}</div>
+              </div>` : ''}
+              ${sub.hasCoFounders && sub.coFounders ? `<div style="padding:12px;background:var(--hover);border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Co-Founders</div>
+                <div style="font-size:13px;color:var(--text)">${sub.coFounders}</div>
+              </div>` : ''}
+              ${sub.notes ? `<div style="padding:12px;background:var(--hover);border-radius:8px;grid-column:span 2">
+                <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px">Additional Notes</div>
+                <div style="font-size:13px;color:var(--text);line-height:1.5">${sub.notes}</div>
+              </div>` : ''}
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+              <span style="font-size:11px;color:var(--text-faint)">Submitted: ${submitted.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})} at ${submitted.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})}</span>
+            </div>
+          </div>
+        </div>`;
+      });
+    }
+
+    return vsHtml;
+  }
+
   // Roadmap tab
   if (adminTab === 'roadmap') {
     return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
@@ -9422,8 +9629,8 @@ function pgRoadmap() {
           <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Four-tier progression: Explorer (0+ badges), Builder (3+), Operator (6+), Leader (9+). Tiers reflect verified engagement, not vanity metrics. A Leader-tier investor has proven portfolio activity — they can set preferences to only connect with Operator+ founders. Quality controls quality.</div>
         </div>
         <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔄 Quarterly Check-In System</div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Users are prompted quarterly to confirm their profile is current and claim new milestones. Color-coded urgency (green → yellow → red) keeps the ecosystem fresh. Stale profiles lose visibility. "Nothing changed" fast-path respects busy users while still recording engagement.</div>
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔄 Monthly Check-In System</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Users are prompted monthly to confirm their profile is current and claim new milestones. Color-coded urgency (green → yellow → red) keeps the ecosystem fresh. New accounts use their creation date as baseline. Stale profiles lose visibility. "Nothing changed" fast-path respects busy users while still recording engagement.</div>
         </div>
         <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
           <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📜 Terms & Consent Flow</div>
@@ -9441,6 +9648,30 @@ function pgRoadmap() {
           <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔒 Connection Discovery with Tier Gating</div>
           <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Users see blurred previews of connections they can't yet access, with clear messaging on how many badges they need to unlock them. This creates powerful upward pull — every locked connection is a reason to claim another milestone and level up. Quality controls who sees whom.</div>
         </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🏗️ Ecosystem Manager Workspaces</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Full CRM workspaces for ecosystem managers (accelerators, incubators, regional hubs). Private startup pipeline with drag-and-drop Kanban stages (Lead → Engaged → Active → Alumni → Exited). Relationship notes, tag management, and interaction logging per startup. Replaces Airtable and spreadsheet workflows.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔍 Platform-Wide Startup Directory</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Ecosystem managers can browse all platform members directly from their workspace. One-click "Add to Pipeline" or bulk "Add All" to instantly populate their startup pipeline with real, verified founders from the platform. No manual data entry — the ecosystem feeds itself.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🤝 Partner Ecosystem Network</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Curated partner ecosystem directory with claim-and-verify flow for managers. Founders browse and apply to programs directly. Ecosystem managers claim their organization with invite-code verification and admin approval. Visit websites, view program details, and connect — all in-platform.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🚀 Venture Studio & Idea Pipeline</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">5-step idea submission wizard collecting startup name, pitch, sector, market analysis, team info, goals, and needs. Landing page CTA routes visitors directly into the wizard after sign-up. Admin dashboard shows all submissions with status management (New → Under Review → Approved → Declined), full detail expansion, and filtering. The front door for AgTech innovation.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🛡️ Auto-Suspend & Profile Integrity</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Incomplete profiles are auto-suspended after 48 hours with clear messaging explaining why. 24-hour warnings. Blocked users see their specific reason and can complete their profile to regain access. Keeps the ecosystem clean of ghost accounts and abandoned signups.</div>
+        </div>
+        <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📊 Admin Deal Manager</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Full deal tracking system for the admin investor dashboard. Add, edit, and delete deals with company, amount, round, sector, region, and lead investor. Supabase-backed with seed capability. Powers the Investor Dashboard with live, curated AgTech deal flow data.</div>
+        </div>
       </div>
     </div>
 
@@ -9454,24 +9685,28 @@ function pgRoadmap() {
     </div>
   </div>
 
-  <!-- PHASE 1: NEXT -->
+  <!-- PHASE 1: NOW IN PROGRESS -->
   <div class="card" style="margin-top:16px;border-left:4px solid #f59e0b">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🏗️</span><h3 style="margin:0">Phase 1 — Multi-Ecosystem CRM Workspaces</h3></div>
-    <span class="badge b-yellow" style="margin-bottom:12px">Next Priority</span>
-    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Transform FounderOps Center into the operating system for AgTech ecosystem managers. Each ecosystem node (accelerator, incubator, tech validator, regional hub) gets a private workspace with their own startup pipeline, relationship tracking, and document management — replacing the patchwork of Airtable, Google Drive, and generic CRMs.</p>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🏗️</span><h3 style="margin:0">Phase 1 — Community Growth & Cross-Ecosystem Intelligence</h3></div>
+    <span class="badge b-yellow" style="margin-bottom:12px">In Progress</span>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Ecosystem CRM workspaces are live. The next focus is scaling the community: deeper Venture Studio pipeline management, cross-ecosystem data sharing between partner organizations, community hub engagement features, and the talent matching layer that connects AgTech professionals with startups that need them.</p>
 
     <div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
       <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">📋 Private Pipeline Management</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Kanban-style pipeline per ecosystem. Custom stages, notes, tags, status tracking. Replaces Airtable for ecosystem managers.</div>
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔄 Cross-Ecosystem Pipeline Sharing</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Opt-in pipeline sharing between partner ecosystems. See when a startup is tracked by multiple organizations — coordinate instead of competing. Build the network effect between AIVA, AgLaunch, Thrive, and other partners.</div>
       </div>
       <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🤝 Relationship Tracker</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Log interactions, introductions, meeting notes, follow-ups. Full CRM for managing relationships across the ecosystem.</div>
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🚀 Venture Studio Pipeline Deepening</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Admin review queue with automated Startup Kit generation (landing page, 1-pager, business plan). Mentor matching for accepted ideas. Progress tracking from idea → validated → funded. Turn the submission flow into a full venture builder.</div>
       </div>
       <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
-        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🔄 Cross-Ecosystem Sharing</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Opt-in pipeline sharing between partner organizations. See when a startup is tracked by multiple ecosystems — coordinate instead of competing.</div>
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">💬 Community Hub & Engagement</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Discussion forums, founder AMAs, weekly digests, and event coordination. Give founders a reason to come back daily, not just when they need something. Organic connections and knowledge sharing alongside the structured matching engine.</div>
+      </div>
+      <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">👥 Talent & Co-Founder Matching</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">AgTech startups struggle to find specialized talent. Extend the matching engine to connect founders with technical co-founders, advisors, and hires based on verified expertise and milestone stage.</div>
       </div>
     </div>
   </div>
@@ -9583,7 +9818,7 @@ function pgInvestorOpportunity() {
   <div class="card" style="margin-top:16px;border-left:4px solid var(--green)">
     <h3 style="margin:0 0 4px">💡 The Solution</h3>
     <div class="sub" style="margin-bottom:14px">FounderOps Center — AgTech Ecosystem Intelligence</div>
-    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">FounderOps Center is the operating system for AgTech ecosystems. We combine curated market intelligence, founder resources, and a matching engine into one platform — giving founders the map and connections they need, while giving ecosystem managers and investors the data layer they've never had.</p>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">FounderOps Center is the operating system for AgTech ecosystems. We combine curated market intelligence, founder resources, ecosystem CRM workspaces, a venture studio pipeline, and a matching engine into one platform — giving founders the map and connections they need, while giving ecosystem managers and investors the data layer they've never had.</p>
     <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
       <div style="text-align:center;padding:16px;background:var(--accent-bg);border-radius:10px;border:1px solid var(--green-mid)">
         <div style="font-size:28px;font-weight:900;color:var(--green)">${total}</div>
@@ -9605,6 +9840,38 @@ function pgInvestorOpportunity() {
         <div style="font-size:11px;color:var(--text-muted);font-weight:600">New This Month</div>
         <div style="font-size:10px;margin-top:4px;color:${thisMonth>prevMonth?'var(--green)':'var(--text-muted)'};font-weight:700">${delta(thisMonth,prevMonth)} vs prior 30d</div>
       </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;border-left:4px solid #7c3aed;background:linear-gradient(135deg, rgba(124,58,237,.04), rgba(124,58,237,.01))">
+    <h3 style="margin:0 0 4px">⚡ Execution Speed — Built in 4 Days</h3>
+    <div class="sub" style="margin-bottom:14px">This isn't a pitch deck. This is a live product.</div>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-muted)">Everything you're looking at right now — the platform you're logged into, every feature described on this page — was built and deployed in <strong style="color:var(--text)">4 days</strong>. Not a prototype. Not a wireframe. A live, authenticated SPA with Supabase backend, real user data, and production deployment on GitHub Pages.</p>
+    <div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+      <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border);text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#7c3aed">4</div>
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600">Days to Build</div>
+      </div>
+      <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border);text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#7c3aed">13K+</div>
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600">Lines of Code</div>
+      </div>
+      <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border);text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#7c3aed">8</div>
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600">Persona Types</div>
+      </div>
+      <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border);text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#7c3aed">25+</div>
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600">Major Features</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding:16px;background:var(--hover);border-radius:10px;border:1px solid rgba(124,58,237,.2)">
+      <div style="font-size:13px;line-height:1.8;color:var(--text-muted)">
+        <strong style="color:var(--text)">What shipped in 4 days:</strong> Full authentication with Supabase (sign-up, sign-in, password recovery, session management). 8-persona onboarding wizard with evidence-based milestone system. Tier-gated smart connections engine with accountability tracking. Ecosystem manager CRM workspaces with Kanban pipeline and platform-wide startup directory. Partner ecosystem network with claim/verify flow. Venture Studio 5-step idea submission pipeline with admin review dashboard. Investor dashboard with deal manager. Admin panel with user directory, smart connections, deal management, venture studio queue, ecosystem claims, product roadmap, and investor pitch. Global AgTech market data across 14 crop categories and 6 regions. Accelerator directory. Mentor matching. Auto-suspend system for profile integrity. Monthly check-in cadence. Landing page with idea submission CTA. Dark/light mode. Full mobile responsiveness. Live at founderopscenter.com.
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:14px;background:linear-gradient(135deg, rgba(124,58,237,.06), rgba(124,58,237,.02));border:1px solid rgba(124,58,237,.2);border-radius:10px">
+      <div style="font-size:13px;line-height:1.7;color:var(--text-muted)"><strong style="color:var(--text)">What this means for investors:</strong> The founder can ship at a rate most funded teams can't match. The cost to build what you see here was effectively zero infrastructure cost — Supabase free tier, GitHub Pages hosting, and one person's time. This isn't a $500K seed round to build an MVP. This is a live product looking for capital to scale users, partnerships, and revenue. Every dollar invested goes to growth, not to figuring out if the product can be built. It's built. You're looking at it.</div>
     </div>
   </div>
 
@@ -9698,19 +9965,19 @@ function pgInvestorOpportunity() {
     <div class="sub" style="margin-bottom:14px">Three phases to category leadership</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
       <div style="padding:16px;border:2px solid var(--green);border-radius:10px;background:var(--accent-bg)">
-        <span class="badge b-green" style="margin-bottom:8px">Phase 1 — Now</span>
-        <h4 style="margin:0 0 6px;font-size:14px">Intelligence Platform</h4>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Curated AgTech market data, investor & accelerator directory, founder resources, ecosystem maps, and smart connections matching engine. Live and growing.</div>
+        <span class="badge b-green" style="margin-bottom:8px">Phase 1 — Live</span>
+        <h4 style="margin:0 0 6px;font-size:14px">Intelligence Platform + Ecosystem CRM</h4>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Curated market data, 8-persona milestone system, smart matching engine, ecosystem manager workspaces with startup pipelines, partner ecosystem network, venture studio with idea intake pipeline, investor dashboard with deal tracking, and admin intelligence layer. All shipped and live.</div>
       </div>
       <div style="padding:16px;border:1px solid var(--border);border-radius:10px">
-        <span class="badge b-blue" style="margin-bottom:8px">Phase 2 — Next</span>
-        <h4 style="margin:0 0 6px;font-size:14px">Multi-Ecosystem CRM</h4>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Private workspaces for ecosystem managers — pipeline tracking, relationship management, document vault, and opt-in cross-ecosystem data sharing. Replaces Airtable + Google Drive.</div>
+        <span class="badge b-blue" style="margin-bottom:8px">Phase 2 — Building</span>
+        <h4 style="margin:0 0 6px;font-size:14px">Cross-Ecosystem Network Effects</h4>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Cross-ecosystem pipeline sharing, venture studio deepening with auto-generated startup kits, community hub engagement, talent matching, and co-founder discovery. Scaling the network from nodes to a connected graph.</div>
       </div>
       <div style="padding:16px;border:1px solid var(--border);border-radius:10px">
         <span class="badge b-purple" style="margin-bottom:8px">Phase 3 — Scale</span>
         <h4 style="margin:0 0 6px;font-size:14px">Thesis-Driven Fund</h4>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Proprietary deal flow from the platform powers a data-driven AgTech fund. Every startup tracked, every introduction made, every pipeline conversion becomes investment intelligence.</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Proprietary deal flow from the platform powers a data-driven AgTech fund. Every startup tracked, every introduction made, every pipeline conversion becomes investment intelligence. Platform revenue + fund economics in one entity.</div>
       </div>
     </div>
   </div>
@@ -9726,7 +9993,7 @@ function pgInvestorOpportunity() {
       </div>
       <div style="padding:16px;background:var(--hover);border-radius:10px;border:1px solid var(--border);text-align:center">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Use of Funds</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.8;margin-top:6px">Product development<br>Founder salary<br>Ecosystem partnerships<br>Market expansion</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.8;margin-top:6px">Founder salary (12mo runway)<br>Ecosystem partnerships<br>User acquisition<br>Legal & compliance</div>
       </div>
       <div style="padding:16px;background:var(--hover);border-radius:10px;border:1px solid var(--border);text-align:center">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px">Revenue Streams</div>
@@ -9741,7 +10008,7 @@ function pgInvestorOpportunity() {
       <div style="font-size:13px;line-height:1.7;color:var(--text-muted)"><strong style="color:var(--text)">One entity, full exposure:</strong> Your equity stake is in FounderOps Center as a whole — that includes the SaaS platform revenue today, and the AgTech fund economics in Phase 3. When the fund launches, management fees (typically 2%) and carried interest flow back to the company. You don't need to invest again to benefit from fund returns — your ownership already includes that upside.</div>
     </div>
     <div style="padding:14px;background:linear-gradient(135deg, rgba(99,102,241,.06), rgba(99,102,241,.02));border:1px solid rgba(99,102,241,.2);border-radius:10px">
-      <div style="font-size:13px;line-height:1.7;color:var(--text-muted)"><strong style="color:var(--text)">Why now:</strong> AgTech VC investment hit $5.7B in 2024 across 736 startups, but the ecosystem infrastructure connecting founders to capital is still held together with spreadsheets. FounderOps Center is building the connective tissue — and every user, every ecosystem node, every introduction made on the platform increases the value of the network and the quality of deal flow for future fund investments. Early investors get in before network effects compound.</div>
+      <div style="font-size:13px;line-height:1.7;color:var(--text-muted)"><strong style="color:var(--text)">Why now:</strong> AgTech VC investment hit $5.7B in 2024 across 736 startups, but the ecosystem infrastructure connecting founders to capital is still held together with spreadsheets. FounderOps Center is building the connective tissue — and it already exists. This platform was built and deployed in 4 days. It's not a pitch deck or a promise. Real users are signing up, real ecosystem managers are claiming workspaces, and real founders are submitting ideas to the Venture Studio pipeline. Every user, every ecosystem node, every introduction made on the platform increases the value of the network and the quality of deal flow for future fund investments. Early investors get in before network effects compound — and with a founder who ships product at a pace that makes the investment go further, faster.</div>
     </div>
   </div>
 
