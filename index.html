@@ -5377,6 +5377,7 @@ let _accelFilter = { region: 'all', requirement: 'all' };
 let _founderProfile = {};
 let _ventureStep = 0;
 let _ventureSubmissions = JSON.parse(localStorage.getItem('foc_venture_submissions') || '[]');
+let _ventureSubmissionsLoaded = false;
 let _ventureForm = {};
 
 const REGION_CROP_DATA = {
@@ -6574,7 +6575,7 @@ function pgVenture(){
         </select>
       </div>
       <div style="display:flex;gap:12px;margin-top:24px">
-        <button onclick="_ventureStep=1;render('venture')" style="flex:1;padding:12px 18px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Next →</button>
+        <button onclick="ventureNextStep(1)" style="flex:1;padding:12px 18px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Next →</button>
       </div>
     </div>`;
   }
@@ -6603,7 +6604,7 @@ function pgVenture(){
       </div>
       <div style="display:flex;gap:12px;margin-top:24px">
         <button onclick="_ventureStep=0;render('venture')" style="flex:1;padding:12px 18px;background:var(--hover);color:var(--text);border:1px solid var(--border);border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">← Back</button>
-        <button onclick="_ventureStep=2;render('venture')" style="flex:1;padding:12px 18px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Next →</button>
+        <button onclick="ventureNextStep(2)" style="flex:1;padding:12px 18px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Next →</button>
       </div>
     </div>`;
   }
@@ -6642,7 +6643,7 @@ function pgVenture(){
       </div>
       <div style="display:flex;gap:12px;margin-top:24px">
         <button onclick="_ventureStep=1;render('venture')" style="flex:1;padding:12px 18px;background:var(--hover);color:var(--text);border:1px solid var(--border);border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">← Back</button>
-        <button onclick="_ventureStep=3;render('venture')" style="flex:1;padding:12px 18px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Next →</button>
+        <button onclick="ventureNextStep(3)" style="flex:1;padding:12px 18px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Next →</button>
       </div>
     </div>`;
   }
@@ -6778,7 +6779,7 @@ function pgVenture(){
                   </div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center">
-                  <select style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px" onchange="const subs=_ventureSubmissions;subs[${idx}].status=this.value;localStorage.setItem('foc_venture_submissions',JSON.stringify(_ventureSubmissions));render('venture')" onclick="event.stopPropagation()">
+                  <select style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px" onchange="updateVentureStatus(${idx},this.value);render('venture')" onclick="event.stopPropagation()">
                     <option value="New" ${(sub.status||'New')==='New'?'selected':''}>New</option>
                     <option value="Under Review" ${(sub.status||'New')==='Under Review'?'selected':''}>Under Review</option>
                     <option value="Approved" ${(sub.status||'New')==='Approved'?'selected':''}>Approved</option>
@@ -6849,6 +6850,50 @@ function ventureValidateField(el, type) {
   }
 }
 
+function ventureNextStep(targetStep) {
+  // Read DOM values first in case onchange/oninput didn't fire
+  const readDom = (sel) => { const el = document.querySelector(sel); return el ? el.value.trim() : ''; };
+
+  if (_ventureStep === 0) {
+    // Step 1: Your Idea — require name, pitch, sector
+    const name = readDom('input[placeholder="e.g., GreenHarvest AI"]') || _ventureForm.name;
+    const pitch = readDom('textarea[placeholder="What does your startup do in one sentence?"]') || _ventureForm.pitch;
+    const sector = _ventureForm.sector;
+    if (name) _ventureForm.name = name;
+    if (pitch) _ventureForm.pitch = pitch;
+    if (!_ventureForm.name) { toast('Please enter your startup/project name.'); return; }
+    if (!_ventureForm.pitch) { toast('Please enter a one-line pitch.'); return; }
+    if (!_ventureForm.sector) { toast('Please select an AgTech sector.'); return; }
+  } else if (_ventureStep === 1) {
+    // Step 2: Market & Problem — require problem + customers
+    const problem = readDom('textarea[placeholder="Describe the problem..."]') || _ventureForm.problem;
+    const customers = readDom('textarea[placeholder="Describe your ideal customer..."]') || _ventureForm.customers;
+    if (problem) _ventureForm.problem = problem;
+    if (customers) _ventureForm.customers = customers;
+    if (!_ventureForm.problem) { toast('Please describe the problem you\'re solving.'); return; }
+    if (!_ventureForm.customers) { toast('Please describe your target customers.'); return; }
+  } else if (_ventureStep === 2) {
+    // Step 3: You & Your Team — require name + email
+    const fName = readDom('input[placeholder="Your full name"]') || _ventureForm.founderName || currentUser?.name;
+    const fEmail = readDom('input[placeholder="Your email"]') || _ventureForm.founderEmail || currentUser?.email;
+    const linkedIn = readDom('input[placeholder="https://linkedin.com/in/yourprofile"]') || _ventureForm.linkedinUrl;
+    if (fName) _ventureForm.founderName = fName;
+    if (fEmail) _ventureForm.founderEmail = fEmail;
+    if (linkedIn) _ventureForm.linkedinUrl = linkedIn;
+    if (!_ventureForm.founderName) { toast('Please enter your name.'); return; }
+    if (!_ventureForm.founderEmail) { toast('Please enter your email.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_ventureForm.founderEmail)) { toast('Please enter a valid email address.'); return; }
+    if (_ventureForm.linkedinUrl && _ventureForm.linkedinUrl.trim()) {
+      const url = _ventureForm.linkedinUrl.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) { toast('LinkedIn URL must start with https://'); return; }
+      try { new URL(url); } catch(e) { toast('Please enter a valid LinkedIn URL.'); return; }
+    }
+  }
+  // Step 4 (Goals & Needs) has no required fields — everything is optional
+  _ventureStep = targetStep;
+  render('venture');
+}
+
 async function submitVentureApplication(){
   // Auto-seed from currentUser if form fields weren't manually touched
   if (!_ventureForm.founderName && currentUser?.name) _ventureForm.founderName = currentUser.name;
@@ -6913,9 +6958,40 @@ async function submitVentureApplication(){
     <div style="font-size:48px;margin-bottom:16px">🎉</div>
     <h2 style="margin:0 0 12px 0;font-size:22px;font-weight:700;color:var(--text)">Your idea has been submitted!</h2>
     <p style="margin:0 0 24px 0;color:var(--text-muted);line-height:1.6;font-size:14px">The FounderOps Venture Studio team will review your submission and get back to you within 48 hours.</p>
-    <button onclick="this.parentElement.parentElement.remove();_ventureForm={};_ventureStep=0;render('venture')" style="padding:12px 28px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Start New Submission</button>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button onclick="this.closest('[style*=fixed]').remove();_ventureForm={};_ventureStep=0;go('overview')" style="padding:12px 28px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Explore the Platform →</button>
+      <button onclick="this.closest('[style*=fixed]').remove();_ventureForm={};_ventureStep=0;render('venture')" style="padding:12px 28px;background:var(--hover);color:var(--text);border:1px solid var(--border);border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Submit Another Idea</button>
+    </div>
   </div>`;
   document.body.appendChild(modal);
+}
+
+async function updateVentureStatus(idx, newStatus) {
+  const sub = _ventureSubmissions[idx];
+  if (!sub) return;
+  sub.status = newStatus;
+  localStorage.setItem('foc_venture_submissions', JSON.stringify(_ventureSubmissions));
+  // Persist to Supabase
+  try {
+    await _supabase.from('venture_submissions').update({ status: newStatus }).eq('id', sub.id);
+  } catch(e) {}
+  render(adminTab === 'venture_studio' ? 'admin' : 'venture');
+}
+
+async function loadVentureSubmissions() {
+  if (_ventureSubmissionsLoaded) return _ventureSubmissions;
+  try {
+    const { data, error } = await _supabase.from('venture_submissions').select('*').order('createdAt', { ascending: false });
+    if (!error && data && data.length > 0) {
+      _ventureSubmissions = data;
+      localStorage.setItem('foc_venture_submissions', JSON.stringify(data));
+      _ventureSubmissionsLoaded = true;
+      return data;
+    }
+  } catch(e) { console.log('venture_submissions table may not exist yet'); }
+  // Fall back to localStorage
+  _ventureSubmissionsLoaded = true;
+  return _ventureSubmissions;
 }
 
 // ════════════════════════════════════════════════
@@ -7776,6 +7852,26 @@ async function resetMyAccount() {
   _userProfile = { ..._userProfile, ...wiped };
   toast('🔄 Account reset — reloading...');
   setTimeout(() => location.reload(), 1000);
+}
+
+async function nukeTestUser() {
+  const email = prompt('Enter the email of the test user to completely remove from the platform:\n\n(This deletes their profile row so they can sign up fresh)');
+  if (!email || !email.trim()) return;
+  const cleanEmail = email.trim().toLowerCase();
+  if (cleanEmail === 'russellcolevop@gmail.com' || cleanEmail === 'rcole@emilicanada.com') {
+    toast('❌ Cannot nuke admin accounts.');
+    return;
+  }
+  if (!confirm('⚠️ Delete the profile for ' + cleanEmail + '?\n\nThis removes their profile data from the platform. Their auth account remains (Supabase Auth) so they can sign in again and go through onboarding fresh.\n\nProceed?')) return;
+  const { error } = await _supabase.from('profiles').delete().eq('email', cleanEmail);
+  if (error) {
+    toast('❌ Error: ' + error.message);
+    return;
+  }
+  // Also remove from local cache
+  _allProfiles = _allProfiles.filter(p => p.email !== cleanEmail);
+  toast('💣 Profile for ' + cleanEmail + ' deleted. They can now sign in fresh.');
+  render('admin');
 }
 
 function showBlockedScreen() {
@@ -9361,6 +9457,11 @@ function pgAdmin(){
 
   // Venture Studio submissions tab
   if (adminTab === 'venture_studio') {
+    // Load from Supabase on first visit
+    if (!_ventureSubmissionsLoaded) {
+      loadVentureSubmissions().then(() => render('admin'));
+      return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1><p>Loading venture submissions...</p></div>${adminTabBar('venture_studio')}<div style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</div>`;
+    }
     const subs = _ventureSubmissions;
     const newCount = subs.filter(s => s.status === 'New').length;
     const reviewCount = subs.filter(s => s.status === 'Under Review').length;
@@ -9439,7 +9540,7 @@ function pgAdmin(){
                 </div>
               </div>
               <div style="display:flex;gap:8px;align-items:center" onclick="event.stopPropagation()">
-                <select style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600" onchange="_ventureSubmissions[${idx}].status=this.value;localStorage.setItem('foc_venture_submissions',JSON.stringify(_ventureSubmissions));render('admin')">
+                <select style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600" onchange="updateVentureStatus(${idx},this.value)">
                   <option value="New" ${'New'===(sub.status||'New')?'selected':''}>🔵 New</option>
                   <option value="Under Review" ${'Under Review'===sub.status?'selected':''}>🟡 Under Review</option>
                   <option value="Approved" ${'Approved'===sub.status?'selected':''}>🟢 Approved</option>
@@ -9561,6 +9662,7 @@ function pgAdmin(){
         <button onclick="adminExportCSV()" style="padding:7px 14px;background:var(--accent-bg);color:var(--green);border:1px solid var(--green-mid);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">↓ Export CSV</button>
         <button onclick="_allProfiles=[];render('admin')" style="padding:7px 14px;background:var(--hover);border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-muted);white-space:nowrap">↻ Refresh</button>
         <button onclick="resetMyAccount()" style="padding:7px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">🔄 Reset My Account</button>
+        <button onclick="nukeTestUser()" style="padding:7px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">💣 Nuke Test User</button>
       </div>
     </div>
     <div class="admin-filters">
