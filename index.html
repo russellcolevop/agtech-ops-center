@@ -5951,6 +5951,53 @@ function pgCropDetail(cropName){
 `;
 }
 
+function requestMentorIntro(mentorId){
+  const m = MENTORS.find(x=>x.id===mentorId);
+  if(!m) return;
+  if(!currentUser){
+    openModal('signin-modal');
+    return;
+  }
+  const modal = document.createElement('div');
+  modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999';
+  modal.onclick=function(e){if(e.target===modal)modal.remove();};
+  modal.innerHTML='<div style="background:var(--surface);border-radius:12px;padding:28px;max-width:460px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0;font-size:18px;font-weight:700;color:var(--text)">Request Introduction</h3><button onclick="this.closest(\'div[style*=position\\:fixed]\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted)">✕</button></div>'
+    +'<p style="margin:0 0 16px 0;color:var(--text-muted);font-size:13px;line-height:1.6">Russell will personally introduce you to <strong>'+m.name+'</strong> at '+m.firm+'. Share a brief note about why you\'d like to connect.</p>'
+    +'<textarea id="mentor-intro-note" rows="4" placeholder="E.g., I\'m building a precision ag startup and would love their advice on go-to-market strategy..." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;resize:vertical;margin-bottom:16px;box-sizing:border-box"></textarea>'
+    +'<button onclick="submitMentorIntroRequest('+mentorId+')" style="width:100%;padding:12px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer">Send Request to Russell</button>'
+    +'</div>';
+  document.body.appendChild(modal);
+}
+
+async function submitMentorIntroRequest(mentorId){
+  const m = MENTORS.find(x=>x.id===mentorId);
+  const note = (document.getElementById('mentor-intro-note')||{}).value||'';
+  // Save to Supabase feedback table or introductions
+  try{
+    await _supabase.from('introductions').insert([{
+      person_a: currentUser.id,
+      person_b: null,
+      status:'suggested',
+      requested_by: currentUser.id,
+      requested_at: new Date().toISOString(),
+      match_reasons:['Mentor introduction request: '+m.name+' at '+m.firm],
+      admin_notes:'MENTOR INTRO REQUEST — '+m.name+' ('+m.firm+') — Note: '+note
+    }]);
+  }catch(e){}
+  // Close modal and show confirmation
+  const modal = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
+  if(modal){
+    modal.innerHTML='<div style="background:var(--surface);border-radius:12px;padding:40px;max-width:460px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+      +'<div style="font-size:40px;margin-bottom:12px">🤝</div>'
+      +'<h3 style="margin:0 0 8px 0;font-size:18px;font-weight:700;color:var(--text)">Request Sent!</h3>'
+      +'<p style="margin:0 0 20px 0;color:var(--text-muted);font-size:13px;line-height:1.6">Russell will review your request and introduce you to '+m.name+' soon. You\'ll see updates in your Connections page.</p>'
+      +'<button onclick="this.closest(\'div[style*=position\\:fixed]\').remove()" style="padding:10px 24px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer">Got it</button>'
+      +'</div>';
+  }
+  updateNotifBell();
+}
+
 function filterMentorGrid(){
   const s = (document.getElementById('mentor-search').value||'').toLowerCase();
   const c = document.getElementById('mentor-country-filter').value;
@@ -6068,7 +6115,7 @@ function pgMentors(){
         <h3 style="margin:0 0 16px 0;font-size:15px;font-weight:600;color:var(--text)">Connect</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           ${linkedinBtn}
-          <button onclick="openFeedback('mentor-intro-${m.id}')" style="background:var(--blue);color:white;padding:10px 16px;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer">Request Introduction</button>
+          <button onclick="requestMentorIntro(${m.id})" style="background:var(--blue);color:white;padding:10px 16px;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer">Request Introduction</button>
         </div>
       </div>
 
@@ -6584,12 +6631,6 @@ function pgAccelerators(){
   const countryFlags = {'US':'🇺🇸','France':'🇫🇷','Netherlands':'🇳🇱','Israel':'🇮🇱','Australia':'🇦🇺','Singapore':'🇸🇬','Canada':'🇨🇦','Poland':'🇵🇱','EU':'🇪🇺','Global':'🌐','Multiple':'🌎'};
   const regionMap = {'na':'North America','eu':'Europe','il':'Israel','au':'Australia/APAC','apac':'Asia-Pacific','latam':'Latin America'};
   const regionNames = {'all':'All','na':'North America','eu':'Europe','il':'Israel','au':'Australia/APAC','apac':'Asia-Pacific','latam':'Latin America'};
-  const requirementMap = {
-    'all':'All',
-    'no-mvp':'No MVP required',
-    'video-pitch':'Accepts video pitch',
-    'no-equity':'No equity taken'
-  };
   const artifactTypes = {
     'business-plan':'📄 Business Plan',
     'pitch-deck':'📊 Pitch Deck',
@@ -6606,14 +6647,61 @@ function pgAccelerators(){
     return countryFlags[country] || '🌍';
   }
 
-  function getRegionLabel(region){
-    return regionMap[region] || region.toUpperCase();
+  function getReadinessState(accelerator){
+    const requiredArtifacts = (accelerator.requirements || []).filter(r => {
+      const key = Object.keys(artifactTypes).find(k => k === r || artifactTypes[k].includes(r));
+      return key;
+    });
+
+    const completedCount = requiredArtifacts.filter(r => {
+      const key = Object.keys(artifactTypes).find(k => k === r || artifactTypes[k].includes(r));
+      return _founderProfile[key] === 'done';
+    }).length;
+
+    const total = requiredArtifacts.length;
+    if(total === 0) return { badge:'🟢', text:'Ready to Apply', state:'ready' };
+    if(completedCount === total) return { badge:'🟢', text:'Ready to Apply', state:'ready' };
+    if(completedCount >= total - 2) return { badge:'🟡', text:'Almost Ready', state:'almost' };
+    return { badge:'🔴', text:'Build Your Profile', state:'build' };
+  }
+
+  function getReadinessBorder(readiness){
+    if(readiness.state === 'ready') return '2px solid #16a34a';
+    if(readiness.state === 'almost') return '2px solid #eab308';
+    return '2px solid #cbd5e1';
+  }
+
+  function getProgramIconColor(name){
+    const colors = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#06b6d4','#6366f1','#14b8a6'];
+    let hash = 0;
+    for(let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
   }
 
   function filterPrograms(){
     let filtered = ACCELERATORS;
     if(_accelFilter.region !== 'all'){
       filtered = filtered.filter(a => a.region === _accelFilter.region);
+    }
+    if(_accelFilter.readiness && _accelFilter.readiness !== 'all'){
+      filtered = filtered.filter(a => {
+        const readiness = getReadinessState(a);
+        return readiness.state === _accelFilter.readiness;
+      });
+    }
+    if(_accelFilter.investmentRange && _accelFilter.investmentRange !== 'all'){
+      filtered = filtered.filter(a => {
+        const match = a.investment.match(/\d+/);
+        if(!match) return true;
+        const amount = parseInt(match[0]);
+        switch(_accelFilter.investmentRange){
+          case 'under50': return amount < 50;
+          case '50to100': return amount >= 50 && amount < 100;
+          case '100to250': return amount >= 100 && amount < 250;
+          case 'over250': return amount >= 250;
+          default: return true;
+        }
+      });
     }
     return filtered;
   }
@@ -6644,261 +6732,234 @@ function pgAccelerators(){
       total: ACCELERATORS.length,
       regions: regions.size,
       avgInv: avgInv,
-      rolling: rolling
+      rolling: rolling,
+      filtered: progs.length
     };
   }
 
   function renderDetailView(){
-    const a = _selectedAccelerator;
+    const a = ACCELERATORS.find(prog => prog.id === _selectedAccelerator);
     if(!a) return '';
+
+    const readiness = getReadinessState(a);
+    const requiredCount = (a.requirements || []).filter(r => {
+      const key = Object.keys(artifactTypes).find(k => k === r || artifactTypes[k].includes(r));
+      return key;
+    }).length;
+
+    const completedCount = (a.requirements || []).filter(r => {
+      const key = Object.keys(artifactTypes).find(k => k === r || artifactTypes[k].includes(r));
+      return _founderProfile[key] === 'done';
+    }).length;
 
     const hasReqs = (a.requirements || []).length > 0;
     const hasAlumni = (a.alumni || []).length > 0;
     const hasFocus = (a.focus || []).length > 0;
+    const isRolling = a.deadline.toLowerCase().includes('rolling');
 
     let reqsHtml = '';
     if(hasReqs){
-      reqsHtml = '<div class="card" style="margin-top:16px"><h3>Application Requirements</h3><div style="margin-top:12px">';
+      reqsHtml = '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px"><h3 style="margin-top:0;margin-bottom:16px">Application Requirements</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
       a.requirements.forEach(req => {
-        const artifactKey = Object.keys(artifactTypes).find(k => k === req || artifactTypes[k].includes(req));
+        const key = Object.keys(artifactTypes).find(k => k === req || artifactTypes[k].includes(r));
+        const artifactKey = key || req;
         const icon = artifactTypes[artifactKey] ? artifactTypes[artifactKey].split(' ')[0] : '📋';
         const label = artifactTypes[artifactKey] ? artifactTypes[artifactKey].substring(2) : req;
-        const hasArtifact = _founderProfile[artifactKey] === 'done';
-        const statusColor = hasArtifact ? '#16a34a' : '#cbd5e1';
-        reqsHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-          <span style="font-size:16px">${icon}</span>
-          <span style="flex:1">${label}</span>
-          <span style="font-size:18px;color:${statusColor}">${hasArtifact ? '✓' : '○'}</span>
-        </div>`;
+        const status = _founderProfile[artifactKey] || 'not-started';
+        const isComplete = status === 'done';
+        const statusColor = isComplete ? '#16a34a' : '#cbd5e1';
+        const statusText = isComplete ? '✅ Done' : status === 'help' ? '⚠️ Need Help' : '⬜ Not Started';
+
+        reqsHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:20px">' + icon + '</span><span style="flex:1;font-size:14px;font-weight:600">' + label + '</span></div><div style="margin-top:8px;font-size:12px;color:' + statusColor + ';font-weight:500">' + statusText + '</div><button onclick="trackProgram(' + a.id + ',\'' + artifactKey + '\');render(\'accelerators\')" style="margin-top:8px;width:100%;padding:6px 12px;background:var(--hover);border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:500;color:var(--text);cursor:pointer">Mark as Ready</button></div>';
       });
       reqsHtml += '</div></div>';
     }
 
     let alumniHtml = '';
     if(hasAlumni){
-      alumniHtml = '<div class="card" style="margin-top:16px"><h3>Notable Alumni</h3><div style="margin-top:8px">';
+      alumniHtml = '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px"><h3 style="margin-top:0;margin-bottom:12px">Notable Alumni</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">';
       a.alumni.forEach(alum => {
-        alumniHtml += `<div style="font-size:13px;color:var(--text-muted);padding:4px 0">• ${alum}</div>`;
+        alumniHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;font-weight:500;color:var(--text);text-align:center">' + alum + '</div>';
       });
       alumniHtml += '</div></div>';
     }
 
     let focusHtml = '';
     if(hasFocus){
-      focusHtml = '<div class="card" style="margin-top:16px"><h3>Focus Areas</h3><div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px">';
+      focusHtml = '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px"><h3 style="margin-top:0;margin-bottom:12px">Focus Areas</h3><div style="display:flex;flex-wrap:wrap;gap:8px">';
       a.focus.forEach(f => {
-        focusHtml += `<div style="padding:6px 12px;background:var(--green-light);color:var(--green);border-radius:16px;font-size:12px;font-weight:500">${f.replace(/-/g,' ')}</div>`;
+        focusHtml += '<div style="padding:8px 14px;background:#ecfdf5;color:#059669;border-radius:16px;font-size:12px;font-weight:500">' + f.replace(/-/g,' ') + '</div>';
       });
       focusHtml += '</div></div>';
     }
 
-    const hasComplete = Object.values(_founderProfile).filter(v => v === 'done').length > 0;
-    const successMsg = hasComplete ? 'Application interest registered! We\'ll help you prepare your materials.' : 'Complete your profile first to apply.';
-    const applyBtnStyle = hasComplete ? 'background:#16a34a;color:white;cursor:pointer' : 'background:#cbd5e1;color:#64748b;cursor:not-allowed';
+    const allRequirementsMet = completedCount === requiredCount && requiredCount > 0;
+    let applySection = '';
+    if(allRequirementsMet){
+      applySection = '<div style="background:var(--card);border:2px solid #16a34a;border-radius:12px;padding:20px;margin-top:16px;text-align:center"><button onclick="trackProgram(' + a.id + ',\'applied\');render(\'accelerators\')" style="padding:14px 32px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px">🚀 Apply Now</button><div style="margin-top:12px;font-size:13px;color:var(--text-muted)">We\'ll help package your profile and prepare your application.</div></div>';
+    } else if(requiredCount > 0){
+      applySection = '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px"><div style="padding:12px;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;color:#92400e;font-size:13px;margin-bottom:12px"><strong>Missing ' + (requiredCount - completedCount) + ' requirement(s)</strong> — Visit your Application Profile to complete them.</div><button onclick="_accelTab=\'profile\';render(\'accelerators\')" style="width:100%;padding:12px 24px;background:var(--green);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Complete Your Profile →</button></div>';
+    } else {
+      applySection = '<div style="background:var(--card);border:2px solid #16a34a;border-radius:12px;padding:20px;margin-top:16px;text-align:center"><button onclick="trackProgram(' + a.id + ',\'applied\');render(\'accelerators\')" style="padding:14px 32px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px">🚀 Apply Now</button></div>';
+    }
 
-    return `<div style="max-width:800px">
-      <a href="#" onclick="_selectedAccelerator=null;render('accelerators');return false" style="color:var(--green);font-size:14px;text-decoration:none;margin-bottom:16px;display:block">← Back to Programs</a>
-      <h1 style="font-size:24px;font-weight:800;color:var(--text);margin-bottom:4px">${a.name}</h1>
-      <div style="color:var(--text-muted);font-size:14px;margin-bottom:16px">${a.org}</div>
+    const pmSection = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:20px"><div style="font-size:12px;font-weight:600;color:var(--text);text-transform:uppercase;margin-bottom:8px;opacity:0.7">For Program Managers</div><div style="padding:12px;background:#f0f9ff;border-left:4px solid #3b82f6;border-radius:4px;margin-bottom:12px"><div style="font-size:13px;color:#1e40af;line-height:1.5"><strong>FounderOps Center</strong> can be your application management platform. Pre-qualified applicants • Standardized profiles • Artifact verification • Pipeline tracking</div></div><button onclick="window.open(\'mailto:russellcolevop@gmail.com?subject=FounderOps Accelerator Program Dashboard\',\'_blank\')" style="width:100%;padding:10px 16px;background:#3b82f6;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px">📧 Contact Russell Cole</button></div>';
 
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px">📍 ${a.location}</div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px">⏱️ ${a.duration}</div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px">💰 ${a.investment}</div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px">📊 ${a.equity}</div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;${a.deadline.toLowerCase().includes('rolling')?'color:var(--green);font-weight:600':''}">📅 ${a.deadline}</div>
-      </div>
-
-      <div class="card"><p style="color:var(--text-muted);line-height:1.6">${a.description}</p></div>
-
-      ${reqsHtml}
-      ${focusHtml}
-      ${alumniHtml}
-
-      <div class="card" style="margin-top:16px;text-align:center">
-        <button onclick="window.open('${a.website}','_blank')" style="padding:12px 24px;background:var(--green);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;width:100%">Apply to this Program →</button>
-        <div style="margin-top:12px;font-size:13px;color:var(--text-muted)">${successMsg}</div>
-        <a href="${a.website}" target="_blank" rel="noopener" style="color:var(--green);font-size:12px;margin-top:8px;display:block">Visit program website ↗</a>
-      </div>
-    </div>`;
+    return '<div style="max-width:900px"><a href="#" onclick="_selectedAccelerator=null;render(\'accelerators\');return false" style="color:var(--green);font-size:14px;text-decoration:none;margin-bottom:20px;display:inline-block;font-weight:600">← Back to Programs</a><div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px"><div style="width:60px;height:60px;border-radius:8px;background:' + getProgramIconColor(a.name) + ';display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white;flex-shrink:0">' + a.name.charAt(0) + '</div><div style="flex:1"><h1 style="font-size:26px;font-weight:800;color:var(--text);margin:0 0 4px 0">' + a.name + '</h1><div style="color:var(--text-muted);font-size:14px">' + a.org + '</div></div></div><div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px"><div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500">📍 ' + a.location + '</div><div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500">⏱️ ' + a.duration + '</div><div style="background:#ecfdf5;border:1px solid #d1fae5;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;color:#059669">💰 ' + a.investment + '</div><div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500">📊 ' + a.equity + '</div><div style="background:' + (isRolling ? '#ecfdf5' : 'var(--surface)') + ';border:1px solid ' + (isRolling ? '#d1fae5' : 'var(--border)') + ';border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;color:' + (isRolling ? '#059669' : 'var(--text)') + '">📅 ' + (isRolling ? '✅ Rolling Applications' : a.deadline) + '</div></div><p style="color:var(--text-muted);line-height:1.6;margin:0">' + a.description + '</p></div>' + reqsHtml + focusHtml + alumniHtml + applySection + pmSection + '</div>';
   }
 
   function renderBrowse(){
     const stats = calcStats();
     const progs = filterPrograms();
 
-    let html = `<div>
-      <div class="page-hdr">
-        <h1>⚡ AgTech Accelerator Hub</h1>
-        <p>22 programs across 6 regions. Build your profile, then apply with one click.</p>
-      </div>
+    let html = '<div><div class="page-hdr"><h1>⚡ AgTech Accelerator Hub</h1><p>22 programs across 6 regions. Build your profile, then apply with one click.</p></div><div class="grid4" style="margin-bottom:20px"><div class="stat-card"><div class="stat-val">' + stats.total + '</div><div class="stat-lbl">Total Programs</div></div><div class="stat-card"><div class="stat-val">' + stats.regions + '</div><div class="stat-lbl">Active Regions</div></div><div class="stat-card"><div class="stat-val">' + stats.avgInv + '</div><div class="stat-lbl">Avg Investment</div></div><div class="stat-card"><div class="stat-val">' + stats.rolling + '</div><div class="stat-lbl">Rolling Deadlines</div></div></div>';
 
-      <div class="grid4" style="margin-bottom:20px">
-        <div class="stat-card">
-          <div class="stat-val">${stats.total}</div>
-          <div class="stat-lbl">Total Programs</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val">${stats.regions}</div>
-          <div class="stat-lbl">Active Regions</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val">${stats.avgInv}</div>
-          <div class="stat-lbl">Avg Investment</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val">${stats.rolling}</div>
-          <div class="stat-lbl">Rolling Deadlines</div>
-        </div>
-      </div>
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><div><label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;text-transform:uppercase">Region</label><select onchange="_accelFilter.region=this.value;render(\'accelerators\')" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:13px"><option value="all">All Regions</option>';
 
-      <div class="card" style="margin-bottom:20px">
-        <div style="display:flex;flex-wrap:wrap;gap:12px">
-          <div style="flex:1;min-width:200px">
-            <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Region</label>
-            <select onchange="_accelFilter.region=this.value;render('accelerators')" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:13px">
-              <option value="all">All Regions</option>
-              ${getUniqueRegions().map(r => `<option value="${r}" ${_accelFilter.region===r?'selected':''}>${regionNames[r] || r}</option>`).join('')}
-            </select>
-          </div>
-          <div style="flex:1;min-width:200px">
-            <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Has Requirement</label>
-            <select onchange="_accelFilter.requirement=this.value;render('accelerators')" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:13px">
-              <option value="all">All Programs</option>
-              <option value="no-mvp">No MVP required</option>
-              <option value="video-pitch">Accepts video pitch</option>
-              <option value="no-equity">No equity taken</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="accel-grid">`;
-
-    progs.forEach(a => {
-      const flag = getFlag(a.country);
-      const rolling = a.deadline.toLowerCase().includes('rolling') ? '#16a34a' : '#cbd5e1';
-      const focusTags = (a.focus || []).slice(0,3).map(f => `<span style="display:inline-block;padding:4px 8px;background:var(--hover);border-radius:4px;font-size:11px;margin-right:4px;margin-bottom:4px">${f.replace(/-/g,' ')}</span>`).join('');
-
-      html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:box-shadow .2s,border-color .2s" onclick="_selectedAccelerator=${a.id};render('accelerators')" onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.1)';this.style.borderColor='var(--green)'" onmouseout="this.style.boxShadow='';this.style.borderColor='var(--border)'">
-        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">${a.name}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${a.org}</div>
-        <div style="font-size:13px;margin-bottom:10px">📍 ${flag} ${a.location}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-          <span style="display:inline-block;padding:6px 10px;background:var(--hover);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:500">${a.investment}</span>
-          <span style="display:inline-block;padding:6px 10px;background:var(--hover);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:500">${a.equity}</span>
-          <span style="display:inline-block;padding:6px 10px;background:var(--hover);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:500">${a.duration}</span>
-          <span style="display:inline-block;padding:6px 10px;background:var(--hover);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:500;color:${rolling}===green?'var(--green)':'#475569'}">${a.deadline.split('/')[0]}</span>
-        </div>
-        <div style="margin-bottom:12px;font-size:12px">${focusTags}</div>
-        <div style="color:var(--green);font-size:13px;font-weight:600">View Details →</div>
-      </div>`;
+    getUniqueRegions().forEach(r => {
+      html += '<option value="' + r + '" ' + (_accelFilter.region === r ? 'selected' : '') + '>' + (regionNames[r] || r) + '</option>';
     });
 
-    html += `</div></div>`;
+    html += '</select></div><div><label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;text-transform:uppercase">Readiness</label><select onchange="_accelFilter.readiness=this.value;render(\'accelerators\')" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:13px"><option value="all">All Programs</option><option value="ready" ' + (_accelFilter.readiness === 'ready' ? 'selected' : '') + '>🟢 Ready to Apply</option><option value="almost" ' + (_accelFilter.readiness === 'almost' ? 'selected' : '') + '>🟡 Almost Ready</option><option value="build" ' + (_accelFilter.readiness === 'build' ? 'selected' : '') + '>🔴 Build Your Profile</option></select></div><div><label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;text-transform:uppercase">Investment</label><select onchange="_accelFilter.investmentRange=this.value;render(\'accelerators\')" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:13px"><option value="all">All Ranges</option><option value="under50" ' + (_accelFilter.investmentRange === 'under50' ? 'selected' : '') + '>&lt;$50K</option><option value="50to100" ' + (_accelFilter.investmentRange === '50to100' ? 'selected' : '') + '>$50K-$100K</option><option value="100to250" ' + (_accelFilter.investmentRange === '100to250' ? 'selected' : '') + '>$100K-$250K</option><option value="over250" ' + (_accelFilter.investmentRange === 'over250' ? 'selected' : '') + '>$250K+</option></select></div></div></div>';
+
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px" class="accel-grid">';
+
+    progs.forEach(a => {
+      const readiness = getReadinessState(a);
+      const requiredCount = (a.requirements || []).filter(r => {
+        const key = Object.keys(artifactTypes).find(k => k === r || artifactTypes[k].includes(r));
+        return key;
+      }).length;
+
+      const completedCount = (a.requirements || []).filter(r => {
+        const key = Object.keys(artifactTypes).find(k => k === r || artifactTypes[k].includes(r));
+        return _founderProfile[key] === 'done';
+      }).length;
+
+      const isRolling = a.deadline.toLowerCase().includes('rolling');
+      const focusTags = (a.focus || []).slice(0,3).map(f => '<span style="display:inline-block;padding:4px 8px;background:#f0fdf4;color:#15803d;border-radius:4px;font-size:11px;margin-right:4px;margin-bottom:4px;font-weight:500">' + f.replace(/-/g,' ') + '</span>').join('');
+      const flag = getFlag(a.country);
+
+      html += '<div style="background:var(--card);border:' + getReadinessBorder(readiness) + ';border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column" onclick="_selectedAccelerator=' + a.id + ';render(\'accelerators\')" onmouseover="this.style.boxShadow=\'0 8px 16px rgba(0,0,0,.12)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.boxShadow=\'\';this.style.transform=\'translateY(0)\'"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><div style="width:40px;height:40px;border-radius:6px;background:' + getProgramIconColor(a.name) + ';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:white;flex-shrink:0">' + a.name.charAt(0) + '</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + a.name + '</div><div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + a.org + '</div></div></div><div style="font-size:13px;margin-bottom:10px">📍 ' + flag + ' ' + a.location + '</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"><span style="display:inline-block;padding:4px 10px;background:#ecfdf5;color:#059669;border-radius:6px;font-size:11px;font-weight:500">' + a.investment + '</span><span style="display:inline-block;padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:500">' + a.equity + '</span><span style="display:inline-block;padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:500">' + a.duration + '</span>' + (isRolling ? '<span style="display:inline-block;padding:4px 10px;background:#ecfdf5;color:#059669;border-radius:6px;font-size:11px;font-weight:500">✅ Rolling</span>' : '') + '</div><div style="margin-bottom:10px;font-size:12px">' + focusTags + '</div><div style="padding:10px;background:var(--surface);border-radius:8px;margin-bottom:12px;border:1px solid var(--border)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:16px">' + readiness.badge + '</span><span style="font-size:12px;font-weight:600;color:var(--text)">' + readiness.text + '</span></div><div style="font-size:11px;color:var(--text-muted)">' + completedCount + ' of ' + (requiredCount > 0 ? requiredCount : '0') + ' requirements met</div></div><div style="color:var(--green);font-size:13px;font-weight:600;margin-top:auto">View Details →</div></div>';
+    });
+
+    html += '</div></div>';
     return html;
   }
 
   function renderProfile(){
     const readinessCount = Object.values(_founderProfile).filter(v => v === 'done').length;
     const totalArtifacts = Object.keys(artifactTypes).length;
-    const eligiblePrograms = ACCELERATORS.length; // simplified for now
+    const readinessPercent = totalArtifacts > 0 ? Math.round((readinessCount / totalArtifacts) * 100) : 0;
 
-    let html = `<div style="max-width:800px">
-      <div class="card" style="margin-bottom:20px;text-align:center">
-        <div style="font-size:14px;color:var(--text-muted);margin-bottom:8px">Your Readiness</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:16px">
-          <div style="text-align:center">
-            <div style="width:80px;height:80px;border-radius:50%;background:var(--hover);display:flex;align-items:center;justify-content:center;margin:0 auto;border:3px solid var(--green)">
-              <span style="font-size:28px;font-weight:800;color:var(--green)">${readinessCount}/${totalArtifacts}</span>
-            </div>
-            <div style="margin-top:12px;font-size:13px;font-weight:600">artifacts ready</div>
-          </div>
-          <div style="font-size:13px;color:var(--text-muted);line-height:1.6">
-            <div>You're eligible for <strong style="color:var(--green);font-size:14px">${eligiblePrograms}</strong> of 22 programs</div>
-            <div style="margin-top:8px">based on your current artifacts</div>
-          </div>
-        </div>
-      </div>
+    const eligiblePrograms = ACCELERATORS.filter(a => {
+      const readiness = getReadinessState(a);
+      return readiness.state === 'ready';
+    }).length;
 
-      <div class="card" style="margin-bottom:16px">
-        <h3>Core Info</h3>
-        <div style="margin-top:12px">
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Startup Name</label>
-          <input type="text" value="${_founderProfile.startupName || ''}" onchange="_founderProfile.startupName=this.value;render('accelerators')" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;margin-bottom:12px">
+    let html = '<div style="max-width:900px"><div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px"><div style="text-align:center;margin-bottom:20px"><div style="display:inline-block;position:relative;width:140px;height:140px"><svg viewBox="0 0 140 140" style="width:100%;height:100%"><circle cx="70" cy="70" r="65" fill="none" stroke="#e5e7eb" stroke-width="8"/><circle cx="70" cy="70" r="65" fill="none" stroke="#16a34a" stroke-width="8" stroke-dasharray="' + (readinessPercent * 4.08) + ' 408" stroke-linecap="round" style="transform:rotate(-90deg);transform-origin:70px 70px"/></svg><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center"><div style="font-size:32px;font-weight:800;color:var(--green)">' + readinessPercent + '%</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Complete</div></div></div></div><div style="text-align:center;margin-bottom:8px"><div style="font-size:16px;font-weight:700;color:var(--text)">Your Readiness Score</div></div><div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;text-align:center"><div style="font-size:13px;color:var(--text-muted);margin-bottom:4px">You\'re eligible for</div><div style="font-size:18px;font-weight:700;color:var(--green)">' + eligiblePrograms + ' of 22 programs</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Ready-to-apply programs</div></div><div style="padding:12px;background:#f0fdf4;border:1px solid #dcfce7;border-radius:8px;text-align:center;font-size:12px;color:#166534">Complete ' + (totalArtifacts - readinessCount) + ' more artifact(s) to increase your eligible programs</div></div>';
 
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">One-Line Pitch</label>
-          <input type="text" value="${_founderProfile.pitch || ''}" onchange="_founderProfile.pitch=this.value;render('accelerators')" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;margin-bottom:12px">
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px"><h3 style="margin-top:0;margin-bottom:16px">Core Information</h3><div><label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;text-transform:uppercase">Startup Name</label><input type="text" value="' + (_founderProfile.startupName || '') + '" onchange="_founderProfile.startupName=this.value;render(\'accelerators\')" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;margin-bottom:12px;box-sizing:border-box"><label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;text-transform:uppercase">One-Line Pitch</label><input type="text" value="' + (_founderProfile.pitch || '') + '" onchange="_founderProfile.pitch=this.value;render(\'accelerators\')" placeholder="What does your startup do?" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;margin-bottom:12px;box-sizing:border-box"><label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;text-transform:uppercase">Detailed Description</label><textarea style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;resize:vertical;min-height:100px;margin-bottom:12px;box-sizing:border-box" onchange="_founderProfile.description=this.value" placeholder="Tell us more about your startup...">' + (_founderProfile.description || '') + '</textarea><label style="display:block;font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;text-transform:uppercase">Sector</label><select onchange="_founderProfile.sector=this.value;render(\'accelerators\')" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px"><option value="">Select a sector...</option><option value="Precision Agriculture" ' + (_founderProfile.sector === 'Precision Agriculture' ? 'selected' : '') + '>Precision Agriculture</option><option value="Crop Protection" ' + (_founderProfile.sector === 'Crop Protection' ? 'selected' : '') + '>Crop Protection</option><option value="Animal Health" ' + (_founderProfile.sector === 'Animal Health' ? 'selected' : '') + '>Animal Health</option><option value="Food Safety" ' + (_founderProfile.sector === 'Food Safety' ? 'selected' : '') + '>Food Safety</option><option value="Supply Chain" ' + (_founderProfile.sector === 'Supply Chain' ? 'selected' : '') + '>Supply Chain</option><option value="Water Management" ' + (_founderProfile.sector === 'Water Management' ? 'selected' : '') + '>Water Management</option><option value="Biological Inputs" ' + (_founderProfile.sector === 'Biological Inputs' ? 'selected' : '') + '>Biological Inputs</option><option value="Robotics & Automation" ' + (_founderProfile.sector === 'Robotics & Automation' ? 'selected' : '') + '>Robotics & Automation</option><option value="Data & Analytics" ' + (_founderProfile.sector === 'Data & Analytics' ? 'selected' : '') + '>Data & Analytics</option><option value="Marketplace/Platform" ' + (_founderProfile.sector === 'Marketplace/Platform' ? 'selected' : '') + '>Marketplace/Platform</option><option value="Climate & Sustainability" ' + (_founderProfile.sector === 'Climate & Sustainability' ? 'selected' : '') + '>Climate & Sustainability</option><option value="Other" ' + (_founderProfile.sector === 'Other' ? 'selected' : '') + '>Other</option></select></div></div>';
 
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Detailed Description</label>
-          <textarea style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;resize:vertical;min-height:80px;margin-bottom:12px" onchange="_founderProfile.description=this.value">${_founderProfile.description || ''}</textarea>
-
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Sector</label>
-          <select onchange="_founderProfile.sector=this.value" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px">
-            <option value="">Select a sector...</option>
-            <option value="Precision Agriculture" ${_founderProfile.sector==='Precision Agriculture'?'selected':''}>Precision Agriculture</option>
-            <option value="Crop Protection" ${_founderProfile.sector==='Crop Protection'?'selected':''}>Crop Protection</option>
-            <option value="Animal Health" ${_founderProfile.sector==='Animal Health'?'selected':''}>Animal Health</option>
-            <option value="Food Safety" ${_founderProfile.sector==='Food Safety'?'selected':''}>Food Safety</option>
-            <option value="Supply Chain" ${_founderProfile.sector==='Supply Chain'?'selected':''}>Supply Chain</option>
-            <option value="Water Management" ${_founderProfile.sector==='Water Management'?'selected':''}>Water Management</option>
-            <option value="Biological Inputs" ${_founderProfile.sector==='Biological Inputs'?'selected':''}>Biological Inputs</option>
-            <option value="Robotics & Automation" ${_founderProfile.sector==='Robotics & Automation'?'selected':''}>Robotics & Automation</option>
-            <option value="Data & Analytics" ${_founderProfile.sector==='Data & Analytics'?'selected':''}>Data & Analytics</option>
-            <option value="Marketplace/Platform" ${_founderProfile.sector==='Marketplace/Platform'?'selected':''}>Marketplace/Platform</option>
-            <option value="Climate & Sustainability" ${_founderProfile.sector==='Climate & Sustainability'?'selected':''}>Climate & Sustainability</option>
-            <option value="Other" ${_founderProfile.sector==='Other'?'selected':''}>Other</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Artifacts Checklist</h3>
-        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px"><h3 style="margin-top:0;margin-bottom:16px">Artifacts & Documents</h3><p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Mark each artifact as complete when you\'re ready. Click to cycle through states: Not Started → Done → Need Help → Not Started</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">';
 
     Object.entries(artifactTypes).forEach(([key, label]) => {
       const status = _founderProfile[key] || 'not-started';
       const states = {
-        'not-started': {bg:'#f1f5f9', color:'#64748b', label:'Not started'},
-        'done': {bg:'var(--green-light)', color:'var(--green)', label:'Have it'},
-        'help': {bg:'#fef3c7', color:'#92400e', label:'Need help'}
+        'not-started': {bg:'#f8fafc', color:'#64748b', border:'#cbd5e1', icon:'⬜'},
+        'done': {bg:'#ecfdf5', color:'#059669', border:'#dcfce7', icon:'✅'},
+        'help': {bg:'#fffbeb', color:'#b45309', border:'#fef3c7', icon:'⚠️'}
       };
       const state = states[status];
       const nextStatus = status === 'not-started' ? 'done' : status === 'done' ? 'help' : 'not-started';
 
-      html += `<div style="border:2px solid ${state.color};border-radius:8px;padding:12px;background:${state.bg};cursor:pointer;transition:all .2s" onclick="_founderProfile['${key}']='${nextStatus}';render('accelerators')" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
-        <div style="font-size:14px;color:${state.color};font-weight:600">${label}</div>
-        <div style="font-size:11px;color:${state.color};margin-top:6px;opacity:0.8">${state.label}</div>
-      </div>`;
+      html += '<div style="background:' + state.bg + ';border:2px solid ' + state.border + ';border-radius:8px;padding:12px;cursor:pointer;transition:all .2s;text-align:center" onclick="_founderProfile[\'' + key + '\']=\'' + nextStatus + '\';render(\'accelerators\')" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"><div style="font-size:14px;font-weight:600;color:' + state.color + ';margin-bottom:6px">' + state.icon + '</div><div style="font-size:13px;font-weight:600;color:' + state.color + ';margin-bottom:4px">' + label.substring(label.indexOf(' ') + 1) + '</div><div style="font-size:11px;color:' + state.color + ';opacity:0.8">' + (status === 'not-started' ? 'Click to complete' : status === 'done' ? 'Done' : 'Need Help') + '</div></div>';
     });
 
-    html += `</div></div></div>`;
+    html += '</div></div>';
+
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px"><h3 style="margin-top:0;margin-bottom:16px">Program Eligibility</h3><p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">See which programs match your profile based on your readiness level</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">';
+
+    ACCELERATORS.forEach(a => {
+      const readiness = getReadinessState(a);
+      const borderColor = readiness.state === 'ready' ? '#16a34a' : readiness.state === 'almost' ? '#eab308' : '#cbd5e1';
+      const bgColor = readiness.state === 'ready' ? '#ecfdf5' : readiness.state === 'almost' ? '#fffbeb' : '#f8fafc';
+
+      html += '<div style="border:1px solid ' + borderColor + ';background:' + bgColor + ';border-radius:6px;padding:8px;cursor:pointer;font-size:11px;text-align:center;font-weight:500;transition:all .2s" onclick="_selectedAccelerator=' + a.id + ';render(\'accelerators\')" onmouseover="this.style.boxShadow=\'0 4px 8px rgba(0,0,0,.1)\'" onmouseout="this.style.boxShadow=\'\'"><div style="margin-bottom:4px">' + readiness.badge + '</div><div style="color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + a.name.substring(0, 12) + '</div></div>';
+    });
+
+    html += '</div></div></div>';
     return html;
   }
 
   function renderTracker(){
-    return `<div style="max-width:800px">
-      <div class="card">
-        <h3>Application Tracker</h3>
-        <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px">No applications yet. Browse programs and start applying!</p>
-        <div style="padding:20px;text-align:center;background:var(--hover);border-radius:8px;color:var(--text-muted)">
-          <div style="font-size:14px;margin-bottom:8px">📋 Your application history will appear here</div>
-          <div style="font-size:12px">Visit the "Browse Programs" tab to explore accelerators</div>
-        </div>
-      </div>
-    </div>`;
+    const apps = _founderProfile.applications || [];
+
+    if(apps.length === 0){
+      return '<div style="max-width:600px"><div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;text-align:center"><div style="font-size:40px;margin-bottom:12px">🎯</div><h2 style="font-size:18px;font-weight:700;color:var(--text);margin:0 0 8px 0">No applications yet</h2><p style="color:var(--text-muted);margin:0 0 16px 0">Browse programs and start applying to track your progress</p><button onclick="_accelTab=\'browse\';render(\'accelerators\')" style="padding:12px 24px;background:var(--green);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Browse Programs →</button></div></div>';
+    }
+
+    const statuses = ['Interested','Preparing','Applied','Interview','Accepted','Declined'];
+    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">';
+
+    statuses.forEach(status => {
+      const statusApps = apps.filter(a => a.status === status || (status === 'Interested' && !a.status));
+      const statusColors = {
+        'Interested':'#e0e7ff',
+        'Preparing':'#fef3c7',
+        'Applied':'#dbeafe',
+        'Interview':'#fce7f3',
+        'Accepted':'#ecfdf5',
+        'Declined':'#fee2e2'
+      };
+      const statusIcons = {
+        'Interested':'🔖',
+        'Preparing':'⚙️',
+        'Applied':'📤',
+        'Interview':'💬',
+        'Accepted':'🎉',
+        'Declined':'❌'
+      };
+
+      html += '<div style="background:' + (statusColors[status] || 'var(--surface)') + ';border:1px solid var(--border);border-radius:12px;padding:16px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:20px">' + statusIcons[status] + '</span><h3 style="margin:0;font-size:14px;font-weight:700;color:var(--text)">' + status + '</h3><span style="margin-left:auto;background:var(--surface);border-radius:12px;padding:2px 8px;font-size:12px;font-weight:600;color:var(--text)">' + statusApps.length + '</span></h3><div style="space-y:8px">';
+
+      statusApps.forEach(app => {
+        const prog = ACCELERATORS.find(p => p.id === app.programId);
+        if(prog){
+          html += '<div style="background:white;border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:8px;font-size:12px"><div style="font-weight:600;color:var(--text);margin-bottom:2px">' + prog.name + '</div><div style="color:var(--text-muted);font-size:11px">Added ' + new Date(app.addedAt).toLocaleDateString() + '</div></div>';
+        }
+      });
+
+      html += '</div></div>';
+    });
+
+    html += '</div>';
+    return html;
   }
+
+  function trackProgram(programId, status){
+    if(!_founderProfile.applications) _founderProfile.applications = [];
+    const existing = _founderProfile.applications.find(a => a.programId === programId);
+    if(existing){
+      existing.status = status;
+      existing.updatedAt = new Date().toISOString();
+    } else {
+      _founderProfile.applications.push({
+        programId: programId,
+        status: status,
+        addedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+  }
+
+  if(!_accelFilter) _accelFilter = { region: 'all', readiness: 'all', investmentRange: 'all' };
 
   if(_selectedAccelerator){
-    const accel = ACCELERATORS.find(a => a.id === _selectedAccelerator);
-    return accel ? renderDetailView() : renderBrowse();
+    return renderDetailView();
   }
 
-  let tabHtml = `<div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px" class="accel-tabs">
-    <button onclick="_accelTab='browse';render('accelerators')" style="padding:8px 14px;border:none;background:${_accelTab==='browse'?'var(--green)':'transparent'};color:${_accelTab==='browse'?'white':'var(--text-muted)'};border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">Browse Programs</button>
-    <button onclick="_accelTab='profile';render('accelerators')" style="padding:8px 14px;border:none;background:${_accelTab==='profile'?'var(--green)':'transparent'};color:${_accelTab==='profile'?'white':'var(--text-muted)'};border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">My Application Profile</button>
-    <button onclick="_accelTab='tracker';render('accelerators')" style="padding:8px 14px;border:none;background:${_accelTab==='tracker'?'var(--green)':'transparent'};color:${_accelTab==='tracker'?'white':'var(--text-muted)'};border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">Application Tracker</button>
-  </div>`;
+  let tabHtml = '<div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap" class="accel-tabs"><button onclick="_accelTab=\'browse\';render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'browse' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'browse' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">Browse Programs</button><button onclick="_accelTab=\'profile\';render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'profile' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'profile' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">My Application Profile</button><button onclick="_accelTab=\'tracker\';render(\'accelerators\')" style="padding:10px 16px;border:none;background:' + (_accelTab === 'tracker' ? 'var(--green)' : 'transparent') + ';color:' + (_accelTab === 'tracker' ? 'white' : 'var(--text-muted)') + ';border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s">Application Tracker</button></div>';
 
   if(_accelTab === 'profile') return tabHtml + renderProfile();
   if(_accelTab === 'tracker') return tabHtml + renderTracker();
@@ -7432,6 +7493,13 @@ const TIER_DEFS = [
   { id:'leader', icon:'👑', label:'Leader', min:9, color:'#f59e0b' },
 ];
 
+const INTRO_LIMITS = {
+  explorer: 1,  // 1 intro per month — forces engagement to unlock more
+  builder: 3,
+  operator: 6,
+  leader: 12
+};
+
 // ── NOTIFICATIONS ────────────────────────────────────────────────
 function getNotifications() {
   const notifs = [];
@@ -7475,7 +7543,23 @@ function getNotifications() {
     }
   }
 
-  // 6. Admin: New venture studio submissions
+  // 6. New introductions made (user notified that Russell introduced them)
+  if (_userIntros && _userIntros.length) {
+    const recentIntros = _userIntros.filter(i => i.status === 'introduced' && i.introduced_at && (Date.now() - new Date(i.introduced_at).getTime()) < 7 * 864e5);
+    if (recentIntros.length) {
+      notifs.push({ icon:'🤝', title:recentIntros.length + ' new introduction' + (recentIntros.length > 1 ? 's' : '') + ' made', desc:'Russell has introduced you to ' + (recentIntros.length > 1 ? 'some people' : 'someone') + '. Check your Active Intros.', action:'connections', priority:1 });
+    }
+  }
+
+  // 7. Admin: User-requested intros needing action
+  if (isAdmin && typeof _introductions !== 'undefined' && _introductions && _introductions.length) {
+    const userRequested = _introductions.filter(i => i.status === 'suggested' && i.requested_by && i.requested_by !== currentUser.id);
+    if (userRequested.length) {
+      notifs.push({ icon:'📩', title:userRequested.length + ' intro request' + (userRequested.length > 1 ? 's' : '') + ' from users', desc:'Users have requested introductions. Review and facilitate in My Connections.', action:'connections', priority:1 });
+    }
+  }
+
+  // 8. Admin: New venture studio submissions
   if (isAdmin && _ventureSubmissions.length) {
     const newSubs = _ventureSubmissions.filter(s => s.status === 'New');
     if (newSubs.length) {
@@ -8402,7 +8486,20 @@ function pgProfile() {
   const introTierPref = p.intro_tier_pref || 'explorer';
   const isInvestorOrAdvisor = ['investor','advisor','industry_pro','researcher'].includes(p.persona);
 
+  // Check for email warning
+  let emailWarning = '';
+  if (!p.email || p.email.trim() === '') {
+    emailWarning = `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <div style="font-size:20px">⚠️</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:#ef4444">Add your email address to receive introductions</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Russell needs your email to send introduction emails directly to you.</div>
+      </div>
+    </div>`;
+  }
+
   return `<div class="page-hdr"><h1>My Profile</h1><p>Your information helps Russell connect you with the right people in the AgTech ecosystem.</p></div>
+  ${emailWarning}
   <div class="card">
     <div class="profile-header">
       ${p.avatar_url ? `<img src="${p.avatar_url}" class="profile-avatar">` : `<div class="profile-avatar-placeholder">${(p.full_name||'?')[0].toUpperCase()}</div>`}
@@ -9343,100 +9440,160 @@ function scoreMatch(a, b) {
   return { score: Math.min(score, 100), reasons };
 }
 
-// ── SMART CONNECTIONS PAGE ──
+// ── SMART CONNECTIONS PAGE (ADMIN MONITORING DASHBOARD) ──
 function pgConnections() {
   if (!_allProfiles.length) {
     loadAllProfiles().then(p => { _allProfiles = p; return loadIntroductions(); }).then(i => { _introductions = i; render('admin'); });
-    return `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Analyzing ecosystem connections...</p></div>`;
+    return `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Loading ecosystem connections...</p></div>`;
   }
 
-  const matches = computeMatches(_allProfiles);
-  const existingPairs = new Set(_introductions.map(i => [i.person_a, i.person_b].sort().join('|')));
-
-  // Split into new suggestions vs already tracked
-  const newMatches = matches.filter(m => !existingPairs.has([m.a.id, m.b.id].sort().join('|')));
   const trackedIntros = _introductions;
 
-  const statusIcon = { suggested:'💡', pending:'⏳', introduced:'🤝', connected:'✅', declined:'❌' };
-  const statusColor = { suggested:'var(--text-faint)', pending:'#f59e0b', introduced:'#3b82f6', connected:'var(--green)', declined:'#ef4444' };
+  // Calculate stats for monitoring dashboard
+  const activeUsers = _allProfiles.filter(p => !p.blocked && p.onboarding_complete).length;
+  const mutualAccepts = trackedIntros.filter(i => i.status === 'mutual_accept').length;
+  const introduced = trackedIntros.filter(i => i.status === 'introduced').length;
+  const connected = trackedIntros.filter(i => i.status === 'connected').length;
+  const declined = trackedIntros.filter(i => i.status === 'declined').length;
+  const successRate = introduced + connected + declined > 0 ? Math.round((connected / (introduced + connected + declined)) * 100) : 0;
+  const thisMonthIntros = trackedIntros.filter(i => new Date(i.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1)).length;
 
-  // Top suggestions
-  const suggestionCards = newMatches.slice(0, 15).map(m => {
-    const aName = m.a.full_name || m.a.email;
-    const bName = m.b.full_name || m.b.email;
-    return `<div class="admin-user-card" style="padding:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span class="admin-tag tag-${m.a.persona}">${personaIcon(m.a.persona)} ${aName}</span>
-            <span style="color:var(--text-faint)">↔</span>
-            <span class="admin-tag tag-${m.b.persona}">${personaIcon(m.b.persona)} ${bName}</span>
-          </div>
-        </div>
-        <div style="background:${m.score>=60?'var(--green)':m.score>=40?'#f59e0b':'var(--text-faint)'};color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">${m.score}%</div>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:8px">${m.reasons.map(r=>`<span style="display:inline-block;margin:1px 4px 1px 0;padding:2px 8px;background:var(--hover);border-radius:10px;font-size:10px">${r}</span>`).join('')}</div>
-      <div style="display:flex;gap:8px">
-        <button onclick="event.stopPropagation();makeIntro('${m.a.id}','${m.b.id}',${m.score},${JSON.stringify(m.reasons).replace(/"/g,'&quot;')})" style="padding:5px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🤝 Introduce</button>
-        <button onclick="event.stopPropagation();saveIntroLater('${m.a.id}','${m.b.id}',${m.score},${JSON.stringify(m.reasons).replace(/"/g,'&quot;')})" style="padding:5px 14px;background:var(--hover);color:var(--text-muted);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">📌 Save for later</button>
-      </div>
-    </div>`;
-  }).join('');
+  // Split intros by pipeline stage
+  const emailPending = trackedIntros.filter(i => i.status === 'mutual_accept');
+  const inProgress = trackedIntros.filter(i => i.status === 'introduced');
+  const connectedIntros = trackedIntros.filter(i => i.status === 'connected');
+  const failedIntros = trackedIntros.filter(i => ['declined','outcome_reported'].includes(i.status));
 
-  // Tracked introductions
-  const introCards = trackedIntros.map(intro => {
+  // Stats cards
+  const statsHtml = `<div class="admin-stat-row" style="margin-bottom:18px">
+    <div class="admin-mini-stat"><div class="ams-val">${activeUsers}</div><div class="ams-lbl">Active Users</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${thisMonthIntros}</div><div class="ams-lbl">Matches Made (Month)</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${mutualAccepts}</div><div class="ams-lbl">Mutual Accepts Pending Email</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${connected}</div><div class="ams-lbl">Introductions Completed</div></div>
+    <div class="admin-mini-stat"><div class="ams-val">${successRate}%</div><div class="ams-lbl">Success Rate</div></div>
+  </div>`;
+
+  // Pipeline: Mutual Accepts (Need Email)
+  const emailCards = emailPending.map(intro => {
     const pA = _allProfiles.find(p => p.id === intro.person_a);
     const pB = _allProfiles.find(p => p.id === intro.person_b);
     if (!pA || !pB) return '';
     const aName = pA.full_name || pA.email;
     const bName = pB.full_name || pB.email;
-    const si = statusIcon[intro.status] || '❓';
-    const sc = statusColor[intro.status] || 'var(--text-muted)';
-
-    return `<div class="admin-user-card" style="padding:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    return `<div class="admin-user-card" style="padding:14px;border-left:4px solid var(--green)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
         <div style="flex:1">
-          <span class="admin-tag tag-${pA.persona}">${personaIcon(pA.persona)} ${aName}</span>
-          <span style="color:var(--text-faint);margin:0 4px">↔</span>
-          <span class="admin-tag tag-${pB.persona}">${personaIcon(pB.persona)} ${bName}</span>
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px">
+            <span class="admin-tag tag-${pA.persona}">${personaIcon(pA.persona)} ${aName}</span>
+            <span style="color:var(--text-faint);margin:0 4px">↔</span>
+            <span class="admin-tag tag-${pB.persona}">${personaIcon(pB.persona)} ${bName}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted)">${(intro.match_reasons || []).join(', ')}</div>
         </div>
-        <span style="color:${sc};font-size:12px;font-weight:700">${si} ${intro.status.charAt(0).toUpperCase()+intro.status.slice(1)}</span>
-        <span style="background:var(--hover);padding:2px 8px;border-radius:10px;font-size:10px;color:var(--text-faint)">${intro.match_score}%</span>
+        <div style="background:var(--green);color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">${intro.match_score || 0}%</div>
       </div>
-      ${intro.admin_notes ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-style:italic">"${intro.admin_notes}"</div>` : ''}
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${intro.status==='suggested'?`<button onclick="updateIntroStatus('${intro.id}','introduced')" style="padding:4px 12px;background:var(--green);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">🤝 Mark Introduced</button>`:''}
-        ${intro.status==='introduced'?`<button onclick="updateIntroStatus('${intro.id}','connected')" style="padding:4px 12px;background:#3b82f6;color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">✅ Confirm Connected</button>`:''}
-        ${intro.status!=='declined'&&intro.status!=='connected'?`<button onclick="updateIntroStatus('${intro.id}','declined')" style="padding:4px 12px;background:var(--hover);color:var(--text-muted);border:1px solid var(--border);border-radius:5px;font-size:10px;cursor:pointer">Skip</button>`:''}
-        <span style="font-size:9px;color:var(--text-faint);padding:4px 0">${new Date(intro.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+        <button onclick="sendIntroEmail('${intro.id}')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📧 Send Introduction Email</button>
+        <span style="font-size:9px;color:var(--text-faint);padding:6px 0">${new Date(intro.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
       </div>
     </div>`;
   }).join('');
 
-  // Stats
-  const totalIntros = trackedIntros.length;
-  const introduced = trackedIntros.filter(i=>i.status==='introduced'||i.status==='connected').length;
-  const connected = trackedIntros.filter(i=>i.status==='connected').length;
-  const pending = trackedIntros.filter(i=>i.status==='suggested'||i.status==='pending').length;
+  // Pipeline: Introduced (In Progress)
+  const inProgressCards = inProgress.map(intro => {
+    const pA = _allProfiles.find(p => p.id === intro.person_a);
+    const pB = _allProfiles.find(p => p.id === intro.person_b);
+    if (!pA || !pB) return '';
+    const aName = pA.full_name || pA.email;
+    const bName = pB.full_name || pB.email;
+    const daysSince = Math.floor((Date.now() - new Date(intro.introduced_at || intro.created_at).getTime()) / 864e5);
+    return `<div class="admin-user-card" style="padding:14px;border-left:4px solid #3b82f6">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px">
+            <span class="admin-tag tag-${pA.persona}">${personaIcon(pA.persona)} ${aName}</span>
+            <span style="color:var(--text-faint);margin:0 4px">↔</span>
+            <span class="admin-tag tag-${pB.persona}">${personaIcon(pB.persona)} ${bName}</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-faint)">${daysSince} day${daysSince!==1?'s':''} since introduction</div>
+        </div>
+        <div style="background:#3b82f6;color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">${intro.match_score || 0}%</div>
+      </div>
+    </div>`;
+  }).join('');
 
-  return `
-  <div class="admin-stat-row" style="margin-bottom:16px">
-    <div class="admin-mini-stat"><div class="ams-val">${newMatches.length}</div><div class="ams-lbl">AI Suggestions</div></div>
-    <div class="admin-mini-stat"><div class="ams-val">${totalIntros}</div><div class="ams-lbl">Tracked Intros</div></div>
-    <div class="admin-mini-stat"><div class="ams-val">${introduced}</div><div class="ams-lbl">Introduced</div></div>
-    <div class="admin-mini-stat"><div class="ams-val">${connected}</div><div class="ams-lbl">Connected</div></div>
+  // Pipeline: Connected
+  const connectedCards = connectedIntros.map(intro => {
+    const pA = _allProfiles.find(p => p.id === intro.person_a);
+    const pB = _allProfiles.find(p => p.id === intro.person_b);
+    if (!pA || !pB) return '';
+    const aName = pA.full_name || pA.email;
+    const bName = pB.full_name || pB.email;
+    return `<div class="admin-user-card" style="padding:14px;border-left:4px solid var(--green)">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600">
+            <span class="admin-tag tag-${pA.persona}">${personaIcon(pA.persona)} ${aName}</span>
+            <span style="color:var(--text-faint);margin:0 4px">↔</span>
+            <span class="admin-tag tag-${pB.persona}">${personaIcon(pB.persona)} ${bName}</span>
+          </div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:var(--green)">✅ Connected</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Pipeline: Failed/Declined
+  const failedCards = failedIntros.map(intro => {
+    const pA = _allProfiles.find(p => p.id === intro.person_a);
+    const pB = _allProfiles.find(p => p.id === intro.person_b);
+    if (!pA || !pB) return '';
+    const aName = pA.full_name || pA.email;
+    const bName = pB.full_name || pB.email;
+    return `<div class="admin-user-card" style="padding:14px;border-left:4px solid #ef4444;opacity:.7">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600">
+            <span class="admin-tag tag-${pA.persona}">${personaIcon(pA.persona)} ${aName}</span>
+            <span style="color:var(--text-faint);margin:0 4px">↔</span>
+            <span class="admin-tag tag-${pB.persona}">${personaIcon(pB.persona)} ${bName}</span>
+          </div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:#ef4444">❌ ${intro.status === 'declined' ? 'Declined' : 'Reported'}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="page-hdr">
+    <h1>🤝 Introduction Monitoring Dashboard</h1>
+    <p>Track AI-matched introductions through each stage of the pipeline. Algorithm recommends → Both users accept → Email sent → Monitor outcomes.</p>
   </div>
+  ${statsHtml}
 
-  <div class="card">
-    <h3>🧠 AI-Suggested Connections</h3>
-    <div class="sub" style="margin-bottom:14px">Automatically scored based on persona fit, stage alignment, shared focus areas, needs, and location. Higher scores = higher value introductions.</div>
-    ${newMatches.length ? suggestionCards : '<div style="text-align:center;padding:24px;color:var(--text-faint)"><p>Need more users to generate suggestions. Share the platform to grow the network!</p></div>'}
-  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:14px">
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--green)">📩 Mutual Accepts (Need Email)</h3>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">${mutualAccepts} introductions ready to send.</div>
+      ${emailCards ? emailCards : '<div style="text-align:center;padding:20px;color:var(--text-faint)"><p>No pending emails</p></div>'}
+    </div>
 
-  <div class="card" style="margin-top:14px">
-    <h3>📋 Introduction Tracker</h3>
-    <div class="sub" style="margin-bottom:14px">All introductions you've made or saved — track from suggestion through to confirmed connection.</div>
-    ${introCards || '<div style="text-align:center;padding:24px;color:var(--text-faint)"><p>No introductions tracked yet. Use the suggestions above to start connecting people!</p></div>'}
+    <div class="card">
+      <h3 style="margin-top:0;color:#3b82f6">🤝 Introduced (In Progress)</h3>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">${introduced} introductions awaiting outcomes.</div>
+      ${inProgressCards ? inProgressCards : '<div style="text-align:center;padding:20px;color:var(--text-faint)"><p>No introductions in progress</p></div>'}
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--green)">✅ Connected</h3>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">${connected} successful introductions.</div>
+      ${connectedCards ? connectedCards : '<div style="text-align:center;padding:20px;color:var(--text-faint)"><p>No connections yet</p></div>'}
+    </div>
+
+    ${failedIntros.length > 0 ? `<div class="card">
+      <h3 style="margin-top:0;color:#ef4444">❌ Declined/No Response</h3>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">${failedIntros.length} outcomes.</div>
+      ${failedCards}
+    </div>` : ''}
   </div>`;
 }
 
@@ -9496,13 +9653,71 @@ function introStatusPipeline(status) {
   const steps = ['suggested','introduced','outcome','connected'];
   const labels = { suggested:'Suggested', introduced:'Introduced', outcome:'Reviewed', connected:'Connected' };
   const icons = { suggested:'💡', introduced:'🤝', outcome:'📝', connected:'✅' };
-  const current = status === 'declined' ? -1 : steps.indexOf(status === 'connected' ? 'connected' : status === 'outcome_reported' ? 'outcome' : status);
+  // Map new statuses to old pipeline steps for compatibility
+  let mappedStatus = status;
+  if (status === 'pending_both') mappedStatus = 'suggested';
+  if (status === 'mutual_accept') mappedStatus = 'suggested';
+  const current = status === 'declined' ? -1 : steps.indexOf(mappedStatus === 'connected' ? 'connected' : mappedStatus === 'outcome_reported' ? 'outcome' : mappedStatus);
 
   return `<div class="ii-timeline">${steps.map((s, i) => {
     const cls = i < current ? 'done' : i === current ? 'active' : 'pending';
     const sep = i < steps.length - 1 ? `<div class="ii-line ${i < current ? 'done' : ''}"></div>` : '';
     return `<div class="ii-step"><div class="ii-dot ${cls}">${i <= current ? icons[s] : (i+1)}</div><div class="ii-label">${labels[s]}</div></div>${sep}`;
   }).join('')}</div>`;
+}
+
+function getIntroCountThisMonth(userId) {
+  if (!_userIntros) return 0;
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  return _userIntros.filter(i =>
+    (i.person_a === userId || i.person_b === userId) &&
+    i.status !== 'declined' &&
+    new Date(i.created_at) >= monthStart
+  ).length;
+}
+
+function getUserTier(profile) {
+  // Use existing tier logic from TIER_DEFS
+  const badges = (profile.badges || []).length;
+  let tier = 'explorer';
+  for (const t of TIER_DEFS) {
+    if (badges >= t.min) tier = t.id;
+  }
+  return tier;
+}
+
+async function sendIntroEmail(introId) {
+  // Get the intro record
+  const intro = _userIntros.find(i => i.id === introId) || _introductions?.find(i => i.id === introId);
+  if (!intro) return;
+
+  // Get both user profiles
+  const profileA = _allProfiles.find(p => p.id === intro.person_a);
+  const profileB = _allProfiles.find(p => p.id === intro.person_b);
+  if (!profileA || !profileB) return;
+
+  const nameA = profileA.full_name || profileA.email;
+  const nameB = profileB.full_name || profileB.email;
+  const reasons = (intro.match_reasons || []).join(', ');
+
+  // Build email body
+  const subject = `Introduction: ${nameA} ↔ ${nameB} | FounderOps Center`;
+  const body = `Hi ${nameA.split(' ')[0]} and ${nameB.split(' ')[0]},\n\nI'm excited to introduce you both! The FounderOps Center platform identified you as a strong match based on: ${reasons}.\n\n${nameA} — ${profileA.persona || 'AgTech professional'} ${profileA.company ? 'at ' + profileA.company : ''}\n${nameB} — ${profileB.persona || 'AgTech professional'} ${profileB.company ? 'at ' + profileB.company : ''}\n\nI'll leave it to you both to find a time to connect. Feel free to reply-all to this thread.\n\nBest,\nRussell Cole\nFounder, FounderOps Center`;
+
+  // Update intro status to mutual_accept -> introduced
+  await _supabase.from('introductions').update({
+    status: 'introduced',
+    introduced_at: new Date().toISOString(),
+    admin_notes: 'Auto-matched. Email sent via mailto.'
+  }).eq('id', introId);
+
+  // Open mailto link for Russell to send
+  const mailto = `mailto:${profileA.email},${profileB.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailto, '_blank');
+
+  toast('📧 Email draft opened. Send to complete the introduction.');
+  render('admin');
 }
 
 function connTabBar(active) {
@@ -9607,8 +9822,9 @@ function connFallbackBrowse(active, pauseStatus) {
 }
 
 function connDiscoverTab(p, pauseStatus) {
-  // Guard: ensure data is loaded before rendering (prevents duplicate intro requests during async load)
+  // Guard: ensure data is loaded before rendering
   if (!_allProfiles.length) return `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Loading matches...</p></div>`;
+
   const tierOrder = ['explorer','builder','operator','leader'];
   const myTier = tierOrder.indexOf(p.tier || 'explorer');
   const active = _allProfiles.filter(pr => !pr.blocked && pr.onboarding_complete && pr.id !== p.id && pr.blocked_reason !== 'DELETED_BY_ADMIN');
@@ -9635,33 +9851,41 @@ function connDiscoverTab(p, pauseStatus) {
   }
   matches.sort((a, b) => b.score - a.score);
 
-  // Split into requestable and tier-gated
+  // Track intro limits
+  const myTierObj = TIER_DEFS.find(t => t.id === (p.tier || 'explorer'));
+  const introLimit = INTRO_LIMITS[getUserTier(p)] || 1;
+  const introCountThisMonth = getIntroCountThisMonth(p.id);
+  const remainingIntros = Math.max(0, introLimit - introCountThisMonth);
+
+  // Split into different categories
   const existingPairs = new Set(_userIntros.map(i => [i.person_a, i.person_b].sort().join('|')));
-  const requestable = matches.filter(m => m.meetsOtherPref && !existingPairs.has([p.id, m.other.id].sort().join('|')));
+  const pendingBothAccept = _userIntros.filter(i => i.status === 'pending_both');
+  const matchedNotRequested = matches.filter(m => !existingPairs.has([p.id, m.other.id].sort().join('|')) && m.meetsOtherPref);
   const tierGated = matches.filter(m => !m.meetsOtherPref && !existingPairs.has([p.id, m.other.id].sort().join('|')));
 
   // Stat bar
-  const statsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px">
+  const statsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:22px;font-weight:800;color:var(--green)">${requestable.length}</div>
-      <div style="font-size:11px;color:var(--text-muted);font-weight:600">Available Matches</div>
+      <div style="font-size:22px;font-weight:800;color:${remainingIntros > 0 ? 'var(--green)' : '#ef4444'}">${remainingIntros}</div>
+      <div style="font-size:11px;color:var(--text-muted);font-weight:600">Remaining Intros</div>
+      <div style="font-size:9px;color:var(--text-faint);margin-top:2px">${introCountThisMonth} of ${introLimit} used</div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:22px;font-weight:800;color:#3b82f6">${_userIntros.filter(i=>['suggested','introduced'].includes(i.status)).length}</div>
+      <div style="font-size:22px;font-weight:800;color:#f59e0b">${pendingBothAccept.length}</div>
+      <div style="font-size:11px;color:var(--text-muted);font-weight:600">Waiting for You</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:#3b82f6">${_userIntros.filter(i=>['introduced','mutual_accept'].includes(i.status)).length}</div>
       <div style="font-size:11px;color:var(--text-muted);font-weight:600">Active Intros</div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
       <div style="font-size:22px;font-weight:800;color:#7c3aed">${_userIntros.filter(i=>i.status==='connected').length}</div>
       <div style="font-size:11px;color:var(--text-muted);font-weight:600">Connected</div>
     </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:22px;font-weight:800;color:${p.tier==='leader'?'#f59e0b':p.tier==='operator'?'#7e22ce':p.tier==='builder'?'#a16207':'#0369a1'}">${tierDef(p.tier||'explorer').icon}</div>
-      <div style="font-size:11px;color:var(--text-muted);font-weight:600">Your Tier: ${tierDef(p.tier||'explorer').label}</div>
-    </div>
   </div>`;
 
-  // Requestable match cards
-  const matchCards = requestable.slice(0, 20).map(m => {
+  // Build recommended matches cards
+  const recommendedCards = matchedNotRequested.slice(0, 10).map(m => {
     const o = m.other;
     const scoreColor = m.score >= 60 ? 'var(--green)' : m.score >= 40 ? '#f59e0b' : '#94a3b8';
     const td = tierDef(o.tier || 'explorer');
@@ -9672,6 +9896,7 @@ function connDiscoverTab(p, pauseStatus) {
       return bdef ? `<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:rgba(34,197,94,.08);color:var(--green);font-weight:600;border:1px solid rgba(34,197,94,.15)">${bdef.icon} ${bdef.label}</span>` : '';
     }).filter(Boolean).join('');
     const badgeOverflow = oBadges.length > 4 ? `<span style="font-size:9px;padding:2px 7px;color:var(--text-faint)">+${oBadges.length - 4} more</span>` : '';
+
     return `<div class="conn-card">
       <div class="cc-score" style="background:${scoreColor}">${m.score}%</div>
       <div class="cc-hdr">
@@ -9686,12 +9911,48 @@ function connDiscoverTab(p, pauseStatus) {
       ${o.persona === 'founder' && o.what_building ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;padding:8px;background:var(--hover);border-radius:6px"><strong style="color:var(--text)">Building:</strong> ${o.what_building.substring(0,120)}${o.what_building.length>120?'...':''}</div>` : ''}
       ${o.persona === 'investor' && o.check_size ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;padding:8px;background:var(--hover);border-radius:6px"><strong style="color:var(--text)">Check Size:</strong> ${o.check_size}${o.investment_stages?.length ? ' · Stages: ' + o.investment_stages.join(', ') : ''}</div>` : ''}
       <div class="cc-actions">
-        <button class="conn-btn primary" ${pauseStatus.paused ? 'disabled title="Complete pending outcome reports first"' : ''} onclick="requestIntro('${o.id}',${m.score},${JSON.stringify(m.reasons).replace(/"/g,'&quot;')})">🤝 Request Intro</button>
+        <button class="conn-btn primary" ${remainingIntros <= 0 ? 'disabled title="Monthly intro limit reached"' : pauseStatus.paused ? 'disabled title="Complete pending outcome reports first"' : ''} onclick="acceptIntroMatch('${o.id}',${m.score},${JSON.stringify(m.reasons).replace(/"/g,'&quot;')})">✅ Accept</button>
+        <button class="conn-btn secondary" onclick="declineIntroMatch('${o.id}')">❌ Pass</button>
       </div>
     </div>`;
   }).join('');
 
-  // Tier-gated teaser cards
+  // Pending responses section (shows where we accepted but they haven't)
+  let pendingSection = '';
+  if (pendingBothAccept.length > 0) {
+    pendingSection = `<div class="card" style="margin-top:18px;border-left:4px solid #f59e0b">
+      <h3 style="margin-top:0">📩 Pending Responses</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">You've accepted these matches. Waiting for them to accept too.</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${pendingBothAccept.map(intro => {
+          const other = getOtherPerson(intro);
+          if (!other) return '';
+          const td = tierDef(other.tier || 'explorer');
+          return `<div style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:14px">${other.avatar_url ? `<img src="${other.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : (other.full_name||'?')[0].toUpperCase()}</div>
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text)">${other.full_name || 'Anonymous'} <span style="font-size:10px;color:${td.color}">${td.icon}</span></div>
+                <div style="font-size:11px;color:var(--text-muted)">⏳ Waiting for acceptance...</div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Browse all members section
+  let browseSection = '';
+  if (matchedNotRequested.length > 10) {
+    browseSection = `<div class="card" style="margin-top:18px">
+      <h3 style="margin-top:0">✨ Browse All Members</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Explore the full ecosystem. You can also discover and accept matches manually here.</p>
+      ${connFallbackBrowse(active, pauseStatus)}
+    </div>`;
+  }
+
+  // Tier-gated teaser
   let tierGatedHtml = '';
   if (tierGated.length > 0) {
     const uniqueTierGated = tierGated.slice(0, 6);
@@ -9722,15 +9983,17 @@ function connDiscoverTab(p, pauseStatus) {
 
   return `${statsHtml}
   <div class="card">
-    <h3>🔍 Recommended Connections</h3>
-    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">AI-matched based on your persona, stage, needs, focus areas, and location. Request an introduction and Russell will connect you.</p>
-    ${requestable.length ? `<div class="conn-discover-grid">${matchCards}</div>` : connFallbackBrowse(active, pauseStatus)}
+    <h3>🤝 Recommended For You</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">AI-matched based on your persona, stage, needs, focus areas, and location. Accept a recommendation and the other person will be notified. When they accept too, we'll make the introduction.</p>
+    ${recommendedCards ? `<div class="conn-discover-grid">${recommendedCards}</div>` : connFallbackBrowse(active, pauseStatus)}
   </div>
+  ${pendingSection}
+  ${browseSection}
   ${tierGatedHtml}`;
 }
 
 function connActiveTab(p) {
-  const active = _userIntros.filter(i => ['suggested','introduced','pending'].includes(i.status));
+  const active = _userIntros.filter(i => ['suggested','introduced','pending','pending_both','mutual_accept'].includes(i.status));
   if (!active.length) return `<div class="conn-empty"><div class="ce-icon">🤝</div><p>No active introductions right now.<br>Head to the <strong>Discover</strong> tab to find relevant connections!</p></div>`;
 
   const now = Date.now();
@@ -9748,13 +10011,30 @@ function connActiveTab(p) {
         const urgentOutcome = intro.status === 'introduced' && daysSince > 30;
         const reasons = intro.match_reasons || [];
 
+        // Determine status badge
+        let statusBadge = '';
+        if (intro.status === 'pending_both') {
+          const iAmA = intro.person_a === currentUser.id;
+          const iAccepted = iAmA ? intro.accepted_a : intro.accepted_b;
+          const theyAccepted = iAmA ? intro.accepted_b : intro.accepted_a;
+          if (iAccepted && !theyAccepted) {
+            statusBadge = `<div class="ii-status" style="background:rgba(245,158,11,.1);color:#f59e0b">⏳ Waiting for them</div>`;
+          } else if (!iAccepted) {
+            statusBadge = `<div class="ii-status" style="background:rgba(59,130,246,.1);color:#3b82f6">❓ Action needed</div>`;
+          }
+        } else if (intro.status === 'mutual_accept') {
+          statusBadge = `<div class="ii-status" style="background:rgba(34,197,94,.1);color:var(--green)">🎉 Email pending</div>`;
+        } else {
+          statusBadge = `<div class="ii-status" style="background:${intro.status==='suggested'?'rgba(245,158,11,.1);color:#f59e0b':intro.status==='introduced'?'rgba(59,130,246,.1);color:#3b82f6':'rgba(148,163,184,.1);color:var(--text-faint)'}">${intro.status === 'suggested' ? '⏳ Pending' : intro.status === 'introduced' ? '🤝 Introduced' : '📋 In Progress'}</div>`;
+        }
+
         return `<div class="intro-item" style="${urgentOutcome ? 'border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.02)' : needsOutcome ? 'border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.02)' : ''}">
           <div class="ii-hdr">
             <div class="ii-persons">
               <span class="ii-person">${other.avatar_url ? `<img src="${other.avatar_url}" style="width:18px;height:18px;border-radius:50%">` : personaIcon(other.persona)} ${other.full_name || 'Anonymous'} <span style="color:${td.color};font-size:10px">${td.icon}</span></span>
               ${other.organization ? `<span style="font-size:10px;color:var(--text-faint)">${other.organization}</span>` : ''}
             </div>
-            <div class="ii-status" style="background:${intro.status==='suggested'?'rgba(245,158,11,.1);color:#f59e0b':intro.status==='introduced'?'rgba(59,130,246,.1);color:#3b82f6':'rgba(148,163,184,.1);color:var(--text-faint)'}">${intro.status === 'suggested' ? '⏳ Pending' : intro.status === 'introduced' ? '🤝 Introduced' : '📋 In Progress'}</div>
+            ${statusBadge}
           </div>
 
           ${introStatusPipeline(intro.status)}
@@ -9888,6 +10168,100 @@ async function requestIntro(otherId, score, reasons) {
   if (_introductions) _introductions.unshift(data);
   toast('🤝 Introduction requested! Russell will connect you soon.');
   connTab = 'active';
+  render('connections');
+}
+
+async function acceptIntroMatch(otherId, score, reasons) {
+  const pause = getIntroPauseStatus(_userProfile);
+  if (pause.paused) { toast('⏸️ Complete pending outcome reports first'); return; }
+
+  // Check if this intro already exists
+  const existingIntro = _userIntros.find(i =>
+    (i.person_a === currentUser.id && i.person_b === otherId) ||
+    (i.person_a === otherId && i.person_b === currentUser.id)
+  );
+
+  const reasonsParsed = typeof reasons === 'string' ? JSON.parse(reasons) : reasons;
+
+  if (existingIntro) {
+    // If intro exists and they haven't accepted yet, mark us as accepted
+    if (existingIntro.status === 'pending_both') {
+      // Check if the OTHER user has accepted
+      const iAmA = existingIntro.person_a === currentUser.id;
+      const theyAccepted = iAmA ? existingIntro.accepted_b : existingIntro.accepted_a;
+
+      if (theyAccepted) {
+        // Both have accepted! Trigger email
+        const update = { status: 'mutual_accept', [iAmA ? 'accepted_a' : 'accepted_b']: true };
+        const { error } = await _supabase.from('introductions').update(update).eq('id', existingIntro.id);
+        if (error) { console.error('acceptIntroMatch error:', error); toast('❌ Error accepting match'); return; }
+        Object.assign(existingIntro, update);
+        toast('🎉 Mutual match! Introduction email is ready.');
+        render('connections');
+      } else {
+        // Just mark us as accepted, waiting for them
+        const update = { [currentUser.id === existingIntro.person_a ? 'accepted_a' : 'accepted_b']: true };
+        const { error } = await _supabase.from('introductions').update(update).eq('id', existingIntro.id);
+        if (error) { console.error('acceptIntroMatch error:', error); toast('❌ Error accepting match'); return; }
+        Object.assign(existingIntro, update);
+        toast('✅ You accepted! Waiting for ' + (_allProfiles.find(p => p.id === otherId)?.full_name || 'them') + ' to accept.');
+        render('connections');
+      }
+    }
+  } else {
+    // Create new intro with pending_both status and mark us as accepted
+    const { data, error } = await _supabase.from('introductions').insert({
+      person_a: currentUser.id,
+      person_b: otherId,
+      match_score: score,
+      match_reasons: reasonsParsed,
+      status: 'pending_both',
+      accepted_a: true,
+      accepted_b: false,
+      created_at: new Date().toISOString()
+    }).select().single();
+
+    if (error) {
+      console.error('acceptIntroMatch error:', error);
+      const msg = error.message || '';
+      if (msg.includes('policy') || msg.includes('permission')) toast('❌ Permission denied — try signing out and back in');
+      else if (msg.includes('duplicate') || msg.includes('unique')) toast('❌ You\'ve already interacted with this person');
+      else if (msg.includes('network') || msg.includes('fetch')) toast('❌ Network error — check your connection');
+      else toast('❌ Error accepting match — please try again');
+      return;
+    }
+    _userIntros.unshift(data);
+    if (_introductions) _introductions.unshift(data);
+    toast('✅ You accepted! Waiting for ' + (_allProfiles.find(p => p.id === otherId)?.full_name || 'them') + ' to accept.');
+    render('connections');
+  }
+}
+
+async function declineIntroMatch(otherId) {
+  const existing = _userIntros.find(i =>
+    (i.person_a === currentUser.id && i.person_b === otherId) ||
+    (i.person_a === otherId && i.person_b === currentUser.id)
+  );
+
+  if (existing && existing.status === 'pending_both') {
+    // Mark as declined
+    const { error } = await _supabase.from('introductions').update({
+      status: 'declined',
+      declined_by: [currentUser.id]
+    }).eq('id', existing.id);
+    if (error) { console.error('declineIntroMatch error:', error); toast('❌ Error declining match'); return; }
+    Object.assign(existing, { status: 'declined' });
+  } else {
+    // Create a declined record so we don't keep showing this person
+    await _supabase.from('introductions').insert({
+      person_a: currentUser.id,
+      person_b: otherId,
+      status: 'declined',
+      declined_by: [currentUser.id],
+      created_at: new Date().toISOString()
+    }).select();
+  }
+  toast('👋 Noted. We won\'t show this person again.');
   render('connections');
 }
 
@@ -10937,7 +11311,7 @@ let _supabaseDeals = [];
 function investorToggle(section) { _investorOpen[section] = !_investorOpen[section]; render('investor'); }
 
 const pages = {
-  overview: pgOverview, journey: pgJourney, glossary: pgGlossary,
+  overview: pgOverview, segments: pgSegments, journey: pgJourney, glossary: pgGlossary,
   documents: pgDocuments, media: pgMedia, ecosystem: pgEcosystem,
   crops: pgCrops, mentors: pgMentors, accelerators: pgAccelerators, venture: pgVenture, resources: pgResources,
   admin: pgAdmin, profile: pgProfile, roadmap: pgRoadmapStandalone,
@@ -11008,7 +11382,7 @@ restoreTheme(); // Restore theme immediately before async auth check
     document.querySelector('.fab').style.display = '';
     applyUser(session.user, false);
     const savedPage = (() => { try { return localStorage.getItem('foc-page'); } catch(e){ return null; } })();
-    const validPages = ['overview','segments','resources','journey','documents','admin','customize','roadmap','glossary','media','ecosystem','crops'];
+    const validPages = ['overview','segments','resources','journey','documents','admin','roadmap','glossary','media','ecosystem','crops','mentors','accelerators','venture','profile','connections','hub','action','investor'];
     const startPage = savedPage && validPages.includes(savedPage) ? savedPage : 'overview';
     currentPage = startPage;
     render(startPage);
