@@ -771,6 +771,7 @@
     <div class="section-label" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none" onclick="toggleAccordion('global')"><span>Global Resources</span><span id="accordion-global-arrow" style="font-size:10px;transition:transform .2s">▼</span></div>
     <div id="accordion-global-items">
     <button class="nav-item active" onclick="go('overview',this)"><span class="nav-icon">🌐</span> Global AgTech Overview</button>
+    <button class="nav-item" onclick="go('market_intel',this)"><span class="nav-icon">📊</span> Market Intelligence</button>
     <button class="nav-item" onclick="go('journey',this)"><span class="nav-icon">🚀</span> Founder's Journey</button>
     <button class="nav-item" onclick="go('glossary',this)"><span class="nav-icon">📖</span> AgTech Glossary</button>
     <button class="nav-item" onclick="go('documents',this)"><span class="nav-icon">🧰</span> Founder Toolkit</button>
@@ -1048,6 +1049,14 @@
       <li>Platform feedback and feature requests</li>
     </ul>
     <button onclick="openBookingEmail()" style="width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">📅 Email Russell Your Availability</button>
+  </div>
+</div>
+
+<!-- FOUNDING MEMBER QUESTIONNAIRE MODAL -->
+<div class="overlay" id="founding-q-modal" onclick="if(event.target===this)closeModal('founding-q-modal')">
+  <div class="modal" style="max-width:520px;padding:32px 28px">
+    <button class="modal-close" onclick="closeModal('founding-q-modal')">✕</button>
+    <div id="founding-q-content"></div>
   </div>
 </div>
 
@@ -1557,12 +1566,12 @@ function notifyNewUser(name, email) {
 // PERSONA-TAILORED UI
 // ══════════════════════════════════════════════════════════════
 const PERSONA_UI = {
-  'early-stage':   { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence, from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','crops','resources','mentors','accelerators'] },
-  'growth-stage':  { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence, from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','crops','resources','mentors','accelerators'] },
-  'investor':      { brand:'Investor Ops Center', icon:'I', tagline:'AgTech deal flow, market data, and ecosystem intelligence.', nav:['overview','glossary','ecosystem','crops','resources','mentors'], extraNav:['investor'] },
-  'ecosystem_mgr': { brand:'Ecosystem Ops Center', icon:'🏗️', tagline:'Your command center for managing AgTech programs and cohorts.', nav:['overview','ecosystem','mentors','accelerators','crops','resources','glossary'], extraNav:['ecosystem_ws'] },
-  'advisor':       { brand:'Advisor Ops Center',   icon:'A', tagline:'Tools and connections to mentor the next generation of AgTech.', nav:['overview','glossary','ecosystem','mentors','resources'] },
-  'farmer':        { brand:'Farmer Ops Center',   icon:'🌾', tagline:'Discover AgTech innovations built for your operation.', nav:['overview','glossary','ecosystem','crops','resources'] }
+  'early-stage':   { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence, from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','market_intel','crops','resources','mentors','accelerators'] },
+  'growth-stage':  { brand:'Founder Ops Center', icon:'F', tagline:'AgTech startup intelligence, from idea to scale.', nav:['overview','journey','glossary','documents','ecosystem','market_intel','crops','resources','mentors','accelerators'] },
+  'investor':      { brand:'Investor Ops Center', icon:'I', tagline:'AgTech deal flow, market data, and ecosystem intelligence.', nav:['overview','glossary','ecosystem','market_intel','crops','resources','mentors'], extraNav:['investor'] },
+  'ecosystem_mgr': { brand:'Ecosystem Ops Center', icon:'🏗️', tagline:'Your command center for managing AgTech programs and cohorts.', nav:['overview','ecosystem','market_intel','mentors','accelerators','crops','resources','glossary'], extraNav:['ecosystem_ws'] },
+  'advisor':       { brand:'Advisor Ops Center',   icon:'A', tagline:'Tools and connections to mentor the next generation of AgTech.', nav:['overview','glossary','ecosystem','market_intel','mentors','resources'] },
+  'farmer':        { brand:'Farmer Ops Center',   icon:'🌾', tagline:'Discover AgTech innovations built for your operation.', nav:['overview','glossary','ecosystem','market_intel','crops','resources'] }
 };
 
 function getActivePersona() {
@@ -2516,6 +2525,249 @@ function personLink(name, platform){
   toast('🔗 ' + name + ' — profile available in the full app');
 }
 
+// ── FOUNDING MEMBER QUESTIONNAIRE ─────────────────────────────────
+const FOUNDING_Q = {
+  founder: [
+    { id:'fq_top_challenge', q:'What is the single biggest challenge you face as an AgTech founder right now?', type:'select',
+      opts:['Finding investors who understand AgTech','Access to pilot farms / customers','Navigating regulations','Hiring technical talent','Building industry credibility','Market timing — too early or too late','Other'] },
+    { id:'fq_intro_value', q:'If you could get a warm introduction to anyone in AgTech, who would it be?', type:'select',
+      opts:['An investor actively deploying in my space','A large farm operator to pilot with','An ecosystem manager or accelerator lead','A co-founder or senior hire','A government grants advisor','A strategic corporate partner'] },
+    { id:'fq_platform_wish', q:'What would make this platform indispensable for you?', type:'textarea', placeholder:'Be specific — your answer directly shapes what we build next...' },
+    { id:'fq_pay_for', q:'Would you pay for access to curated, warm investor introductions?', type:'select',
+      opts:['Yes — warm intros are worth paying for','Maybe — depends on quality and pricing','No — I expect this to be free for founders','I\'d prefer to earn intros through engagement'] },
+    { id:'fq_share_willing', q:'Would you invite 3 founders to join if it unlocked early access to introductions?', type:'select',
+      opts:['Absolutely — I know people who need this','Probably, if the platform delivers value first','I\'d need to see more before inviting others','Not comfortable inviting others yet'] },
+    { id:'fq_missing', q:'What\'s missing from the AgTech ecosystem that nobody is building?', type:'textarea', placeholder:'Think big — what gap frustrates you most?' },
+    { id:'fq_region_focus', q:'Which region\'s AgTech ecosystem do you think has the most untapped potential?', type:'select',
+      opts:['Canada','United States','India','Brazil','Israel','Sub-Saharan Africa','Southeast Asia','Europe','Australia','Other'] }
+  ],
+  investor: [
+    { id:'fq_deal_source', q:'Where do you currently source your best AgTech deals?', type:'select',
+      opts:['Accelerator demo days','Personal network / warm intros','Conferences and events','LinkedIn / cold inbound','Other investors (syndication)','I struggle to find quality deal flow'] },
+    { id:'fq_diligence_gap', q:'What\'s the hardest part of AgTech due diligence?', type:'select',
+      opts:['Understanding the science / tech deeply','Validating market size and timing','Finding domain experts to vet deals','Assessing farmer/customer adoption','Regulatory and policy risk','Comparable company benchmarking'] },
+    { id:'fq_platform_value', q:'What would make you check this platform weekly?', type:'textarea', placeholder:'What would earn a place in your workflow?' },
+    { id:'fq_intro_model', q:'How many curated founder intros per month would be valuable to you?', type:'select',
+      opts:['1-2 highly curated matches','3-5 with good filtering','5-10 with deal memos','I want access to browse all, intro on demand','Quality over quantity — even 1 great one matters'] },
+    { id:'fq_pay_willing', q:'Would you pay for priority access to vetted AgTech founders and deal flow?', type:'select',
+      opts:['Yes — time saved finding deals is worth paying for','Maybe — if the curation quality is exceptional','I\'d need to see a track record of quality matches first','Not likely — I have strong existing deal sources'] },
+    { id:'fq_ecosystem_gap', q:'What\'s the biggest gap in the AgTech investment ecosystem?', type:'textarea', placeholder:'What would you fix if you could?' }
+  ],
+  advisor: [
+    { id:'fq_advise_motive', q:'What motivates you to advise AgTech startups?', type:'select',
+      opts:['Equity upside / financial returns','Giving back to the next generation','Staying connected to innovation','Building my network in AgTech','Potential board seats','Mission-driven — food and climate matter'] },
+    { id:'fq_match_pref', q:'How would you prefer to be matched with founders?', type:'select',
+      opts:['Platform suggests matches based on my expertise','Founders browse and request me','Curated by Russell / platform team','I browse founders and reach out','Open office hours — anyone can book time'] },
+    { id:'fq_time_commit', q:'How many hours per month could you realistically advise?', type:'select',
+      opts:['1-2 hours (light touch)','3-5 hours (one startup, actively)','5-10 hours (multiple startups)','10+ hours (deeply embedded)','Flexible — depends on the founder'] },
+    { id:'fq_platform_wish', q:'What would make this the go-to platform for AgTech advisors?', type:'textarea', placeholder:'What would keep you coming back?' },
+    { id:'fq_compensation', q:'What compensation model works best for advisory?', type:'select',
+      opts:['Equity only (0.25-1%)','Cash retainer + equity','Success-based (milestone payments)','Free — I do it for the mission','Platform credits / intro currency'] }
+  ],
+  ecosystem_manager: [
+    { id:'fq_biggest_pain', q:'What is your biggest operational pain point running your program?', type:'select',
+      opts:['Tracking startup progress across cohorts','Finding qualified mentors and advisors','Connecting startups to investors','Measuring and reporting program impact','Managing applications at scale','Retaining startups post-program'] },
+    { id:'fq_startup_count', q:'How many startups are in your current portfolio/program?', type:'select',
+      opts:['1-10','11-25','26-50','51-100','100+','Pre-launch — building our first cohort'] },
+    { id:'fq_platform_value', q:'What would make you bring your entire portfolio onto this platform?', type:'textarea', placeholder:'What would earn your trust to onboard your startups here?' },
+    { id:'fq_collab_interest', q:'Would you collaborate with other ecosystem managers on shared deal flow?', type:'select',
+      opts:['Yes — cross-pollination benefits everyone','Maybe — if there\'s a clear framework','Only within my region / vertical','Not comfortable sharing portfolio details','I\'d need to understand the terms'] },
+    { id:'fq_metric_wish', q:'What metric would prove this platform\'s value to your stakeholders?', type:'select',
+      opts:['Number of investor intros made for our startups','Capital raised by startups through the platform','Mentor hours logged / quality of matches','Startup retention and growth post-program','Geographic expansion of our network','All of the above'] },
+    { id:'fq_missing', q:'What tool or feature doesn\'t exist today that would transform your work?', type:'textarea', placeholder:'Dream big — what would you build if you could?' }
+  ],
+  researcher: [
+    { id:'fq_collab_type', q:'What type of industry collaboration are you most interested in?', type:'select',
+      opts:['Licensing my research to startups','Co-developing products with founders','Consulting / advisory roles','Joint grant applications','Spin-off company formation','Field trial partnerships'] },
+    { id:'fq_barrier', q:'What\'s the biggest barrier between your research and commercialization?', type:'select',
+      opts:['Finding the right industry partner','IP / tech transfer complexity','Funding the bridge from lab to field','Understanding market needs','Regulatory pathway uncertainty','Time — academic incentives don\'t reward this'] },
+    { id:'fq_platform_wish', q:'What would make this platform valuable for researchers?', type:'textarea', placeholder:'What would bring your lab group onto this platform?' }
+  ],
+  farmer: [
+    { id:'fq_tech_adoption', q:'What\'s your biggest hesitation in adopting new AgTech?', type:'select',
+      opts:['Cost — ROI is unclear upfront','Integration with existing equipment','Reliability and support in rural areas','Data privacy and ownership concerns','Too many options, hard to evaluate','I need to see it work on a similar farm first'] },
+    { id:'fq_pilot_interest', q:'Would you be willing to pilot new AgTech on your operation?', type:'select',
+      opts:['Yes — actively looking for innovation partners','Maybe — if risk is shared and support is provided','Only if recommended by someone I trust','Not right now — focused on current operations'] },
+    { id:'fq_platform_wish', q:'What would make this platform useful for farmers?', type:'textarea', placeholder:'What information or connections would help your operation?' }
+  ]
+};
+
+let _fqStep = 0;
+let _fqAnswers = {};
+let _fqPersona = 'founder';
+
+function openFoundingQuestionnaire(persona) {
+  _fqPersona = persona || 'founder';
+  // Fallback for personas not in FOUNDING_Q
+  if (!FOUNDING_Q[_fqPersona]) _fqPersona = 'founder';
+  _fqStep = 0;
+  _fqAnswers = {};
+  renderFoundingQ();
+  openModal('founding-q-modal');
+}
+
+function renderFoundingQ() {
+  const qs = FOUNDING_Q[_fqPersona];
+  const el = document.getElementById('founding-q-content');
+  if (!el) return;
+
+  if (_fqStep === -1) {
+    // Intro screen
+    el.innerHTML = `
+      <div style="text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">🌱</div>
+        <h3 style="margin-bottom:8px">Welcome, Founding Member</h3>
+        <p style="color:var(--text-muted);margin-bottom:20px;font-size:14px;line-height:1.6">
+          You're one of the first people on this platform. That means your voice carries extra weight.<br><br>
+          We have <strong>${qs.length} quick questions</strong> that will directly shape what we build next.
+          Your answers go straight to Russell and the product team.
+        </p>
+        <p style="background:var(--bg);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text-muted);margin-bottom:20px">
+          🏅 <strong>Founding Members</strong> get permanent perks: <strong>10 warm intros/month</strong> (vs 3 standard), early access to new features, and a Founding Member badge on your profile.
+        </p>
+        <button onclick="_fqStep=0;renderFoundingQ()" style="padding:12px 32px;background:var(--green);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer">Let's Go →</button>
+        <br><button onclick="skipFoundingQ()" style="margin-top:12px;background:none;border:none;color:var(--text-faint);font-size:12px;cursor:pointer">I'll do this later</button>
+      </div>`;
+    return;
+  }
+
+  if (_fqStep >= qs.length) {
+    // Done screen
+    el.innerHTML = `
+      <div style="text-align:center">
+        <div style="font-size:40px;margin-bottom:12px">🎉</div>
+        <h3 style="margin-bottom:8px">Thank You, Founding Member</h3>
+        <p style="color:var(--text-muted);margin-bottom:16px;font-size:14px;line-height:1.6">
+          Your answers are incredibly valuable. They go directly into our product roadmap.<br><br>
+          You now have your <strong>🏅 Founding Member</strong> badge and <strong>10 intros/month</strong>.
+        </p>
+        <button onclick="closeModal('founding-q-modal')" style="padding:12px 32px;background:var(--green);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer">Explore the Platform →</button>
+      </div>`;
+    saveFoundingQAnswers();
+    return;
+  }
+
+  const q = qs[_fqStep];
+  const progress = Math.round(((_fqStep) / qs.length) * 100);
+  let inputHtml = '';
+
+  if (q.type === 'select') {
+    inputHtml = q.opts.map(o => `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid ${_fqAnswers[q.id] === o ? 'var(--green)' : 'var(--border)'};border-radius:10px;cursor:pointer;font-size:13px;transition:all 0.15s;background:${_fqAnswers[q.id] === o ? 'rgba(22,163,74,0.06)' : 'var(--surface)'}"
+        onclick="document.querySelectorAll('.fq-opt').forEach(l=>{l.style.borderColor='var(--border)';l.style.background='var(--surface)'});this.style.borderColor='var(--green)';this.style.background='rgba(22,163,74,0.06)';_fqAnswers['${q.id}']='${o.replace(/'/g, "\\'")}'"
+        class="fq-opt">${o}</label>
+    `).join('');
+  } else {
+    inputHtml = `<textarea class="form-textarea" rows="4" id="fq-ta" placeholder="${q.placeholder || 'Share your thoughts...'}" style="font-size:13px">${_fqAnswers[q.id] || ''}</textarea>`;
+  }
+
+  el.innerHTML = `
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;color:var(--text-faint);font-weight:600">FOUNDING MEMBER INPUT</span>
+        <span style="font-size:11px;color:var(--text-faint)">${_fqStep + 1} of ${qs.length}</span>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${progress}%;background:var(--green);border-radius:4px;transition:width 0.3s"></div>
+      </div>
+    </div>
+    <h3 style="font-size:16px;margin-bottom:16px;line-height:1.4">${q.q}</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;max-height:300px;overflow-y:auto">
+      ${inputHtml}
+    </div>
+    <div style="display:flex;gap:10px;justify-content:space-between">
+      <button onclick="${_fqStep > 0 ? '_fqStep--;renderFoundingQ()' : 'closeModal(\'founding-q-modal\')'}" style="padding:10px 20px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">${_fqStep > 0 ? '← Back' : 'Skip'}</button>
+      <button onclick="fqNext()" style="padding:10px 24px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">${_fqStep < qs.length - 1 ? 'Next →' : 'Finish ✓'}</button>
+    </div>`;
+}
+
+function fqNext() {
+  const qs = FOUNDING_Q[_fqPersona];
+  const q = qs[_fqStep];
+  // Collect textarea answer
+  if (q.type === 'textarea') {
+    const ta = document.getElementById('fq-ta');
+    if (ta) _fqAnswers[q.id] = ta.value.trim();
+  }
+  _fqStep++;
+  renderFoundingQ();
+}
+
+function skipFoundingQ() {
+  closeModal('founding-q-modal');
+  // Store that they skipped — can prompt again later
+  if (currentUser) {
+    localStorage.setItem('fq_skipped_' + currentUser.id, Date.now());
+  }
+}
+
+async function saveFoundingQAnswers() {
+  if (!currentUser) return;
+  const payload = {
+    user_id: currentUser.id,
+    email: currentUser.email,
+    persona: _fqPersona,
+    answers: _fqAnswers,
+    completed_at: new Date().toISOString()
+  };
+  // Save to Supabase
+  try {
+    const { error } = await supabase.from('founding_member_survey').upsert(payload, { onConflict: 'user_id' });
+    if (error) console.warn('Survey save error (table may not exist yet):', error.message);
+    else console.log('Founding member survey saved:', payload);
+  } catch(e) { console.warn('Survey save failed:', e); }
+
+  // Also grant founding member badge
+  if (_userProfile) {
+    const badges = _userProfile.badges || [];
+    if (!badges.includes('founding_member')) {
+      badges.push('founding_member');
+      _userProfile.badges = badges;
+      _userProfile.tier = 'founding_member';
+      try {
+        await upsertProfile({ id: currentUser.id, badges, tier: 'founding_member' });
+      } catch(e) { console.warn('Badge update failed:', e); }
+    }
+  }
+
+  // Track analytics event
+  trackEvent('founding_survey_completed', { persona: _fqPersona, question_count: Object.keys(_fqAnswers).length });
+}
+
+// ── BEHAVIORAL ANALYTICS TRACKING ────────────────────────────────
+const _analytics = [];
+function trackEvent(event, data = {}) {
+  const entry = {
+    event,
+    ...data,
+    user_id: currentUser?.id || 'anon',
+    persona: _userProfile?.persona || 'unknown',
+    timestamp: new Date().toISOString(),
+    page: currentPage,
+    session_id: window._sessionId || 'unknown'
+  };
+  _analytics.push(entry);
+  console.log('📊 Track:', event, data);
+
+  // Batch save to Supabase every 10 events
+  if (_analytics.length % 10 === 0) flushAnalytics();
+}
+
+async function flushAnalytics() {
+  if (!_analytics.length) return;
+  const batch = _analytics.splice(0, _analytics.length);
+  try {
+    const { error } = await supabase.from('analytics_events').insert(batch);
+    if (error) console.warn('Analytics flush error (table may not exist):', error.message);
+  } catch(e) { console.warn('Analytics flush failed:', e); }
+}
+
+// Generate session ID
+window._sessionId = 'sess_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+// Flush analytics on page unload
+window.addEventListener('beforeunload', flushAnalytics);
+
 // ── NAVIGATION ────────────────────────────────────────────────────
 let currentPage = 'overview';
 function go(page, btn){
@@ -2532,6 +2784,7 @@ function go(page, btn){
   try { localStorage.setItem('foc-page', page); } catch(e){}
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
+  trackEvent('page_view', { page });
   render(page);
   document.getElementById('page').scrollTop = 0;
 }
@@ -2744,6 +2997,26 @@ ${_pWelcome}
     <li><strong>Agrifoodtech total (2024):</strong> ~$16B including foodtech (AgFunder)</li></ul>
     <p style="margin-top:8px"><strong>Growth Drivers:</strong> AI &amp; robotics adoption · Sustainability mandates · Supply chain resilience · Precision ag at scale</p>
     <div class="src-row">🔗 <a href="https://www.globalagtechinitiative.com/digital-farming/2024-agtech-venture-capital-investment-and-exit-round-up/" target="_blank">Global AgTech Initiative — 2024 VC Roundup</a> &nbsp;·&nbsp; <a href="https://agfunder.com/research/" target="_blank">AgFunder Annual Report</a></div>`)}
+</div>
+
+<div onclick="trackEvent('market_intel_overview_click');go('market_intel')" class="card" style="cursor:pointer;background:linear-gradient(135deg,rgba(22,163,74,.04),rgba(34,197,94,.08));border:1px solid var(--green-mid);position:relative;overflow:hidden;transition:border-color .2s" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--green-mid)'">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:18px">📊</span>
+        <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--text)">Market Intelligence Report</h3>
+        <span style="font-size:9px;padding:3px 8px;border-radius:10px;background:var(--green);color:white;font-weight:700">NEW</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">AgTech Emerging Sectors & Growth Trends 2026 — ${MI_SECTORS.length} sectors analyzed with founder, investor, and Canadian context.</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+        ${MI_MATRIX.filter(m=>m.prClass==='high').map(m => `<span style="font-size:11px;padding:4px 10px;border-radius:8px;background:var(--accent-bg);border:1px solid var(--green-mid);color:var(--green);font-weight:600">${m.sector}</span>`).join('')}
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        ${MI_SIGNALS.slice(0,3).map(s => `<div><div style="font-size:18px;font-weight:800;color:var(--green)">${s.num}</div><div style="font-size:10px;color:var(--text-faint);max-width:120px;line-height:1.4">${s.label.split('(')[0].trim()}</div></div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;color:var(--green);font-size:13px;font-weight:700;flex-shrink:0;padding-top:4px">Explore full report <span style="font-size:16px">→</span></div>
+  </div>
 </div>
 
 <div class="card"><h3>🌍 Global Innovation Hotspots</h3><div class="sub">Leading regions driving agricultural technology innovation worldwide</div>
@@ -3746,6 +4019,820 @@ function pgEcosystem(){
     + '<div class="sub" style="margin-bottom:14px">Click on a trend below to explore market insights and investment opportunities.</div>'
     + ecoExpandableTrends()
     + '</div>';
+}
+
+// ════════════════════════════════════════════════
+// PAGE: MARKET INTELLIGENCE
+// ════════════════════════════════════════════════
+
+// ── COMPANY INTELLIGENCE DATABASE & ANALYTICS ENGINE ──
+const AGTECH_COMPANIES = [
+  // ── THRIVE Top 50 AgTech 2024 (full list by category) ──
+  // CEA (Controlled Environment Agriculture)
+  {name:'Gotham Greens',sector:'CEA',sub:'Indoor leafy greens',hq:'US',funding:'$440M+',stage:'Growth',list:'THRIVE 2024',yr:2011},
+  {name:'IGS',sector:'CEA',sub:'Vertical farming tech platform',hq:'UK',funding:'$58M',stage:'Series B',list:'THRIVE 2024',yr:2013},
+  {name:'iUNU',sector:'CEA',sub:'AI for greenhouse management',hq:'US',funding:'$35M',stage:'Series B',list:'THRIVE 2024',yr:2016},
+  {name:'Little Leaf Farms',sector:'CEA',sub:'Greenhouse-grown lettuce',hq:'US',funding:'$300M+',stage:'Growth',list:'THRIVE 2024',yr:2015},
+  {name:'Oishii',sector:'CEA',sub:'Premium vertical farm strawberries',hq:'US',funding:'$230M',stage:'Series B',list:'THRIVE 2024',yr:2016},
+  {name:'Plenty',sector:'CEA',sub:'Indoor vertical farming',hq:'US',funding:'$900M+',stage:'Late',list:'THRIVE 2024',yr:2014},
+  {name:'Pure Harvest Smart Farms',sector:'CEA',sub:'Climate-controlled greenhouses',hq:'UAE',funding:'$387M',stage:'Series C',list:'THRIVE 2024',yr:2016},
+  {name:'Revol Greens',sector:'CEA',sub:'Greenhouse leafy greens',hq:'US',funding:'$170M+',stage:'Growth',list:'THRIVE 2024',yr:2018},
+  {name:'Soli Organic',sector:'CEA',sub:'Soil-based indoor farming',hq:'US',funding:'$125M+',stage:'Growth',list:'THRIVE 2024',yr:2016},
+  // Animal Technology
+  {name:'Beewise',sector:'Animal Tech',sub:'Autonomous beehive management',hq:'Israel',funding:'$120M',stage:'Series C',list:'THRIVE 2024',yr:2018},
+  {name:'CH4 Global',sector:'Animal Tech',sub:'Seaweed-based methane reduction',hq:'Australia',funding:'$62M',stage:'Series B',list:'THRIVE 2024, THRIVE 2026',yr:2019},
+  {name:'Entosystem',sector:'Animal Tech',sub:'Insect protein from food waste',hq:'Canada',funding:'$40M+',stage:'Series A',list:'THRIVE 2024, THRIVE 2026',yr:2015},
+  {name:'Halter',sector:'Animal Tech',sub:'Virtual fencing & GPS livestock',hq:'New Zealand',funding:'$165M',stage:'Series D',list:'THRIVE 2024',yr:2016},
+  {name:'InnovaFeed',sector:'Animal Tech',sub:'Insect protein for animal feed',hq:'France',funding:'$450M+',stage:'Growth',list:'THRIVE 2024',yr:2016},
+  {name:'Milk Moovement',sector:'Animal Tech',sub:'Dairy supply chain software',hq:'Canada',funding:'$50M+',stage:'Series B',list:'THRIVE 2024, THRIVE 2026',yr:2018},
+  {name:'Sistema.bio',sector:'Animal Tech',sub:'Biodigester waste management',hq:'Mexico',funding:'$50M+',stage:'Growth',list:'THRIVE 2024',yr:2010},
+  {name:'Windfall Bio',sector:'Animal Tech',sub:'Methane-consuming microbes',hq:'US',funding:'$37M',stage:'Series A',list:'THRIVE 2024',yr:2022},
+  {name:'Ynsect',sector:'Animal Tech',sub:'Insect protein (mealworm)',hq:'France',funding:'$600M+',stage:'Late',list:'THRIVE 2024',yr:2011},
+  // On-Farm Decision Support, Automation & Robotics
+  {name:'Arable',sector:'On-Farm AI/Robotics',sub:'Crop intelligence platform',hq:'US',funding:'$53M',stage:'Series C',list:'THRIVE 2024',yr:2014},
+  {name:'Blue White Robotics',sector:'On-Farm AI/Robotics',sub:'Autonomous vehicle platform',hq:'Israel',funding:'$51M',stage:'Series B',list:'THRIVE 2024',yr:2017},
+  {name:'EarthOptics',sector:'On-Farm AI/Robotics',sub:'Soil sensing & mapping',hq:'US',funding:'$23M',stage:'Series A',list:'THRIVE 2024',yr:2016},
+  {name:'EcoRobotix',sector:'On-Farm AI/Robotics',sub:'Precision spraying robot',hq:'Switzerland',funding:'€128M',stage:'Series D',list:'THRIVE 2024',yr:2014},
+  {name:'Guardian Agriculture',sector:'On-Farm AI/Robotics',sub:'Autonomous crop care drones',hq:'US',funding:'$20M+',stage:'Series A',list:'THRIVE 2024',yr:2017},
+  {name:'Monarch Tractor',sector:'On-Farm AI/Robotics',sub:'Electric autonomous tractor',hq:'US',funding:'$133M',stage:'Series C',list:'THRIVE 2024',yr:2018},
+  {name:'N-Drip',sector:'On-Farm AI/Robotics',sub:'Gravity-powered micro irrigation',hq:'Israel',funding:'$44M',stage:'Series B',list:'THRIVE 2024',yr:2015},
+  {name:'Semios',sector:'On-Farm AI/Robotics',sub:'Crop management IoT platform',hq:'Canada',funding:'$120M+',stage:'Growth',list:'THRIVE 2024',yr:2010},
+  {name:'Solinftec',sector:'On-Farm AI/Robotics',sub:'AI farm operations platform',hq:'Brazil',funding:'$100M+',stage:'Growth',list:'THRIVE 2024',yr:2007},
+  {name:'Verdant Robotics',sector:'On-Farm AI/Robotics',sub:'See-and-spray weeding robot',hq:'US',funding:'$60M+',stage:'Series B',list:'THRIVE 2024',yr:2018},
+  // Novel Crop Inputs
+  {name:'Aphea.Bio',sector:'Novel Crop Inputs',sub:'Microbial crop enhancement',hq:'Belgium',funding:'$14M',stage:'Series A',list:'THRIVE 2024',yr:2018},
+  {name:'Enko',sector:'Novel Crop Inputs',sub:'AI-designed crop protection',hq:'US',funding:'$110M+',stage:'Series C',list:'THRIVE 2024',yr:2017},
+  {name:'Invaio',sector:'Novel Crop Inputs',sub:'Precision plant delivery',hq:'US',funding:'$80M+',stage:'Series B',list:'THRIVE 2024',yr:2018},
+  {name:'NewLeaf Symbiotics',sector:'Novel Crop Inputs',sub:'Pink-pigmented bacteria seed treatment',hq:'US',funding:'$50M+',stage:'Series B',list:'THRIVE 2024',yr:2014},
+  {name:'Oerth Bio',sector:'Novel Crop Inputs',sub:'Microbiome crop inputs',hq:'US',funding:'$12M',stage:'Series A',list:'THRIVE 2024',yr:2019},
+  {name:'Pairwise',sector:'Novel Crop Inputs',sub:'Gene-edited produce varieties',hq:'US',funding:'$265M+',stage:'Growth',list:'THRIVE 2024',yr:2017},
+  {name:'Pivot Bio',sector:'Novel Crop Inputs',sub:'Microbial nitrogen for crops',hq:'US',funding:'$618M',stage:'Growth',list:'THRIVE 2024',yr:2011},
+  {name:'Tropic Biosciences',sector:'Novel Crop Inputs',sub:'Gene-edited tropical crops',hq:'UK',funding:'$80M+',stage:'Series C',list:'THRIVE 2024',yr:2016},
+  {name:'Vestaron',sector:'Novel Crop Inputs',sub:'Peptide-based bioinsecticides',hq:'US',funding:'$125M+',stage:'Series D',list:'THRIVE 2024',yr:2006},
+  {name:'Vive Crop Protection',sector:'Novel Crop Inputs',sub:'Precision chemistry delivery',hq:'Canada',funding:'$80M+',stage:'Growth',list:'THRIVE 2024, THRIVE 2026',yr:2010},
+  // Agribusiness Platforms
+  {name:'AcreTrader',sector:'Agribusiness Platform',sub:'Farmland investment marketplace',hq:'US',funding:'$60M+',stage:'Series B',list:'THRIVE 2024',yr:2018},
+  {name:'Agreena',sector:'Agribusiness Platform',sub:'Carbon credit platform for farmers',hq:'Denmark',funding:'$100M+',stage:'Series B',list:'THRIVE 2024',yr:2018},
+  {name:'Agriconomie',sector:'Agribusiness Platform',sub:'Online ag input marketplace',hq:'France',funding:'$95M',stage:'Series C',list:'THRIVE 2024',yr:2014},
+  {name:'AgVend',sector:'Agribusiness Platform',sub:'Digital commerce for ag retailers',hq:'US',funding:'$22M',stage:'Series B',list:'THRIVE 2024',yr:2016},
+  {name:'Apollo Agriculture',sector:'Agribusiness Platform',sub:'Smallholder farming platform',hq:'Kenya',funding:'$55M+',stage:'Series B',list:'THRIVE 2024',yr:2016},
+  {name:'Bushel',sector:'Agribusiness Platform',sub:'Grain marketing & logistics',hq:'US',funding:'$97M',stage:'Series C',list:'THRIVE 2024',yr:2017},
+  {name:'CIBO Technologies',sector:'Agribusiness Platform',sub:'Land intelligence platform',hq:'US',funding:'$30M+',stage:'Series B',list:'THRIVE 2024',yr:2015},
+  {name:'eFishery',sector:'Agribusiness Platform',sub:'Aquaculture tech platform',hq:'Indonesia',funding:'$250M+',stage:'Series D',list:'THRIVE 2024',yr:2013},
+  {name:'Farmers Business Network',sector:'Agribusiness Platform',sub:'Farmer-first commerce network',hq:'US',funding:'$900M+',stage:'Late',list:'THRIVE 2024',yr:2014},
+  {name:'ProducePay',sector:'Agribusiness Platform',sub:'Produce fintech marketplace',hq:'US',funding:'$250M+',stage:'Growth',list:'THRIVE 2024',yr:2014},
+  {name:'Stable',sector:'Agribusiness Platform',sub:'Commodity risk management',hq:'US',funding:'$10M+',stage:'Series A',list:'THRIVE 2024',yr:2017},
+  {name:'Traive',sector:'Agribusiness Platform',sub:'AI credit for agriculture',hq:'Brazil',funding:'$50M+',stage:'Series B',list:'THRIVE 2024',yr:2017},
+  // ── THRIVE Top 50 AgTech 2026 (confirmed from news) ──
+  {name:'4AG Robotics',sector:'On-Farm AI/Robotics',sub:'Mushroom harvesting robots',hq:'Canada',funding:'$5M+',stage:'Seed',list:'THRIVE 2026',yr:2019},
+  {name:'BinSentry',sector:'Animal Tech',sub:'Feed bin monitoring sensors',hq:'Canada',funding:'$50M',stage:'Series C',list:'THRIVE 2026',yr:2018},
+  {name:'Elicit Plant',sector:'Novel Crop Inputs',sub:'Drought stress biostimulants',hq:'France',funding:'$25M+',stage:'Series B',list:'THRIVE 2026',yr:2017},
+  {name:'Inari',sector:'Novel Crop Inputs',sub:'Seed gene editing platform',hq:'US',funding:'$400M+',stage:'Growth',list:'THRIVE 2024, THRIVE 2025, THRIVE 2026',yr:2016},
+  // ── Additional notable funded AgTech 2025-2026 ──
+  {name:'Carbon Robotics',sector:'On-Farm AI/Robotics',sub:'LaserWeeder — AI weed control',hq:'US',funding:'$150M+',stage:'Series D',list:'Notable 2025',yr:2018},
+  {name:'Nofence',sector:'Animal Tech',sub:'Virtual fencing platform',hq:'Norway',funding:'$35M',stage:'Series B',list:'Notable 2025',yr:2011},
+  {name:'Connecterra',sector:'Animal Tech',sub:'AI dairy monitoring (Fitbit for cows)',hq:'Netherlands',funding:'$15M',stage:'Series B',list:'Notable 2025',yr:2014},
+  {name:'EF Polymer',sector:'Novel Crop Inputs',sub:'Biodegradable soil health polymers',hq:'Japan',funding:'$6.6M',stage:'Series A',list:'Notable 2025',yr:2018},
+  {name:'Growers Edge',sector:'Agribusiness Platform',sub:'Ag fintech — input financing',hq:'US',funding:'$25M',stage:'Growth',list:'Notable 2026',yr:2016},
+  {name:'Jala Tech',sector:'Agribusiness Platform',sub:'Shrimp farming precision data',hq:'Indonesia',funding:'$42M val',stage:'Series B',list:'Yield Lab Portfolio',yr:2015},
+  {name:'Peptobiotics',sector:'Animal Tech',sub:'Bioactive peptides replacing antibiotics',hq:'Singapore',funding:'$6M',stage:'Series A',list:'Yield Lab Portfolio',yr:2020},
+  {name:'Solasta Bio',sector:'Novel Crop Inputs',sub:'Nature-inspired bioinsecticides',hq:'UK',funding:'$5M+',stage:'Seed',list:'Yield Lab Portfolio',yr:2019},
+  {name:'Glasport Bio',sector:'Animal Tech',sub:'Methane reduction in livestock',hq:'Ireland',funding:'$3M+',stage:'Seed',list:'Yield Lab Portfolio',yr:2020}
+];
+
+// ── ANALYTICS ENGINE ──
+const MI_SECTOR_MAP = {
+  'CEA':'Controlled Environment Ag', 'Animal Tech':'Animal & Livestock Tech',
+  'On-Farm AI/Robotics':'AI, Robotics & Automation', 'Novel Crop Inputs':'Biological & Crop Inputs',
+  'Agribusiness Platform':'Platforms & Marketplaces'
+};
+
+function analyzeCompanies(companies) {
+  const total = companies.length;
+
+  // Sector distribution
+  const bySector = {};
+  companies.forEach(c => { bySector[c.sector] = (bySector[c.sector]||0) + 1; });
+  const sectorDist = Object.entries(bySector).sort((a,b) => b[1]-a[1]);
+
+  // Geography
+  const byGeo = {};
+  companies.forEach(c => { byGeo[c.hq] = (byGeo[c.hq]||0) + 1; });
+  const geoDist = Object.entries(byGeo).sort((a,b) => b[1]-a[1]);
+
+  // Stage distribution
+  const byStage = {};
+  companies.forEach(c => { byStage[c.stage] = (byStage[c.stage]||0) + 1; });
+  const stageDist = Object.entries(byStage).sort((a,b) => b[1]-a[1]);
+
+  // Funding parsing (rough)
+  function parseFunding(f) {
+    if (!f) return 0;
+    const num = parseFloat(f.replace(/[^0-9.]/g,''));
+    if (f.includes('B')) return num * 1000;
+    return num || 0;
+  }
+
+  // Total funding
+  const totalFunding = companies.reduce((sum,c) => sum + parseFunding(c.funding), 0);
+
+  // Top funded
+  const topFunded = [...companies].sort((a,b) => parseFunding(b.funding) - parseFunding(a.funding)).slice(0,10);
+
+  // Canadian companies
+  const canadian = companies.filter(c => c.hq === 'Canada');
+
+  // Repeat listers (appear on multiple lists)
+  const repeats = companies.filter(c => c.list && c.list.includes(','));
+
+  // Founding year distribution
+  const byYear = {};
+  companies.forEach(c => { if(c.yr) byYear[c.yr] = (byYear[c.yr]||0) + 1; });
+  const yearDist = Object.entries(byYear).sort((a,b) => a[0]-b[0]);
+
+  // Average age
+  const ages = companies.filter(c=>c.yr).map(c => 2026 - c.yr);
+  const avgAge = ages.length ? (ages.reduce((a,b)=>a+b,0)/ages.length).toFixed(1) : 0;
+
+  return { total, sectorDist, geoDist, stageDist, totalFunding, topFunded, canadian, repeats, yearDist, avgAge };
+}
+
+let _ciTab = 'overview'; // company intel sub-tab
+let _ciFilter = 'all';
+let _ciSearch = '';
+let _ciSort = 'funding'; // funding | name | sector | geo
+
+// ════════════════════════════════════════════════
+let _miTab = 'sectors';
+let _miOpenSector = null;
+
+const MI_SECTORS = [
+  { id:'ai', badge:'AI Boom', badgeClass:'#7c3aed', title:'AI & Precision Decision Tools',
+    techLayers:['AI-driven technology','Farm management software','Digital/sensing technology'],
+    summary:'Conversational agronomic assistants, yield prediction, autonomous equipment guidance, and AI-driven farm management platforms that shift from passive data to active decision support.',
+    whyPerforming:'The core driver is a fundamental shift in what AI delivers on-farm. Earlier agtech AI produced dashboards — useful but passive. In 2026, conversational agronomic assistants let a farmer ask a direct question and receive a field-specific recommendation backed by multi-year correlations across soil, weather, and input history. That closes the gap between data and decision, where previous tools failed. Simultaneously, AI is becoming connective infrastructure linking other categories — biologicals application timing, robotic guidance, climate stress prediction — making it foundational rather than standalone. At 24%+ annual global market growth, institutional confidence is clear.',
+    detail:'AI in 2026 is shifting from data dashboards to full decision-support — farmers ask questions, systems answer with multi-year correlations. Global AI-in-ag market growing at 24%+ annually. Key opportunity: the connective layer linking biologicals, robotics, and sustainability platforms into one operating system for the farm.',
+    founders:['Agronomic AI assistant plays','Soil + satellite data fusion','Crop disease early detection','AI-biotech hybrid tools','Integration APIs for OEMs'],
+    investors:['Seed/Series A concentration now','Require real revenue traction','OEM acquisition targets emerging','Recurring revenue over one-time','AI-biotech hybrids most promising'],
+    context:['Strong grain fit at prairie scale','Prairie data density = advantage','CFIA compliance layer needed','Co-op integration opportunities','Federal AI infrastructure support']
+  },
+  { id:'bio', badge:'Hot Sector', badgeClass:'#dc2626', title:'Biological Inputs',
+    techLayers:['Biological innovation','Software/data solution'],
+    summary:'Biofertilizers, biopesticides, biostimulants, and microbial solutions displacing synthetic inputs. Market growing at 10–14% annually with 86% of distributors expanding offerings in 2026.',
+    whyPerforming:'Three forces are converging simultaneously. First, synthetic input costs have risen sharply and remain volatile, making alternatives economically compelling at scale. Second, regulatory pressure — particularly in EU export markets but increasingly in North America — is reducing the window for conventional chemistry. Third, biologicals have low switching friction: they integrate into existing application equipment, fit familiar agronomic workflows, and have a short trial cycle. This combination of economic pull, regulatory push, and low adoption barrier explains why 86% of distributors are expanding offerings. The category is no longer experimental — it is becoming the default input strategy for yield-stable, residue-light programs.',
+    detail:'86% of distributors plan to expand biological offerings in 2026. Regulatory pressure and input cost volatility are accelerating the shift away from synthetics. Adoption friction is lower than robotics or AI — making this one of the most realistic near-term pilot categories for Canadian broad-acre operations.',
+    founders:['Microbial seed treatments','Biocontrol for major crops','Biostimulant formulation tech','Soil microbiome diagnostics','Precision application tools'],
+    investors:['10–14% annual market growth','Lower capex than hardware','Registration timelines are the risk','Channel partnerships critical','Strategic acquirer exits active'],
+    context:['PMRA registration pathway clear','Canola & corn strong fit','Retailer network for distribution','Soil health incentive alignment','Most pilot-ready 2027 category']
+  },
+  { id:'robotics', badge:'Scaling', badgeClass:'#2563eb', title:'Autonomous Robotics',
+    techLayers:['Mechanical robotic','Remote sensing','AI-driven technology'],
+    summary:'Field robots, laser weeding, harvesting automation, and autonomous equipment moving from experimental to commercial deployment. OEM acquisitions confirming the transition.',
+    whyPerforming:'The robotics story in 2026 is fundamentally about labour, not technology. Agricultural labour shortages in North America and Europe are structural — not cyclical — and no policy solution is on the horizon. That gives robotics a demand floor that does not disappear. What changed in 2025 was the business model: the shift from capital sale to hardware-as-a-service (pay-per-acre, leasing) dramatically reduced the adoption barrier. OEM validation through acquisitions — John Deere acquiring GUSS Automation and Kubota investing in Kilter — alongside major late-stage fundraising (Carbon Robotics $70M Series D, Ecorobotix EUR128M) confirm the sector has moved from proving the technology to deploying it.',
+    detail:'Carbon Robotics raised a $70M Series D for its LaserWeeder platform. Ecorobotix has raised €128M total. The era of experimentation is over — this is now about commercial deployment. Capital intensity and adoption friction are still high, but OEM acquisitions signal validation at the top of the market.',
+    founders:['Targeted weed/pest robots','Selective harvest automation','In-field sensor platforms','Lightweight, modular designs','Labour supplement positioning'],
+    investors:['High capex — watch runway','Series C/D showing traction','OEM strategic exits likely','HaaS model reduces barrier','Tariff exposure is live risk'],
+    context:['Labour shortage strong driver','Field scale suits autonomy','Winter limits year-round use','Horticulture sector strong fit','Import tariff exposure to watch']
+  },
+  { id:'supply', badge:'Regulatory Shift', badgeClass:'#ea580c', title:'Supply Chain Transparency',
+    techLayers:['Software/data solution','Digital/sensing technology'],
+    summary:'Blockchain traceability, food safety compliance systems, and digital marketplaces unifying input procurement, grain trading, and export documentation in a single interface.',
+    whyPerforming:'The EU Deforestation Regulation (EUDR) and parallel food safety mandates are creating compliance-driven demand that did not exist two years ago. Canadian exporters of canola, pulses, and grain are now facing traceability requirements that their current systems cannot meet. Simultaneously, digital marketplaces are consolidating fragmented agricultural channels — input procurement, grain marketing, agronomist booking, transport, and carbon credits — into single interfaces with network effects. These platforms create strong moats once established, which is attracting B2B SaaS investors looking for sticky, recurring revenue models in agriculture.',
+    detail:'Digital marketplaces are unifying fragmented channels: input procurement, grain trading, agronomist booking, transport, and carbon credits — all in one interface. Blockchain traceability is a compliance requirement emerging in EU markets, creating near-term demand from Canadian exporters.',
+    founders:['Farm-to-buyer traceability tools','Digital input procurement platforms','Grain marketing + analytics','Food safety compliance SaaS','Export documentation automation'],
+    investors:['Network effects = strong moats','B2B SaaS economics attractive','EU EUDR compliance driving demand','Partnership with co-ops key','Data ownership model matters'],
+    context:['Export market compliance pressure','CGC data framework alignment','Co-op channel integration','Pulse & canola traceability demand','Ag Canada policy tailwinds']
+  },
+  { id:'fintech', badge:'Emerging', badgeClass:'#0891b2', title:'Agri-Fintech & Access',
+    techLayers:['Software/data solution','Farm management software'],
+    summary:'Pay-per-use financing, carbon-linked incentives, input channel financing, and blended finance models reducing adoption barriers.',
+    whyPerforming:'The consensus among investors in 2026: financial innovation is now as decisive as technological innovation. The cost-adoption gap is what killed well-validated 2025 companies — great technology that farmers could not afford to deploy. Pay-per-use, performance-based contracts, and carbon-linked financing are removing that barrier. Embedded finance models are scaling across agricultural value chains, and risk data generated by fintech platforms is proving to be a durable differentiator. Insurance partnerships and sovereign wealth interest are growing. This sector works alongside every other category as an enabling layer.',
+    detail:'The consensus among investors in 2026: financial innovation is now as decisive as technological innovation. Pay-per-use, performance-based contracts, and carbon-linked financing are removing the cost-adoption gap that killed well-validated startups in 2025.',
+    founders:['Equipment leasing platforms','Input financing & BNPL','Yield-based insurance tech','Carbon credit pre-financing','Channel finance visibility tools'],
+    investors:['Embedded finance models scaling','Risk data = durable differentiator','Insurance partnerships strategic','Sovereign wealth interest growing','Works alongside portfolio companies'],
+    context:['Farm Credit Canada dominance','BDC co-investment opportunity','Underserved small/mid farms','AgriInvest program layer','Indigenous ag financing gap']
+  },
+  { id:'climate', badge:'Growing Fast', badgeClass:'#16a34a', title:'Climate-Smart & Resilience Tech',
+    techLayers:['Remote sensing','AI-driven technology','Digital/sensing technology'],
+    summary:'Predictive drought and disease models, smart irrigation, crop insurance data layers, and adaptive management platforms.',
+    whyPerforming:'Climate-smart tech is performing because the risk profile of farming has fundamentally changed. Extreme weather is no longer a tail risk — it is the operating environment every season. That shift has moved demand from reactive management tools to predictive and adaptive ones: systems that anticipate drought or disease risk before it spreads, integrate satellite imagery with soil moisture data, and recommend proactive input adjustments in real time. Technologies in this category meet a dual investor criterion — measurable risk reduction for the farmer and ESG value for the capital stack — which is shortening due diligence cycles and attracting government co-investment that de-risks the private side.',
+    detail:'Extreme weather is no longer a risk management edge case — it is the operating environment. Technologies demonstrating measurable risk reduction on yield stability are meeting a dual criterion that both farmers and investors now require.',
+    founders:['Drought & heat stress prediction','Smart irrigation + water docs','Adaptive crop management SaaS','Satellite climate data layers','Microclimate monitoring networks'],
+    investors:['Dual ROI: yield stability + ESG','Insurance sector partnerships','Government co-investment active','Long-term data asset value','Cross-sector exit paths'],
+    context:['Prairie drought frequency rising','On-farm water use regulation','AAFC resilience program alignment','Crop insurance data integration','Hail and flood analytics needed']
+  },
+  { id:'livestock', badge:'Growing Fast', badgeClass:'#16a34a', title:'Livestock & Cattle Tech',
+    techLayers:['Digital/sensing technology','AI-driven technology','Remote sensing','Biological innovation'],
+    summary:'Precision livestock management, animal health monitoring, feed optimization, herd traceability platforms, and reproductive management technology for beef and dairy operations.',
+    whyPerforming:'Animal protein demand globally remained exceptionally strong through 2025 and analysts expect this to continue into 2026, with beef demand in particular surging. That commercial tailwind is drawing capital into precision livestock management that didn\'t exist five years ago. The technology stack — ear tags, wearables, camera-based health monitoring, feed optimization algorithms, and herd traceability platforms — is maturing rapidly and adoption friction is falling. Unlike crop tech, livestock producers have an immediate ROI case: earlier disease detection, improved feed conversion, and reduced mortality translate to clear dollar values. Canadian beef and dairy operations are well-positioned as pilot partners given scale, data density, and traceability requirements flowing through export channels.',
+    detail:'Animal protein demand surging. Precision livestock tech (wearables, health monitoring AI, feed optimization, traceability) maturing rapidly. Unlike crop tech, livestock producers have immediate ROI case: earlier disease detection and improved feed conversion translate to clear dollar values. CCIA traceability mandate driving adoption in Canada.',
+    founders:['Herd health monitoring platforms','Feed optimization AI','Cattle traceability tools','Wearable animal sensors','Reproductive management tech'],
+    investors:['Strong protein demand tailwind','Clear farmer ROI case','Hardware + SaaS hybrid models','Export traceability driving demand','Strategic exits to ag input cos'],
+    context:['Beef & dairy scale advantage','CCIA traceability mandate','Alberta & Saskatchewan density','Export compliance requirements','Strong 2027 pilot candidate']
+  },
+  { id:'regen', badge:'Growing Fast', badgeClass:'#16a34a', title:'Carbon & Regenerative Ag',
+    techLayers:['Remote sensing','Software/data solution','Digital/sensing technology'],
+    summary:'Soil health monitoring, carbon credit generation and MRV verification platforms, and regen transition financing connecting farmers to corporate carbon buyers.',
+    whyPerforming:'Mad Agriculture closed a $78M fund in 2025 specifically for financing farmers transitioning to regenerative organic systems, signalling sustained institutional momentum. The bottleneck is no longer farmer interest — it is credible measurement. MRV (monitoring, reporting, verification) platforms that can quantify soil carbon changes and sell verified credits to corporate buyers are the critical infrastructure the entire market is waiting on. The category is policy-sensitive but the corporate buyer side is independent of government carbon price signals, which gives it more resilience than it appears. Canadian regulatory signals are broadly supportive and prairie soils have significant sequestration potential that remains largely untapped.',
+    detail:'Mad Agriculture closed a $78M fund for regen transition financing in 2025. The bottleneck is now measurement and verification — MRV platforms that can credibly quantify soil carbon are the critical infrastructure layer. Canadian regulatory signals are broadly supportive of carbon farming frameworks.',
+    founders:['Soil carbon MRV platforms','Carbon credit aggregators','Regen transition advisory tech','Cover crop + tillage analytics','On-farm carbon data management'],
+    investors:['Policy-sensitive — monitor closely','Corporate buyer demand independent','Verification methodology = moat','Blended finance structures growing','Long hold horizons required'],
+    context:['Prairie soil carbon potential high','Federal carbon price backstop','Grain farmer receptivity mixed','CFS & AAFC engagement active','Provincial program variation']
+  },
+  { id:'altpro', badge:'Watch Carefully', badgeClass:'#991b1b', title:'Alternative Proteins',
+    techLayers:['Biological innovation','Software/data solution'],
+    summary:'Plant-based and cultivated meat facing commercial headwinds. Niche premium segments showing more resilience than mass-market plays.',
+    whyPerforming:'Beyond Meat under severe financial strain. Ynsect (insect protein) experienced bankruptcy proceedings. Mass-market plant-based plays are struggling significantly against strong animal protein demand heading into 2026. The consumer pull that drove the 2019–2021 investment wave has not materialized at scale. However, niche opportunities exist: precision fermentation for B2B ingredients (not consumer products), high-value specialty proteins, and Canadian pulse sector feedstock advantages create selective plays for founders who position as technology platforms rather than CPG brands.',
+    detail:'Beyond Meat under severe financial strain. Ynsect (insect protein) experienced bankruptcy proceedings. Mass-market plant-based plays are struggling. Animal protein demand remains very strong going into 2026. Niche opportunities exist in precision fermentation for ingredients, not consumer products.',
+    founders:['Precision fermentation ingredients','High-value niche markets only','B2B ingredient positioning','Avoid mass consumer channel','Tech platform over CPG'],
+    investors:['Highly selective — niche wins','Avoid broad alt-protein funds','Survivor companies undervalued','Wait for market clarity','Animal protein capacity = better bet'],
+    context:['Pulse sector = ingredient feedstock','Fermentation clusters (Ont, BC)','Consumer demand signals mixed','Export market more open','Animal protein sector thriving']
+  }
+];
+
+const MI_TRENDS = [
+  { color:'#7c3aed', title:'AI moves from analysis to decision interface', pct:65,
+    desc:'Conversational agronomic assistants are replacing dashboards. Farmers ask a question; AI returns a recommendation backed by multi-year correlations across soil, weather, and input data. This is the most transformative near-term shift in how agtech value is delivered — and the biggest platform opportunity of the decade.', label:'Adoption stage' },
+  { color:'#16a34a', title:'Biologicals becoming standard, not specialty', pct:72,
+    desc:'Driven by input cost volatility, regulatory pressure, and soil health goals, biologicals are moving from niche to mainstream in 2026. 86% of distributors plan to expand offerings. 10–14% annual growth. The transition from synthetic to biological inputs is the single most actionable near-term category for Canadian pilot programs.', label:'Adoption stage' },
+  { color:'#f59e0b', title:'Maturity over moonshots — execution is the new currency', pct:88,
+    desc:'2025 was the year agtech stopped rewarding promises. Startup closures were concentrated in high-capex, high-friction models. Survivors share one trait: a deep understanding of on-farm realities. In 2026, capital flows to companies with real traction, clear cost-adoption economics, and farmer-validated value propositions.', label:'Market signal' },
+  { color:'#2563eb', title:'Financial innovation as adoption infrastructure', pct:40,
+    desc:'Pay-per-use, performance-based contracts, blended finance, and carbon-linked incentives are becoming as important as the underlying technology. The cost-adoption gap is what killed well-validated 2025 companies. Agri-fintech is now the bridge between proven tools and actual deployment at scale on real farms.', label:'Adoption stage' },
+  { color:'#16a34a', title:'Robotics crossing from pilot to commercial', pct:55,
+    desc:'$70M+ rounds for Carbon Robotics and €128M for Ecorobotix in 2025 signal institutional confidence. John Deere acquired GUSS Automation. Kubota invested in Kilter. The hardware-as-service model is unlocking adoption that ownership could not. Niche hardware with low friction is outperforming broad-platform bets.', label:'Adoption stage' },
+  { color:'#dc2626', title:'Geopolitics and trade policy as active risk variables', pct:78,
+    desc:'Tariff volatility, restricted movement of technology and commodities, and uneven policy clarity on carbon markets and AI infrastructure are active 2026 factors. Canadian founders have structural advantages in regulatory stability, but export market exposure is real.', label:'Risk level' }
+];
+
+const MI_MATRIX = [
+  { sector:'Biological Inputs', ready:'High', ease:'High', capex:'Low', priority:'Tier 1', prClass:'high', note:'Most actionable category for near-term pilots' },
+  { sector:'AI Decision Tools', ready:'High', ease:'Medium', capex:'Low', priority:'Tier 1', prClass:'high', note:'Depends on data connectivity on farm' },
+  { sector:'Climate-Smart Tech', ready:'Medium', ease:'Medium', capex:'Medium', priority:'Tier 1', prClass:'high', note:'Prairie drought risk making this urgent' },
+  { sector:'Livestock & Cattle Tech', ready:'High', ease:'Medium', capex:'Medium', priority:'Tier 1', prClass:'high', note:'Strong beef demand + CCIA mandate = clear pull' },
+  { sector:'Supply Chain Transparency', ready:'Medium', ease:'Medium', capex:'Low', priority:'Tier 2', prClass:'med', note:'EU export pressure increasing urgency' },
+  { sector:'Carbon & Regen Ag', ready:'Medium', ease:'Low–Med', capex:'Medium', priority:'Tier 2', prClass:'med', note:'Policy-sensitive; MRV is the bottleneck' },
+  { sector:'Autonomous Robotics', ready:'Low–Med', ease:'Low', capex:'High', priority:'Monitor', prClass:'watch', note:'Horticulture fit; prairie climate constraints' },
+  { sector:'Agri-Fintech', ready:'Low', ease:'Medium', capex:'Low', priority:'Watch', prClass:'watch', note:'Enabler for other sectors, not standalone pilot' },
+  { sector:'Alternative Proteins', ready:'Low', ease:'Low', capex:'High', priority:'Watch', prClass:'watch', note:'Mass market struggling; fermentation niches only' }
+];
+
+const MI_SIGNALS = [
+  { num:'$6.6B', label:'Global agtech VC funding in 2025 across 805 deals (PitchBook)' },
+  { num:'$2.3B', label:'Raised at Seed and Series A in 2025 — early stage is where capital is concentrating' },
+  { num:'24%+', label:'Annual growth rate of AI-in-agriculture market globally' },
+  { num:'86%', label:'Distributors planning to expand biological offerings in 2026' },
+  { num:'10–14%', label:'Annual market growth rate for biological inputs globally' },
+  { num:'$78M', label:'Mad Agriculture regen transition financing fund raised in 2025' },
+  { num:'$150M+', label:'Total funding for Carbon Robotics (LaserWeeder), Series D 2025' },
+  { num:'€128M', label:'Total raised by Ecorobotix across Series C and D rounds' },
+  { num:'60', label:'iGrow News industry activity index for 2025 — highest since 2022' }
+];
+
+const MI_PERSONAS = [
+  { icon:'🚀', color:'var(--green)', bg:'var(--accent-bg)', title:'Early-Stage Founder', sub:'Pre-seed to Series A · Agtech-native or adjacent',
+    wants:'Sector validation, pilot access, farmer introductions, and proof-of-concept credibility',
+    fears:'Cost-adoption gap. Being technically right but commercially wrong. Running out of runway before traction.',
+    signal:'Revenue at seed stage is now the standard, not a bonus. Design for a niche, not a category.',
+    sectors:'Biologicals, AI tools, climate-smart, supply chain SaaS' },
+  { icon:'💰', color:'#2563eb', bg:'#eff6ff', title:'AgTech Investor', sub:'VC · Corporate VC · Impact fund · Family office',
+    wants:'De-risked deal flow, field-validated companies, strong co-investors, and realistic exit paths',
+    fears:'Another vertical farming situation. Long development cycles with no farmer pull-through. Policy-dependent returns.',
+    signal:'2025 deal concentration: Seed/Series A. OEM acquisitions validating robotics. Recurring revenue models beating one-time hardware.',
+    sectors:'AI platforms, biologicals, MRV carbon, precision robotics at Series C+' },
+  { icon:'🧭', color:'#7c3aed', bg:'#f5f3ff', title:'Ecosystem Advisor', sub:'Accelerator · Consultant · Industry association',
+    wants:'Sector clarity, deal flow visibility, connections between founders and capital, and outcome metrics',
+    fears:'Pushing companies into categories that don\'t match farmer readiness. Facilitating hype over substance.',
+    signal:'The winning advisor in 2026 helps founders design for real market conditions, not the ideal market they wish existed.',
+    sectors:'Cross-sector connective role; fintech enablement, supply chain, and regen especially' },
+  { icon:'🌾', color:'#a16207', bg:'#fefce8', title:'Grain / Livestock Farmer', sub:'Canadian operator · Pilot program participant',
+    wants:'Lower input costs, yield stability, less paperwork, and tools that actually work in Canadian conditions',
+    fears:'Tech that looks good in demos but fails at scale. Subscription costs that don\'t return value. Data ownership loss.',
+    signal:'Farmers in 2026 want ROI clarity before adoption. Pay-per-use models beat upfront purchase. Local support matters.',
+    sectors:'Biologicals, AI decision tools, climate-smart irrigation and risk tools' }
+];
+
+const MI_RISKS = [
+  { color:'#dc2626', title:'The cost-adoption gap remains the dominant failure mode',
+    desc:'Agtech closures in 2025 were concentrated in companies where total cost of adoption exceeded farmer capacity or willingness, even when the technology worked. Every startup in your pipeline should have a clear answer to this.' },
+  { color:'#f59e0b', title:'Trade policy and tariff volatility is a live variable',
+    desc:'US-Canada trade tensions, steel tariffs affecting machinery costs, and restricted technology movement are active factors in 2026. Canadian startups with US hardware supply chains need contingency plans.' },
+  { color:'#7c3aed', title:'Capital is now highly selective and concentrated',
+    desc:'The 2025 environment shifted capital toward Seed/Series A with demonstrated revenue. Undercapitalized models without early traction are not getting second chances. Your 2027 pipeline should prioritize startups that can show on-farm results, not just prototypes.' }
+];
+
+const MI_CROSSWALK = [
+  { layer:'Mechanical robotic', desc:'Physical automation hardware — field robots, laser weeders, harvesting arms, autonomous tractors', sectors:['Autonomous Robotics'], color:'#2563eb' },
+  { layer:'Remote sensing', desc:'Satellite, drone, and aerial imagery; multispectral and thermal sensors capturing field-level data at scale', sectors:['Climate-Smart Tech','Carbon & Regen Ag','Autonomous Robotics','Livestock & Cattle Tech'], color:'#16a34a' },
+  { layer:'AI-driven technology', desc:'Machine learning models, predictive analytics, computer vision, and conversational decision interfaces applied to agricultural data', sectors:['AI & Precision Decision Tools','Autonomous Robotics','Climate-Smart Tech','Livestock & Cattle Tech','Biological Inputs'], color:'#7c3aed' },
+  { layer:'Farm management software', desc:'Integrated platforms for field records, input tracking, crop planning, compliance documentation, and agronomic decision support', sectors:['AI & Precision Decision Tools','Agri-Fintech','Supply Chain Transparency'], color:'#f59e0b' },
+  { layer:'Digital/sensing technology', desc:'IoT sensor networks, soil probes, weather stations, wearables, and edge-computing devices generating on-farm data streams', sectors:['Climate-Smart Tech','Livestock & Cattle Tech','Supply Chain Transparency','AI & Precision Decision Tools','Carbon & Regen Ag'], color:'#0891b2' },
+  { layer:'Biological innovation', desc:'Microbials, biostimulants, biocontrols, fermentation-derived inputs, and biologics for animal health replacing conventional chemistry', sectors:['Biological Inputs','Livestock & Cattle Tech'], color:'#dc2626' },
+  { layer:'Software/data solution', desc:'SaaS platforms, data marketplaces, analytics tools, traceability systems, and financial infrastructure enabling the broader ecosystem', sectors:['Supply Chain Transparency','Agri-Fintech','Carbon & Regen Ag','Biological Inputs'], color:'#ea580c' }
+];
+
+function pgMarketIntel() {
+  trackEvent('market_intel_view', { tab: _miTab });
+
+  const persona = _userProfile?.persona || 'founder';
+  const personaHint = {
+    founder: 'Use this to validate your sector choice and understand what investors are funding.',
+    investor: 'Use this to contextualize deal flow and identify high-conviction sectors.',
+    advisor: 'Use this to guide founders toward sectors with real market pull.',
+    ecosystem_manager: 'Use this to align programs with the highest-traction opportunity areas.',
+    farmer: 'Use this to discover which technologies are ready for your operation.',
+    researcher: 'Use this to identify sectors where applied research has the most commercial pull.'
+  };
+
+  const tabs = [
+    { key:'sectors', label:'📊 Emerging Sectors (' + MI_SECTORS.length + ')' },
+    { key:'trends', label:'📈 Global Trends' },
+    { key:'crosswalk', label:'🔗 Tech Framework' },
+    { key:'matrix', label:'🎯 Opportunity Matrix' },
+    { key:'personas', label:'👥 Stakeholder Lens' },
+    { key:'signals', label:'📡 Market Signals' },
+    { key:'companies', label:'🏢 Company Intel (' + AGTECH_COMPANIES.length + ')' }
+  ];
+
+  const tabBar = `<div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap">
+    ${tabs.map(t => `<button onclick="_miTab='${t.key}';render('market_intel')" style="padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${_miTab===t.key?'var(--green)':'var(--border)'};background:${_miTab===t.key?'var(--green)':'transparent'};color:${_miTab===t.key?'white':'var(--text-muted)'};transition:all .15s;font-family:inherit">${t.label}</button>`).join('')}
+  </div>`;
+
+  let content = '';
+
+  // ── SECTORS TAB ──
+  if (_miTab === 'sectors') {
+    const sectorCards = MI_SECTORS.map(s => {
+      const isOpen = _miOpenSector === s.id;
+      const techTags = (s.techLayers||[]).map(t => `<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:var(--hover);color:var(--text-faint);font-weight:500">${t}</span>`).join(' ');
+      const detailHtml = isOpen ? `<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        ${s.whyPerforming ? `<div style="background:var(--surface);border-left:3px solid ${s.badgeClass};border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:${s.badgeClass};margin-bottom:6px">Why it's performing</div>
+          <p style="font-size:12px;color:var(--text-muted);line-height:1.7;margin:0">${s.whyPerforming}</p>
+        </div>` : ''}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--green);margin-bottom:8px">For Founders</div>
+            ${s.founders.map(f => `<div style="font-size:12px;color:var(--text-muted);padding:4px 0;border-bottom:1px solid var(--hover);line-height:1.5">${f}</div>`).join('')}
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#2563eb;margin-bottom:8px">For Investors</div>
+            ${s.investors.map(f => `<div style="font-size:12px;color:var(--text-muted);padding:4px 0;border-bottom:1px solid var(--hover);line-height:1.5">${f}</div>`).join('')}
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#f59e0b;margin-bottom:8px">Canadian Context</div>
+            ${s.context.map(f => `<div style="font-size:12px;color:var(--text-muted);padding:4px 0;border-bottom:1px solid var(--hover);line-height:1.5">${f}</div>`).join('')}
+          </div>
+        </div>
+      </div>` : '';
+
+      return `<div onclick="_miOpenSector=_miOpenSector==='${s.id}'?null:'${s.id}';trackEvent('market_intel_sector_click',{sector:'${s.id}'});render('market_intel')" class="card" style="cursor:pointer;border:${isOpen?'2px solid var(--green)':'1px solid var(--border)'};transition:border-color .15s;padding:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+          <span style="display:inline-block;font-size:10px;font-weight:600;padding:3px 10px;border-radius:10px;background:${s.badgeClass}15;color:${s.badgeClass}">${s.badge}</span>
+          <span style="font-size:14px;color:var(--text-faint);transition:transform .2s;transform:rotate(${isOpen?'180':'0'}deg)">▼</span>
+        </div>
+        <h3 style="font-size:15px;font-weight:700;color:var(--text);margin:0 0 6px">${s.title}</h3>
+        <p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin:0 0 8px">${s.summary}</p>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">${techTags}</div>
+        ${detailHtml}
+      </div>`;
+    }).join('');
+
+    content = `<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:14px">${MI_SECTORS.length} high-growth opportunity areas — click a sector to expand</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">${sectorCards}</div>`;
+  }
+
+  // ── TRENDS TAB ──
+  if (_miTab === 'trends') {
+    content = `<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:14px">Key technology and market forces shaping the global sector</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${MI_TRENDS.map(t => `<div class="card" style="display:flex;align-items:flex-start;gap:14px;padding:18px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${t.color};flex-shrink:0;margin-top:6px"></div>
+        <div style="flex:1">
+          <h4 style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 6px">${t.title}</h4>
+          <p style="font-size:12px;color:var(--text-muted);line-height:1.7;margin:0 0 10px">${t.desc}</p>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:10px;color:var(--text-faint);width:80px;flex-shrink:0">${t.label}</span>
+            <div style="flex:1;height:4px;background:var(--hover);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${t.pct}%;background:${t.color};border-radius:2px"></div>
+            </div>
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // ── CROSSWALK TAB ──
+  if (_miTab === 'crosswalk') {
+    content = `<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:14px">Technology layers powering AgTech innovation — which sectors each layer enables</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+      ${MI_CROSSWALK.map(c => `<div class="card" style="padding:18px">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="width:4px;border-radius:2px;background:${c.color};flex-shrink:0;align-self:stretch;min-height:40px"></div>
+          <div style="flex:1">
+            <h4 style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 4px">${c.layer}</h4>
+            <p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin:0 0 10px">${c.desc}</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${c.sectors.map(s => `<span style="font-size:10px;padding:3px 10px;border-radius:10px;background:${c.color}12;color:${c.color};font-weight:600;border:1px solid ${c.color}30">${s}</span>`).join('')}
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-faint);font-weight:700;flex-shrink:0;padding-top:2px">${c.sectors.length} sector${c.sectors.length!==1?'s':''}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="card" style="background:var(--accent-bg);border-color:var(--green-mid);padding:16px">
+      <div style="font-size:12px;color:var(--text);line-height:1.7"><strong style="color:var(--green)">Key insight:</strong> AI-driven technology and digital/sensing technology are the most cross-cutting layers — appearing in five of the nine sectors. Infrastructure plays in those two categories have the largest total addressable market and the most natural expansion paths. Biological innovation is the most concentrated, powering two sectors, but both are high-priority for 2027 pilot planning.</div>
+    </div>`;
+  }
+
+  // ── MATRIX TAB ──
+  if (_miTab === 'matrix') {
+    const pillColor = { high:'#16a34a', med:'#f59e0b', low:'#dc2626', watch:'#7c3aed' };
+    const pillBg = { high:'var(--accent-bg)', med:'#fefce8', low:'#fef2f2', watch:'#f5f3ff' };
+    const pill = (text, cls) => `<span style="display:inline-block;font-size:10px;padding:3px 10px;border-radius:10px;font-weight:600;background:${pillBg[cls]};color:${pillColor[cls]}">${text}</span>`;
+
+    content = `<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:14px">Opportunity assessment — Canadian pilot context</div>
+    <div class="card" style="overflow-x:auto;padding:0">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:var(--surface)">
+            <th style="padding:12px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);border-bottom:2px solid var(--border)">Sector</th>
+            <th style="padding:12px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);border-bottom:2px solid var(--border)">Pilot Readiness</th>
+            <th style="padding:12px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);border-bottom:2px solid var(--border)">Farmer Adoption</th>
+            <th style="padding:12px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);border-bottom:2px solid var(--border)">Capital Intensity</th>
+            <th style="padding:12px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);border-bottom:2px solid var(--border)">2027 Priority</th>
+            <th style="padding:12px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);border-bottom:2px solid var(--border)">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${MI_MATRIX.map(m => {
+            const readyCls = m.ready.includes('High')?'high':m.ready.includes('Low')?'low':'med';
+            const easeCls = m.ease.includes('High')?'high':m.ease.includes('Low')?'low':'med';
+            const capexCls = m.capex==='Low'?'high':m.capex==='High'?'low':'med';
+            return `<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:10px 14px;font-weight:700;color:var(--text)">${m.sector}</td>
+              <td style="padding:10px 14px">${pill(m.ready, readyCls)}</td>
+              <td style="padding:10px 14px">${pill(m.ease, easeCls)}</td>
+              <td style="padding:10px 14px">${pill(m.capex, capexCls)}</td>
+              <td style="padding:10px 14px">${pill(m.priority, m.prClass)}</td>
+              <td style="padding:10px 14px;font-size:11px;color:var(--text-muted)">${m.note}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  // ── PERSONAS TAB ──
+  if (_miTab === 'personas') {
+    content = `<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:14px">What each stakeholder needs from this landscape</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+      ${MI_PERSONAS.map(p => `<div class="card" style="padding:20px">
+        <div style="width:40px;height:40px;border-radius:50%;background:${p.bg};display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px">${p.icon}</div>
+        <h3 style="font-size:15px;font-weight:700;color:var(--text);margin:0 0 4px">${p.title}</h3>
+        <div style="font-size:11px;color:var(--text-faint);margin-bottom:14px">${p.sub}</div>
+        <div style="border-top:1px solid var(--border);padding-top:12px">
+          ${[{l:'Wants',v:p.wants},{l:'Fears',v:p.fears},{l:'Signal',v:p.signal},{l:'Sectors',v:p.sectors}].map(item => `<div style="display:flex;gap:8px;margin-bottom:8px">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);width:52px;flex-shrink:0;padding-top:1px">${item.l}</span>
+            <span style="font-size:12px;color:var(--text-muted);line-height:1.5">${item.v}</span>
+          </div>`).join('')}
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // ── SIGNALS TAB ──
+  if (_miTab === 'signals') {
+    content = `<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:14px">Key numbers grounding this analysis</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px">
+      ${MI_SIGNALS.map(s => `<div class="card" style="padding:16px;text-align:center">
+        <div style="font-size:24px;font-weight:800;color:var(--green);margin-bottom:4px">${s.num}</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.5">${s.label}</div>
+      </div>`).join('')}
+    </div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:14px">Key risks to track going into 2027 planning</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+      ${MI_RISKS.map(r => `<div class="card" style="display:flex;align-items:flex-start;gap:14px;padding:18px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${r.color};flex-shrink:0;margin-top:6px"></div>
+        <div>
+          <h4 style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 6px">${r.title}</h4>
+          <p style="font-size:12px;color:var(--text-muted);line-height:1.7;margin:0">${r.desc}</p>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--text-faint);border-top:1px solid var(--border);padding-top:12px;line-height:1.7">Sources: iGrow News State of Industry 2025, PitchBook Q1 2025, Fermes Leader AgTech 2026 analysis, ICL Group AgTech Innovations 2026, Animal AgTech Investment Outlook 2026, World Agri-Tech Innovation Summit insights, AgTechNavigator.</div>`;
+  }
+
+  // ── COMPANY INTEL TAB ──
+  if (_miTab === 'companies') {
+    const stats = analyzeCompanies(AGTECH_COMPANIES);
+
+    // Filter & search logic
+    let filtered = [...AGTECH_COMPANIES];
+    if (_ciFilter !== 'all') filtered = filtered.filter(c => c.sector === _ciFilter);
+    if (_ciSearch) {
+      const q = _ciSearch.toLowerCase();
+      filtered = filtered.filter(c => c.name.toLowerCase().includes(q) || c.sub.toLowerCase().includes(q) || c.hq.toLowerCase().includes(q) || c.sector.toLowerCase().includes(q));
+    }
+
+    // Sort logic
+    function parseFundCI(f) { if(!f) return 0; const n=parseFloat(f.replace(/[^0-9.]/g,'')); if(f.includes('B')) return n*1000; return n||0; }
+    if (_ciSort === 'funding') filtered.sort((a,b) => parseFundCI(b.funding) - parseFundCI(a.funding));
+    else if (_ciSort === 'name') filtered.sort((a,b) => a.name.localeCompare(b.name));
+    else if (_ciSort === 'sector') filtered.sort((a,b) => a.sector.localeCompare(b.sector));
+    else if (_ciSort === 'geo') filtered.sort((a,b) => a.hq.localeCompare(b.hq));
+
+    // Sub-tab bar
+    const ciTabs = [
+      { key:'overview', label:'📊 Dashboard' },
+      { key:'directory', label:'📋 Directory' },
+      { key:'canadian', label:'🍁 Canadian Spotlight' },
+      { key:'sources', label:'📚 Sources' }
+    ];
+    const ciTabBar = `<div style="display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap;background:var(--hover);padding:4px;border-radius:10px">
+      ${ciTabs.map(t => `<button onclick="_ciTab='${t.key}';render('market_intel')" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:${_ciTab===t.key?'var(--green)':'transparent'};color:${_ciTab===t.key?'white':'var(--text-muted)'};transition:all .15s;font-family:inherit">${t.label}</button>`).join('')}
+    </div>`;
+
+    let ciContent = '';
+
+    // ── OVERVIEW DASHBOARD ──
+    if (_ciTab === 'overview') {
+      const sectorColors = {'CEA':'#10b981','Animal Tech':'#f59e0b','On-Farm AI/Robotics':'#3b82f6','Novel Crop Inputs':'#8b5cf6','Agribusiness Platform':'#ec4899'};
+      const stageColors = {'Seed':'#94a3b8','Series A':'#60a5fa','Series B':'#34d399','Series C':'#fbbf24','Series D':'#f97316','Growth':'#a78bfa','Late':'#f43f5e'};
+      const maxSector = stats.sectorDist[0] ? stats.sectorDist[0][1] : 1;
+      const maxGeo = stats.geoDist[0] ? stats.geoDist[0][1] : 1;
+      const maxStage = stats.stageDist[0] ? stats.stageDist[0][1] : 1;
+
+      ciContent = `
+      <!-- KPI Row -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px">
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:var(--green)">${stats.total}</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Companies Tracked</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#3b82f6">$${(stats.totalFunding/1000).toFixed(1)}B+</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Combined Funding</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#f59e0b">${stats.geoDist.length}</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Countries</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#8b5cf6">${stats.avgAge}yr</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Avg Company Age</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#ec4899">${stats.repeats.length}</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Multi-List Winners</div>
+        </div>
+      </div>
+
+      <!-- Sector Distribution -->
+      <div class="card" style="padding:20px;margin-bottom:16px">
+        <h3 style="font-size:13px;font-weight:700;color:var(--text);margin:0 0 16px">Sector Distribution</h3>
+        ${stats.sectorDist.map(([s,c]) => {
+          const pct = ((c/stats.total)*100).toFixed(0);
+          const clr = sectorColors[s] || 'var(--green)';
+          const label = MI_SECTOR_MAP[s] || s;
+          return `<div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:11px;font-weight:600;color:var(--text)">${label}</span>
+              <span style="font-size:11px;color:var(--text-muted)">${c} companies (${pct}%)</span>
+            </div>
+            <div style="height:8px;background:var(--hover);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:${(c/maxSector)*100}%;background:${clr};border-radius:4px;transition:width .3s"></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Stage + Geo side by side -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card" style="padding:20px">
+          <h3 style="font-size:13px;font-weight:700;color:var(--text);margin:0 0 16px">Stage Distribution</h3>
+          ${stats.stageDist.map(([s,c]) => {
+            const clr = stageColors[s] || '#6b7280';
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:${clr};flex-shrink:0"></div>
+              <span style="font-size:11px;color:var(--text);flex:1">${s}</span>
+              <div style="height:6px;width:${(c/maxStage)*100}%;max-width:60%;background:${clr};border-radius:3px"></div>
+              <span style="font-size:11px;font-weight:700;color:var(--text-muted);min-width:20px;text-align:right">${c}</span>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="card" style="padding:20px">
+          <h3 style="font-size:13px;font-weight:700;color:var(--text);margin:0 0 16px">Geography</h3>
+          ${stats.geoDist.slice(0,10).map(([g,c]) => {
+            const flag = g==='US'?'🇺🇸':g==='Canada'?'🇨🇦':g==='UK'?'🇬🇧':g==='France'?'🇫🇷':g==='Israel'?'🇮🇱':g==='Brazil'?'🇧🇷':g==='Australia'?'🇦🇺':g==='Netherlands'?'🇳🇱':g==='Germany'?'🇩🇪':g==='Japan'?'🇯🇵':g==='Mexico'?'🇲🇽':g==='Kenya'?'🇰🇪':g==='Indonesia'?'🇮🇩':g==='Norway'?'🇳🇴':g==='Switzerland'?'🇨🇭':g==='Singapore'?'🇸🇬':g==='Ireland'?'🇮🇪':g==='Denmark'?'🇩🇰':g==='Belgium'?'🇧🇪':g==='New Zealand'?'🇳🇿':g==='UAE'?'🇦🇪':'🌍';
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:14px">${flag}</span>
+              <span style="font-size:11px;color:var(--text);flex:1">${g}</span>
+              <div style="height:6px;width:${(c/maxGeo)*100}%;max-width:60%;background:var(--green);border-radius:3px"></div>
+              <span style="font-size:11px;font-weight:700;color:var(--text-muted);min-width:20px;text-align:right">${c}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Top 10 Funded -->
+      <div class="card" style="padding:20px;margin-bottom:16px">
+        <h3 style="font-size:13px;font-weight:700;color:var(--text);margin:0 0 16px">🏆 Top 10 Most Funded</h3>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead><tr style="border-bottom:2px solid var(--border)">
+              <th style="text-align:left;padding:8px 6px;color:var(--text-muted);font-weight:600">#</th>
+              <th style="text-align:left;padding:8px 6px;color:var(--text-muted);font-weight:600">Company</th>
+              <th style="text-align:left;padding:8px 6px;color:var(--text-muted);font-weight:600">Sector</th>
+              <th style="text-align:left;padding:8px 6px;color:var(--text-muted);font-weight:600">HQ</th>
+              <th style="text-align:right;padding:8px 6px;color:var(--text-muted);font-weight:600">Funding</th>
+              <th style="text-align:left;padding:8px 6px;color:var(--text-muted);font-weight:600">Stage</th>
+            </tr></thead>
+            <tbody>
+              ${stats.topFunded.map((c,i) => `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:8px 6px;color:var(--text-faint);font-weight:700">${i+1}</td>
+                <td style="padding:8px 6px;font-weight:700;color:var(--text)">${c.name}</td>
+                <td style="padding:8px 6px;color:var(--text-muted)">${MI_SECTOR_MAP[c.sector]||c.sector}</td>
+                <td style="padding:8px 6px;color:var(--text-muted)">${c.hq}</td>
+                <td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--green)">${c.funding}</td>
+                <td style="padding:8px 6px"><span style="font-size:9px;padding:2px 8px;border-radius:10px;background:var(--hover);color:var(--text-muted)">${c.stage}</span></td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Multi-List Winners -->
+      <div class="card" style="padding:20px">
+        <h3 style="font-size:13px;font-weight:700;color:var(--text);margin:0 0 4px">🔄 Multi-List Repeat Performers</h3>
+        <p style="font-size:11px;color:var(--text-muted);margin:0 0 14px">Companies appearing on multiple accelerator/VC lists — strong signal of ecosystem validation.</p>
+        ${stats.repeats.length ? stats.repeats.map(c => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:700;color:var(--text)">${c.name}</div>
+            <div style="font-size:10px;color:var(--text-muted)">${c.sub}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">${c.list.split(', ').map(l => `<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:var(--green-light,rgba(34,197,94,.1));color:var(--green);font-weight:600">${l}</span>`).join('')}</div>
+          <div style="font-size:11px;font-weight:700;color:var(--green);min-width:60px;text-align:right">${c.funding}</div>
+        </div>`).join('') : '<p style="font-size:11px;color:var(--text-faint)">No repeat listers found.</p>'}
+      </div>`;
+    }
+
+    // ── DIRECTORY ──
+    if (_ciTab === 'directory') {
+      const sectors = [...new Set(AGTECH_COMPANIES.map(c=>c.sector))].sort();
+      ciContent = `
+      <!-- Search & Filter Bar -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <div style="flex:1;min-width:200px;position:relative">
+          <input type="text" placeholder="Search companies, sectors, locations..." value="${_ciSearch}" oninput="_ciSearch=this.value;render('market_intel')" style="width:100%;padding:10px 12px 10px 34px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--card);color:var(--text);font-family:inherit;box-sizing:border-box"/>
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text-faint)">🔍</span>
+        </div>
+        <select onchange="_ciFilter=this.value;render('market_intel')" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--card);color:var(--text);font-family:inherit;cursor:pointer">
+          <option value="all" ${_ciFilter==='all'?'selected':''}>All Sectors</option>
+          ${sectors.map(s => `<option value="${s}" ${_ciFilter===s?'selected':''}>${MI_SECTOR_MAP[s]||s}</option>`).join('')}
+        </select>
+        <select onchange="_ciSort=this.value;render('market_intel')" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--card);color:var(--text);font-family:inherit;cursor:pointer">
+          <option value="funding" ${_ciSort==='funding'?'selected':''}>Sort: Funding ↓</option>
+          <option value="name" ${_ciSort==='name'?'selected':''}>Sort: Name A→Z</option>
+          <option value="sector" ${_ciSort==='sector'?'selected':''}>Sort: Sector</option>
+          <option value="geo" ${_ciSort==='geo'?'selected':''}>Sort: Geography</option>
+        </select>
+        <span style="font-size:11px;color:var(--text-muted)">${filtered.length} of ${AGTECH_COMPANIES.length}</span>
+      </div>
+
+      <!-- Company Table -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead><tr style="background:var(--hover)">
+              <th style="text-align:left;padding:10px 10px;color:var(--text-muted);font-weight:600;white-space:nowrap">Company</th>
+              <th style="text-align:left;padding:10px 8px;color:var(--text-muted);font-weight:600;white-space:nowrap">Focus</th>
+              <th style="text-align:left;padding:10px 8px;color:var(--text-muted);font-weight:600;white-space:nowrap">Sector</th>
+              <th style="text-align:left;padding:10px 8px;color:var(--text-muted);font-weight:600;white-space:nowrap">HQ</th>
+              <th style="text-align:right;padding:10px 8px;color:var(--text-muted);font-weight:600;white-space:nowrap">Funding</th>
+              <th style="text-align:left;padding:10px 8px;color:var(--text-muted);font-weight:600;white-space:nowrap">Stage</th>
+              <th style="text-align:left;padding:10px 8px;color:var(--text-muted);font-weight:600;white-space:nowrap">Source</th>
+              <th style="text-align:center;padding:10px 8px;color:var(--text-muted);font-weight:600;white-space:nowrap">Est.</th>
+            </tr></thead>
+            <tbody>
+              ${filtered.map((c,i) => {
+                const clr = {'CEA':'#10b981','Animal Tech':'#f59e0b','On-Farm AI/Robotics':'#3b82f6','Novel Crop Inputs':'#8b5cf6','Agribusiness Platform':'#ec4899'}[c.sector]||'#6b7280';
+                return `<tr style="border-bottom:1px solid var(--border);${i%2===0?'':'background:var(--hover)'}">
+                  <td style="padding:10px;font-weight:700;color:var(--text);white-space:nowrap">${c.name}</td>
+                  <td style="padding:10px 8px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.sub}">${c.sub}</td>
+                  <td style="padding:10px 8px"><span style="font-size:9px;padding:2px 8px;border-radius:10px;background:${clr}18;color:${clr};font-weight:600;white-space:nowrap">${c.sector}</span></td>
+                  <td style="padding:10px 8px;color:var(--text-muted);white-space:nowrap">${c.hq}</td>
+                  <td style="padding:10px 8px;text-align:right;font-weight:700;color:var(--green);white-space:nowrap">${c.funding}</td>
+                  <td style="padding:10px 8px"><span style="font-size:9px;padding:2px 8px;border-radius:10px;background:var(--hover);color:var(--text-muted);white-space:nowrap">${c.stage}</span></td>
+                  <td style="padding:10px 8px;font-size:10px;color:var(--text-faint);white-space:nowrap">${c.list}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--text-muted)">${c.yr||'—'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+
+    // ── CANADIAN SPOTLIGHT ──
+    if (_ciTab === 'canadian') {
+      const ca = stats.canadian.sort((a,b) => parseFundCI(b.funding) - parseFundCI(a.funding));
+      const caSectors = {};
+      ca.forEach(c => { caSectors[c.sector] = (caSectors[c.sector]||0)+1; });
+      const caTotalFund = ca.reduce((s,c) => s + parseFundCI(c.funding), 0);
+
+      ciContent = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px">
+        <div class="card" style="padding:16px;text-align:center;border:1px solid #dc262620">
+          <div style="font-size:24px;font-weight:800;color:#dc2626">🍁 ${ca.length}</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">Canadian Companies</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:24px;font-weight:800;color:var(--green)">$${caTotalFund.toFixed(0)}M+</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">Combined Funding</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:24px;font-weight:800;color:#3b82f6">${Object.keys(caSectors).length}</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">Sectors Represented</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:24px;font-weight:800;color:#f59e0b">${((ca.length/stats.total)*100).toFixed(0)}%</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">of Total Tracked</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:20px;margin-bottom:16px">
+        <h3 style="font-size:13px;font-weight:700;color:var(--text);margin:0 0 16px">Canadian AgTech Companies</h3>
+        ${ca.map((c,i) => {
+          const clr = {'CEA':'#10b981','Animal Tech':'#f59e0b','On-Farm AI/Robotics':'#3b82f6','Novel Crop Inputs':'#8b5cf6','Agribusiness Platform':'#ec4899'}[c.sector]||'#6b7280';
+          return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;${i<ca.length-1?'border-bottom:1px solid var(--border)':''}">
+            <div style="width:32px;height:32px;border-radius:8px;background:${clr}18;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🍁</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:var(--text)">${c.name}</div>
+              <div style="font-size:10px;color:var(--text-muted)">${c.sub}</div>
+            </div>
+            <span style="font-size:9px;padding:2px 8px;border-radius:10px;background:${clr}18;color:${clr};font-weight:600">${c.sector}</span>
+            <div style="text-align:right;min-width:70px">
+              <div style="font-size:12px;font-weight:700;color:var(--green)">${c.funding}</div>
+              <div style="font-size:9px;color:var(--text-faint)">${c.stage}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div class="card" style="padding:16px;background:var(--accent-bg);border:1px solid var(--green-mid)">
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.7"><strong style="color:var(--green)">Why this matters:</strong> Canada's AgTech ecosystem punches above its weight with strong representation in animal tech (feed monitoring, dairy logistics, methane reduction), crop protection, and farm robotics. Key hubs include Ontario, British Columbia, and the Prairies — and many Canadian companies appear on multiple international accelerator lists, signaling strong global traction.</div>
+      </div>`;
+    }
+
+    // ── SOURCES ──
+    if (_ciTab === 'sources') {
+      const srcList = [
+        { name:'THRIVE Top 50 AgTech 2024', url:'https://thriveagrifood.com/top-50-agtech-2024/', count:AGTECH_COMPANIES.filter(c=>c.list.includes('THRIVE 2024')).length, desc:'Annual selection of the most innovative AgTech companies globally, curated by THRIVE (SVG Ventures). Categories: CEA, Animal Tech, On-Farm AI/Robotics, Novel Crop Inputs, Agribusiness Platforms.' },
+        { name:'THRIVE Top 50 AgTech 2026', url:'https://thriveagrifood.com/top-50-agtech-2026/', count:AGTECH_COMPANIES.filter(c=>c.list.includes('THRIVE 2026')).length, desc:'Confirmed 2026 cohort entries from THRIVE news coverage and partner announcements. Includes returning companies and new entrants in robotics, livestock, and crop inputs.' },
+        { name:'Notable Funded 2025–2026', url:'#', count:AGTECH_COMPANIES.filter(c=>c.list.includes('Notable 2025')||c.list.includes('Notable 2026')).length, desc:'Companies with significant funding rounds in 2025–2026, sourced from AgFunder, PitchBook, and industry press. Includes breakout companies in precision robotics and sustainability.' },
+        { name:'Yield Lab Portfolio', url:'https://www.theyieldlab.com', count:AGTECH_COMPANIES.filter(c=>c.list.includes('Yield Lab')).length, desc:'Selected companies from Yield Lab Group portfolio — a leading AgTech VC with funds in St. Louis, Ireland, Singapore, and LATAM. Focus on early-stage biotech, sustainability, and aquaculture.' }
+      ];
+
+      ciContent = `
+      <div class="card" style="padding:20px;margin-bottom:16px">
+        <h3 style="font-size:13px;font-weight:700;color:var(--text);margin:0 0 6px">Data Sources & Methodology</h3>
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:0 0 18px">Company data is aggregated from leading accelerator cohort lists, VC portfolios, and industry trackers. Funding figures are approximations based on publicly reported rounds (Crunchbase, PitchBook, press releases). Multi-source companies appear once with all source lists noted.</p>
+
+        ${srcList.map(s => `<div style="padding:16px;border:1px solid var(--border);border-radius:10px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <h4 style="font-size:12px;font-weight:700;color:var(--text);margin:0">${s.name}</h4>
+            <span style="font-size:10px;padding:2px 10px;border-radius:10px;background:var(--green-light,rgba(34,197,94,.1));color:var(--green);font-weight:600">${s.count} companies</span>
+          </div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:0 0 8px">${s.desc}</p>
+          ${s.url!=='#' ? `<a href="${s.url}" target="_blank" style="font-size:10px;color:var(--green);text-decoration:none;font-weight:600">${s.url} ↗</a>` : '<span style="font-size:10px;color:var(--text-faint)">Aggregated from multiple press sources</span>'}
+        </div>`).join('')}
+      </div>
+
+      <div style="font-size:11px;color:var(--text-faint);border-top:1px solid var(--border);padding-top:12px;line-height:1.7">
+        <strong>Update cadence:</strong> Company data refreshed quarterly as new accelerator cohorts and funding rounds are announced. Last updated April 2026. Data gaps: Private company funding is approximate; some pre-seed companies may have undisclosed rounds.
+      </div>`;
+    }
+
+    content = ciTabBar + ciContent;
+  }
+
+  return `<div class="page-hdr">
+    <h1>📊 Market Intelligence</h1>
+    <p>AgTech emerging sectors, growth trends, and opportunity analysis — grounded in 2025–2026 global data.</p>
+  </div>
+  <div style="background:var(--accent-bg);border:1px solid var(--green-mid);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+    <span style="font-size:20px">💡</span>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.5"><strong style="color:var(--green)">For you:</strong> ${personaHint[persona] || personaHint.founder}</div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <span style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);color:var(--text-muted)">April 2026</span>
+    <span style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);color:var(--text-muted)">Global scope</span>
+    <span style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);color:var(--text-muted)">9 sectors · ${AGTECH_COMPANIES.length} companies</span>
+    <span style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--green-mid);color:var(--green);font-weight:600">All personas</span>
+  </div>
+  ${tabBar}
+  ${content}`;
 }
 
 // ════════════════════════════════════════════════
@@ -6497,6 +7584,7 @@ function pgCropDetail(cropName){
 }
 
 function requestMentorIntro(mentorId){
+  trackEvent('mentor_intro_requested', { mentor_id: mentorId });
   const m = MENTORS.find(x=>x.id===mentorId);
   if(!m) return;
   if(!currentUser){
@@ -7107,7 +8195,7 @@ function pgVenture(){
                 <div><strong>Market Size:</strong> ${sub.marketSize}</div>
                 <div><strong>Background:</strong> ${sub.background}</div>
                 <div style="margin-top:12px">
-                  <button onclick="alert('Startup Kit generation coming soon — this will auto-generate a landing page, 1-pager, and business plan');event.stopPropagation()" style="padding:8px 16px;background:#16a34a;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px">Generate Startup Kit</button>
+                  <button onclick="alert('🔒 Startup Kit is available after selection into the venture studio program. Once your idea is reviewed and accepted, you\\'ll receive an auto-generated landing page, 1-pager, and business plan as part of your onboarding.');event.stopPropagation()" style="padding:8px 16px;background:${sub.status==='Accepted'?'#16a34a':'#64748b'};color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px;opacity:${sub.status==='Accepted'?1:0.7}">${sub.status==='Accepted'?'🚀 Generate Startup Kit':'🔒 Startup Kit (Post-Selection)'}</button>
                 </div>
               </div>
             </div>`;
@@ -7545,13 +8633,8 @@ function pgAccelerators(){
 
     const allRequirementsMet = completedCount === requiredCount && requiredCount > 0;
     let applySection = '';
-    if(allRequirementsMet){
-      applySection = '<div style="background:var(--card);border:2px solid #16a34a;border-radius:12px;padding:20px;margin-top:16px;text-align:center"><button onclick="trackProgram(' + a.id + ',\'applied\');render(\'accelerators\')" style="padding:14px 32px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px">🚀 Apply Now</button><div style="margin-top:12px;font-size:13px;color:var(--text-muted)">We\'ll help package your profile and prepare your application.</div></div>';
-    } else if(requiredCount > 0){
-      applySection = '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px"><div style="padding:12px;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;color:#92400e;font-size:13px;margin-bottom:12px"><strong>Missing ' + (requiredCount - completedCount) + ' requirement(s)</strong> — Visit your Application Profile to complete them.</div><button onclick="_accelTab=\'profile\';render(\'accelerators\')" style="width:100%;padding:12px 24px;background:var(--green);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">Complete Your Profile →</button></div>';
-    } else {
-      applySection = '<div style="background:var(--card);border:2px solid #16a34a;border-radius:12px;padding:20px;margin-top:16px;text-align:center"><button onclick="trackProgram(' + a.id + ',\'applied\');render(\'accelerators\')" style="padding:14px 32px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px">🚀 Apply Now</button></div>';
-    }
+    // Application flow is on hold pending founder feedback
+    applySection = '<div style="background:var(--card);border:2px solid #f59e0b;border-radius:12px;padding:24px;margin-top:16px;text-align:center"><div style="font-size:28px;margin-bottom:8px">⏸️</div><div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">Application Flow On Hold</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;max-width:480px;margin:0 auto">We\'re gathering feedback from founders to build the best application experience possible. In the meantime, explore programs and prepare your materials — you\'ll be ready when applications open.</div><div style="margin-top:14px;padding:10px 16px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:12px;color:#92400e;display:inline-block">📋 Complete the <strong>founding member questionnaire</strong> to help shape this feature</div></div>';
 
     const pmSection = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:20px"><div style="font-size:12px;font-weight:600;color:var(--text);text-transform:uppercase;margin-bottom:8px;opacity:0.7">For Program Managers</div><div style="padding:12px;background:#f0f9ff;border-left:4px solid #3b82f6;border-radius:4px;margin-bottom:12px"><div style="font-size:13px;color:#1e40af;line-height:1.5"><strong>FounderOps Center</strong> can be your application management platform. Pre-qualified applicants • Standardized profiles • Artifact verification • Pipeline tracking</div></div><button onclick="window.open(\'mailto:russellcolevop@gmail.com?subject=FounderOps Accelerator Program Dashboard\',\'_blank\')" style="width:100%;padding:10px 16px;background:#3b82f6;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px">📧 Contact Russell Cole</button></div>';
 
@@ -7766,7 +8849,7 @@ function pgAccelerators(){
         detailHtml += '<button onclick="window.open(\'' + eco.website + '\',\'_blank\')" style="padding:12px 20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer">🌐 Visit Website</button>';
       }
       if (isFounder && !isThisEcoManager) {
-        detailHtml += '<button onclick="alert(\'Application flow coming soon! For now, reach out directly to ' + eco.manager + ' or apply through their website.\')" style="padding:12px 20px;background:' + eco.color + ';border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;cursor:pointer">🚀 Apply to This Program</button>';
+        detailHtml += '<button onclick="alert(\'⏸️ Application flow is on hold while we gather founder feedback. In the meantime, reach out directly to ' + eco.manager + ' or apply through their website.\')" style="padding:12px 20px;background:#f59e0b;border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;cursor:pointer">⏸️ Applications On Hold — Contact Directly</button>';
       }
       if (!eco.claimed && (isEcoMgr || isAdmin)) {
         detailHtml += '<button onclick="ecoClaimPartner(\'' + eco.id + '\')" style="padding:12px 20px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;cursor:pointer">🔑 Claim as Manager</button>';
@@ -7959,6 +9042,7 @@ function revokeAdmin(email){
 function submitFeedback(){
   const type = (document.getElementById('fb-type')||{}).value || 'General Feedback';
   const msg = (document.getElementById('fb-msg')||{}).value || '';
+  trackEvent('feedback_submitted', { feedback_type: type, has_message: !!msg.trim() });
   if(!msg.trim()){ toast('Please write some feedback first'); return; }
   const fromName = currentUser ? currentUser.name : 'Guest';
   const fromEmail = currentUser ? currentUser.email : 'Anonymous';
@@ -8469,8 +9553,12 @@ const INTRO_LIMITS = {
   explorer: 1,  // 1 intro per month — forces engagement to unlock more
   builder: 3,
   operator: 6,
-  leader: 12
+  leader: 12,
+  founding_member: 10  // Permanent founding member perk
 };
+
+// Intro network launches when this many members join
+const INTRO_LAUNCH_THRESHOLD = 50;
 
 // ── NOTIFICATIONS ────────────────────────────────────────────────
 function getNotifications() {
@@ -9370,7 +10458,14 @@ async function wizSave() {
   }
   if (_isNewEcoManager) {
     setTimeout(() => openModal('eco-bridge-modal'), 800);
+    // Show founding questionnaire after eco-bridge closes
+    setTimeout(() => { if(!document.getElementById('eco-bridge-modal')?.classList.contains('open')) openFoundingQuestionnaire(cleanProfile.persona); }, 5000);
+  } else if (_wizPreviewMode !== 'preview' && _wizPreviewMode !== 'create') {
+    // Show founding member questionnaire after a brief pause
+    setTimeout(() => { _fqStep = -1; openFoundingQuestionnaire(cleanProfile.persona); }, 1500);
   }
+  // Track onboarding completion
+  trackEvent('onboarding_completed', { persona: cleanProfile.persona, location: cleanProfile.location });
   // Show profile nav + My Tools section
   const pbtn = document.getElementById('nav-profile-btn');
   if (pbtn) pbtn.style.display = 'flex';
@@ -9569,6 +10664,34 @@ function pgProfile() {
       </div>
     </div>
     <div style="display:flex;gap:4px;margin-bottom:14px">${TIER_DEFS.map(t => `<div style="flex:1;height:6px;border-radius:3px;background:${allBadges.length >= t.min ? t.color : 'var(--hover)'};transition:background .3s"></div>`).join('')}</div>
+    <details style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+      <summary style="padding:10px 14px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted);background:var(--surface)">ℹ️ What do the tiers mean?</summary>
+      <div style="padding:14px;font-size:12px;line-height:1.6">
+        <div style="display:grid;gap:10px">
+          ${TIER_DEFS.map(t => `<div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="font-size:16px;line-height:1">${t.icon}</span>
+            <div>
+              <span style="font-weight:700;color:${t.color}">${t.label}</span>
+              <span style="color:var(--text-faint)"> (${t.min}+ badges)</span>
+              <div style="color:var(--text-muted);font-size:11px;margin-top:2px">${
+                t.id === 'explorer' ? 'Just getting started. Complete your profile and explore the ecosystem. 1 intro/month.' :
+                t.id === 'builder' ? 'Actively building your network. Engaged with the platform and earning badges. 3 intros/month.' :
+                t.id === 'operator' ? 'A power user driving real ecosystem value. 6 intros/month.' :
+                'Top-tier contributor and ecosystem leader. Maximum influence and 12 intros/month.'
+              }</div>
+            </div>
+          </div>`).join('')}
+          <div style="display:flex;align-items:flex-start;gap:10px;padding-top:8px;border-top:1px solid var(--border)">
+            <span style="font-size:16px;line-height:1">⭐</span>
+            <div>
+              <span style="font-weight:700;color:var(--green)">Founding Member</span>
+              <span style="color:var(--text-faint)"> (early adopter)</span>
+              <div style="color:var(--text-muted);font-size:11px;margin-top:2px">Permanent perk for early supporters. 10 intros/month + exclusive badge. Complete the founding member questionnaire to claim.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
     <h4 style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">Badges</h4>
     ${badgesGridHtml(allBadges, p.persona)}
   </div>
@@ -9778,8 +10901,8 @@ function pgAdmin(){
   const pendingVenture = _ventureSubmissions.filter(v => v.status === 'New' || v.status === 'Under Review').length;
   const ecoClaimsBadge = pendingClaims + pendingListings;
   const adminTabBar = (active) => `<div class="admin-tab-bar" style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border);flex-wrap:wrap;overflow-x:auto;-webkit-overflow-scrolling:touch">
-    ${['directory','connections','deals','venture_studio','eco_claims','roadmap','investor'].map(t => {
-      const labels = {directory:'👥 User Directory', connections:'🧠 Smart Connections', deals:'📈 Deal Manager', venture_studio:'🚀 Venture Studio' + (pendingVenture > 0 ? ' (' + pendingVenture + ')' : ''), eco_claims:'🏗️ Ecosystems' + (ecoClaimsBadge > 0 ? ' (' + ecoClaimsBadge + ')' : ''), roadmap:'🗺️ Product Roadmap', investor:'💼 Investor Opportunity'};
+    ${['directory','connections','deals','venture_studio','eco_claims','roadmap','investor','analytics'].map(t => {
+      const labels = {directory:'👥 User Directory', connections:'🧠 Smart Connections', deals:'📈 Deal Manager', venture_studio:'🚀 Venture Studio' + (pendingVenture > 0 ? ' (' + pendingVenture + ')' : ''), eco_claims:'🏗️ Ecosystems' + (ecoClaimsBadge > 0 ? ' (' + ecoClaimsBadge + ')' : ''), roadmap:'🗺️ Product Roadmap', investor:'💼 Investor Opportunity', analytics:'📊 Analytics'};
       const isActive = active === t;
       return `<button onclick="adminTab='${t}';render('admin')" style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:${isActive?'var(--green)':'var(--text-muted)'};border-bottom:2px solid ${isActive?'var(--green)':'transparent'};margin-bottom:-2px">${labels[t]}</button>`;
     }).join('')}
@@ -10251,6 +11374,12 @@ function pgAdmin(){
     ${adminTabBar('investor')}` + pgInvestorOpportunity();
   }
 
+  if (adminTab === 'analytics') {
+    return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
+    <p>Behavioral analytics, survey responses, and engagement insights.</p></div>
+    ${adminTabBar('analytics')}` + pgAnalytics();
+  }
+
   return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1>
   <p>Ecosystem intelligence — see who's using the platform and make great connections.</p></div>
 
@@ -10321,6 +11450,334 @@ function adminExportCSV() {
   a.download = 'agtech_users_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
   toast('📥 CSV exported with ' + profiles.length + ' users');
+}
+
+// ══════════════════════════════════════════════════════════════
+// ANALYTICS & SURVEY ADMIN PANEL
+// ══════════════════════════════════════════════════════════════
+let _surveyResponses = [];
+let _analyticsData = [];
+let _analyticsLoaded = false;
+let _analyticsSubTab = 'overview'; // overview | surveys | events | engagement
+
+async function loadAnalyticsData() {
+  if (_analyticsLoaded) return;
+  try {
+    const [surveyRes, eventsRes] = await Promise.all([
+      supabase.from('founding_member_survey').select('*').order('completed_at', { ascending: false }),
+      supabase.from('analytics_events').select('*').order('timestamp', { ascending: false }).limit(500)
+    ]);
+    if (surveyRes.data) _surveyResponses = surveyRes.data;
+    if (eventsRes.data) _analyticsData = eventsRes.data;
+    _analyticsLoaded = true;
+  } catch(e) { console.warn('Analytics load failed:', e); }
+}
+
+function pgAnalytics() {
+  // Trigger async load, re-render when done
+  if (!_analyticsLoaded) {
+    loadAnalyticsData().then(() => render('admin'));
+    return `<div class="card" style="text-align:center;padding:40px"><div class="loading-spinner" style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div><p style="color:var(--text-muted)">Loading analytics data...</p></div>`;
+  }
+
+  const surveys = _surveyResponses;
+  const events = _analyticsData;
+
+  // Compute overview stats
+  const totalEvents = events.length;
+  const uniqueSessions = [...new Set(events.map(e => e.session_id))].length;
+  const uniqueUsers = [...new Set(events.map(e => e.user_id).filter(u => u !== 'anon'))].length;
+  const surveyCount = surveys.length;
+
+  // Event type breakdown
+  const eventCounts = {};
+  events.forEach(e => { eventCounts[e.event] = (eventCounts[e.event] || 0) + 1; });
+  const sortedEvents = Object.entries(eventCounts).sort((a,b) => b[1] - a[1]);
+
+  // Persona breakdown from surveys
+  const personaCounts = {};
+  surveys.forEach(s => { personaCounts[s.persona] = (personaCounts[s.persona] || 0) + 1; });
+
+  // Page view breakdown
+  const pageViews = {};
+  events.filter(e => e.event === 'page_view').forEach(e => { pageViews[e.page] = (pageViews[e.page] || 0) + 1; });
+  const sortedPages = Object.entries(pageViews).sort((a,b) => b[1] - a[1]);
+
+  // Recent events (last 24h)
+  const now = Date.now();
+  const last24h = events.filter(e => (now - new Date(e.timestamp).getTime()) < 86400000).length;
+  const last7d = events.filter(e => (now - new Date(e.timestamp).getTime()) < 604800000).length;
+
+  // Sub-tab navigation
+  const subTabs = [
+    { key: 'overview', label: '📈 Overview' },
+    { key: 'surveys', label: '📋 Survey Responses (' + surveyCount + ')' },
+    { key: 'events', label: '⚡ Event Log (' + totalEvents + ')' },
+    { key: 'engagement', label: '🎯 Engagement' }
+  ];
+  const subTabBar = `<div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)">
+    ${subTabs.map(t => `<button onclick="_analyticsSubTab='${t.key}';render('admin')" style="padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:${_analyticsSubTab===t.key?'var(--green)':'var(--text-muted)'};border-bottom:2px solid ${_analyticsSubTab===t.key?'var(--green)':'transparent'};margin-bottom:-1px">${t.label}</button>`).join('')}
+    <button onclick="_analyticsLoaded=false;render('admin')" style="margin-left:auto;padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--hover);border-radius:6px;color:var(--text-muted)">↻ Refresh</button>
+  </div>`;
+
+  // ── OVERVIEW SUB-TAB ──
+  if (_analyticsSubTab === 'overview') {
+    return `${subTabBar}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+      <div class="admin-mini-stat"><div class="ams-val">${totalEvents}</div><div class="ams-lbl">Total Events</div></div>
+      <div class="admin-mini-stat"><div class="ams-val">${uniqueSessions}</div><div class="ams-lbl">Sessions</div></div>
+      <div class="admin-mini-stat"><div class="ams-val">${uniqueUsers}</div><div class="ams-lbl">Unique Users</div></div>
+      <div class="admin-mini-stat"><div class="ams-val">${surveyCount}</div><div class="ams-lbl">Surveys Done</div></div>
+      <div class="admin-mini-stat"><div class="ams-val">${last24h}</div><div class="ams-lbl">Events (24h)</div></div>
+      <div class="admin-mini-stat"><div class="ams-val">${last7d}</div><div class="ams-lbl">Events (7d)</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <h3 style="margin-top:0;font-size:14px">⚡ Event Breakdown</h3>
+        ${sortedEvents.length ? sortedEvents.map(([ev, count]) => {
+          const pct = totalEvents ? Math.round(count / totalEvents * 100) : 0;
+          const icons = { page_view:'📄', intro_requested:'🤝', feedback_submitted:'💬', onboarding_completed:'🎓', founding_survey_completed:'📋', mentor_intro_requested:'🧭', intro_blocked_pause:'⏸️' };
+          return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:14px">${icons[ev]||'📊'}</span>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                <span style="font-size:12px;font-weight:600;color:var(--text)">${ev.replace(/_/g,' ')}</span>
+                <span style="font-size:11px;color:var(--text-muted)">${count} (${pct}%)</span>
+              </div>
+              <div style="height:4px;background:var(--hover);border-radius:2px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:var(--green);border-radius:2px"></div>
+              </div>
+            </div>
+          </div>`;
+        }).join('') : '<div style="color:var(--text-faint);text-align:center;padding:20px">No events recorded yet</div>'}
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;font-size:14px">📄 Top Pages</h3>
+        ${sortedPages.length ? sortedPages.slice(0, 12).map(([pg, count], i) => {
+          const maxCount = sortedPages[0][1];
+          const pct = maxCount ? Math.round(count / maxCount * 100) : 0;
+          return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:11px;color:var(--text-faint);width:18px;text-align:right">${i+1}.</span>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                <span style="font-size:12px;font-weight:600;color:var(--text)">${pg}</span>
+                <span style="font-size:11px;color:var(--text-muted)">${count} views</span>
+              </div>
+              <div style="height:4px;background:var(--hover);border-radius:2px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:#3b82f6;border-radius:2px"></div>
+              </div>
+            </div>
+          </div>`;
+        }).join('') : '<div style="color:var(--text-faint);text-align:center;padding:20px">No page views yet</div>'}
+      </div>
+    </div>
+
+    ${surveys.length ? `<div class="card" style="margin-top:16px">
+      <h3 style="margin-top:0;font-size:14px">📋 Survey Respondents by Persona</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        ${Object.entries(personaCounts).map(([p, c]) => `<div style="padding:10px 16px;background:var(--accent-bg);border:1px solid var(--green-mid);border-radius:8px">
+          <div style="font-size:18px;font-weight:800;color:var(--green)">${c}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${personaLabel(p)}</div>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}`;
+  }
+
+  // ── SURVEYS SUB-TAB ──
+  if (_analyticsSubTab === 'surveys') {
+    if (!surveys.length) {
+      return `${subTabBar}<div class="card" style="text-align:center;padding:40px;color:var(--text-faint)"><div style="font-size:36px;margin-bottom:12px">📋</div><p>No founding member surveys completed yet.</p><p style="font-size:12px">When users complete the post-onboarding questionnaire, their responses will appear here.</p></div>`;
+    }
+
+    return `${subTabBar}
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0;font-size:14px">📋 Founding Member Survey Responses (${surveys.length})</h3>
+        <button onclick="exportSurveyCSV()" style="padding:6px 14px;background:var(--accent-bg);color:var(--green);border:1px solid var(--green-mid);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">↓ Export CSV</button>
+      </div>
+      ${surveys.map((s, idx) => {
+        const answers = s.answers || {};
+        const qCount = Object.keys(answers).length;
+        const date = new Date(s.completed_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+        const profile = _allProfiles.find(p => p.id === s.user_id);
+        const name = profile?.full_name || s.email || 'Unknown User';
+        return `<details style="margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden" ${idx === 0 ? 'open' : ''}>
+          <summary style="padding:14px 18px;cursor:pointer;background:var(--surface);display:flex;align-items:center;gap:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--green-mid);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;flex-shrink:0">${(name.charAt(0)||'?').toUpperCase()}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:13px;color:var(--text)">${name}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${personaLabel(s.persona)} · ${qCount} answers · ${date}</div>
+            </div>
+            <span style="padding:3px 10px;background:var(--accent-bg);color:var(--green);border-radius:6px;font-size:10px;font-weight:700;flex-shrink:0">FOUNDING MEMBER</span>
+          </summary>
+          <div style="padding:16px 18px;background:var(--bg)">
+            ${Object.entries(answers).map(([q, a]) => `<div style="margin-bottom:14px">
+              <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:4px;text-transform:uppercase">${q.replace(/_/g,' ')}</div>
+              <div style="font-size:13px;color:var(--text);line-height:1.5;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px">${(a||'—').toString().replace(/</g,'&lt;')}</div>
+            </div>`).join('')}
+          </div>
+        </details>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // ── EVENTS SUB-TAB ──
+  if (_analyticsSubTab === 'events') {
+    const recentEvents = events.slice(0, 100);
+    return `${subTabBar}
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0;font-size:14px">⚡ Recent Events (showing ${recentEvents.length} of ${events.length})</h3>
+        <button onclick="exportAnalyticsCSV()" style="padding:6px 14px;background:var(--accent-bg);color:var(--green);border:1px solid var(--green-mid);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">↓ Export CSV</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--surface);border-bottom:2px solid var(--border)">
+              <th style="padding:10px 12px;text-align:left;font-weight:700;color:var(--text-muted)">Time</th>
+              <th style="padding:10px 12px;text-align:left;font-weight:700;color:var(--text-muted)">Event</th>
+              <th style="padding:10px 12px;text-align:left;font-weight:700;color:var(--text-muted)">Persona</th>
+              <th style="padding:10px 12px;text-align:left;font-weight:700;color:var(--text-muted)">Page</th>
+              <th style="padding:10px 12px;text-align:left;font-weight:700;color:var(--text-muted)">Session</th>
+              <th style="padding:10px 12px;text-align:left;font-weight:700;color:var(--text-muted)">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${recentEvents.map(e => {
+              const t = new Date(e.timestamp);
+              const timeStr = t.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + t.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+              const details = Object.entries(e).filter(([k]) => !['event','user_id','persona','timestamp','page','session_id','id','created_at'].includes(k)).map(([k,v]) => `${k}:${v}`).join(', ');
+              const icons = { page_view:'📄', intro_requested:'🤝', feedback_submitted:'💬', onboarding_completed:'🎓', founding_survey_completed:'📋', mentor_intro_requested:'🧭', intro_blocked_pause:'⏸️' };
+              return `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:8px 12px;color:var(--text-muted);white-space:nowrap">${timeStr}</td>
+                <td style="padding:8px 12px;font-weight:600;color:var(--text)">${icons[e.event]||'📊'} ${e.event.replace(/_/g,' ')}</td>
+                <td style="padding:8px 12px;color:var(--text-muted)">${personaLabel(e.persona)}</td>
+                <td style="padding:8px 12px;color:var(--text-muted)">${e.page || '—'}</td>
+                <td style="padding:8px 12px;color:var(--text-faint);font-family:monospace;font-size:10px">${(e.session_id||'').slice(0,12)}</td>
+                <td style="padding:8px 12px;color:var(--text-faint);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${details || '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  // ── ENGAGEMENT SUB-TAB ──
+  if (_analyticsSubTab === 'engagement') {
+    // Compute per-user engagement metrics
+    const userEvents = {};
+    events.forEach(e => {
+      if (e.user_id === 'anon') return;
+      if (!userEvents[e.user_id]) userEvents[e.user_id] = { events: 0, sessions: new Set(), pages: new Set(), intros: 0, feedbacks: 0, first: e.timestamp, last: e.timestamp };
+      const u = userEvents[e.user_id];
+      u.events++;
+      u.sessions.add(e.session_id);
+      if (e.page) u.pages.add(e.page);
+      if (e.event === 'intro_requested') u.intros++;
+      if (e.event === 'feedback_submitted') u.feedbacks++;
+      if (e.timestamp < u.first) u.first = e.timestamp;
+      if (e.timestamp > u.last) u.last = e.timestamp;
+    });
+
+    const engagedUsers = Object.entries(userEvents).map(([uid, data]) => {
+      const profile = _allProfiles.find(p => p.id === uid);
+      return { uid, name: profile?.full_name || uid.slice(0,8), persona: profile?.persona, events: data.events, sessions: data.sessions.size, pages: data.pages.size, intros: data.intros, feedbacks: data.feedbacks, first: data.first, last: data.last };
+    }).sort((a,b) => b.events - a.events);
+
+    // Funnel: onboarding → survey → intro request
+    const onboarded = events.filter(e => e.event === 'onboarding_completed').length;
+    const surveyed = surveys.length;
+    const introReqs = events.filter(e => e.event === 'intro_requested').length;
+    const mentorReqs = events.filter(e => e.event === 'mentor_intro_requested').length;
+    const feedbacks = events.filter(e => e.event === 'feedback_submitted').length;
+
+    return `${subTabBar}
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0;font-size:14px">🔄 User Funnel</h3>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        ${[
+          { label:'Onboarded', val: onboarded, color:'#3b82f6' },
+          { label:'Survey Done', val: surveyed, color:'#8b5cf6' },
+          { label:'Intro Requested', val: introReqs, color:'#10b981' },
+          { label:'Mentor Requested', val: mentorReqs, color:'#f59e0b' },
+          { label:'Feedback Given', val: feedbacks, color:'#ef4444' }
+        ].map((step, i, arr) => {
+          const pct = i > 0 && arr[i-1].val > 0 ? Math.round(step.val / arr[0].val * 100) : (i === 0 ? 100 : 0);
+          return `<div style="flex:1;min-width:100px;text-align:center">
+            <div style="font-size:24px;font-weight:800;color:${step.color}">${step.val}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">${step.label}</div>
+            <div style="font-size:10px;color:var(--text-faint)">${i > 0 ? pct + '% of onboarded' : ''}</div>
+          </div>${i < arr.length - 1 ? '<div style="font-size:18px;color:var(--text-faint)">→</div>' : ''}`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;font-size:14px">🏆 Most Engaged Users (${engagedUsers.length})</h3>
+      ${engagedUsers.length ? `<div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--surface);border-bottom:2px solid var(--border)">
+              <th style="padding:10px 12px;text-align:left;font-weight:700;color:var(--text-muted)">#</th>
+              <th style="padding:10px 12px;text-align:left;font-weight:700;color:var(--text-muted)">User</th>
+              <th style="padding:10px 12px;text-align:center;font-weight:700;color:var(--text-muted)">Events</th>
+              <th style="padding:10px 12px;text-align:center;font-weight:700;color:var(--text-muted)">Sessions</th>
+              <th style="padding:10px 12px;text-align:center;font-weight:700;color:var(--text-muted)">Pages</th>
+              <th style="padding:10px 12px;text-align:center;font-weight:700;color:var(--text-muted)">Intros</th>
+              <th style="padding:10px 12px;text-align:center;font-weight:700;color:var(--text-muted)">Feedback</th>
+              <th style="padding:10px 12px;text-align:left;font-weight:700;color:var(--text-muted)">Last Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${engagedUsers.slice(0, 25).map((u, i) => {
+              const lastDate = new Date(u.last).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+              return `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:8px 12px;color:var(--text-faint)">${i+1}</td>
+                <td style="padding:8px 12px;font-weight:600;color:var(--text)">${u.name} <span style="font-size:10px;color:var(--text-faint)">${personaLabel(u.persona)}</span></td>
+                <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--green)">${u.events}</td>
+                <td style="padding:8px 12px;text-align:center;color:var(--text-muted)">${u.sessions}</td>
+                <td style="padding:8px 12px;text-align:center;color:var(--text-muted)">${u.pages}</td>
+                <td style="padding:8px 12px;text-align:center;color:var(--text-muted)">${u.intros}</td>
+                <td style="padding:8px 12px;text-align:center;color:var(--text-muted)">${u.feedbacks}</td>
+                <td style="padding:8px 12px;color:var(--text-muted)">${lastDate}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>` : '<div style="text-align:center;padding:30px;color:var(--text-faint)">No user engagement data yet</div>'}
+    </div>`;
+  }
+
+  return subTabBar + '<div class="card" style="text-align:center;padding:30px;color:var(--text-faint)">Select a sub-tab to view analytics data.</div>';
+}
+
+function exportSurveyCSV() {
+  if (!_surveyResponses.length) { toast('No survey data to export'); return; }
+  const headers = ['User ID','Email','Persona','Completed At','Answers'];
+  const rows = _surveyResponses.map(s => [
+    s.user_id, s.email, s.persona, s.completed_at, JSON.stringify(s.answers || {})
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'founding_member_surveys_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('📥 Exported ' + _surveyResponses.length + ' survey responses');
+}
+
+function exportAnalyticsCSV() {
+  if (!_analyticsData.length) { toast('No analytics data to export'); return; }
+  const headers = ['Timestamp','Event','User ID','Persona','Page','Session ID'];
+  const rows = _analyticsData.map(e => [e.timestamp, e.event, e.user_id, e.persona, e.page, e.session_id]);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'analytics_events_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('📥 Exported ' + _analyticsData.length + ' events');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -10438,7 +11895,7 @@ function pgRoadmap() {
       </div>
       <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
         <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">🚀 Venture Studio Pipeline Deepening</div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Admin review queue with automated Startup Kit generation (landing page, 1-pager, business plan). Mentor matching for accepted ideas. Progress tracking from idea → validated → funded. Turn the submission flow into a full venture builder.</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Admin review queue with Startup Kit generation for selected startups (landing page, 1-pager, business plan — unlocked post-selection gate). Mentor matching for accepted ideas. Progress tracking from idea → validated → funded. Full venture builder pipeline.</div>
       </div>
       <div style="padding:14px;background:var(--hover);border-radius:10px;border:1px solid var(--border)">
         <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px">💬 Community Hub & Engagement</div>
@@ -11166,6 +12623,8 @@ function getIntroCountThisMonth(userId) {
 }
 
 function getUserTier(profile) {
+  // Founding members get permanent elevated tier
+  if (profile.tier === 'founding_member' || (profile.badges || []).includes('founding_member')) return 'founding_member';
   // Use existing tier logic from TIER_DEFS
   const badges = (profile.badges || []).length;
   let tier = 'explorer';
@@ -11351,12 +12810,25 @@ function connDiscoverTab(p, pauseStatus) {
   const matchedNotRequested = matches.filter(m => !existingPairs.has([p.id, m.other.id].sort().join('|')) && m.meetsOtherPref);
   const tierGated = matches.filter(m => !m.meetsOtherPref && !existingPairs.has([p.id, m.other.id].sort().join('|')));
 
+  // Launch threshold gate banner
+  const totalMembers = _allProfiles.length;
+  const introNetworkLive = totalMembers >= INTRO_LAUNCH_THRESHOLD;
+  const launchBanner = !introNetworkLive ? `<div style="background:linear-gradient(135deg,#0f172a,#1e293b);border:1px solid var(--green-mid);border-radius:12px;padding:20px;margin-bottom:18px;text-align:center">
+    <div style="font-size:24px;margin-bottom:8px">🚀</div>
+    <div style="font-size:15px;font-weight:800;color:white;margin-bottom:6px">Intro Network Launches at ${INTRO_LAUNCH_THRESHOLD} Members</div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:12px">${totalMembers} of ${INTRO_LAUNCH_THRESHOLD} members joined — ${INTRO_LAUNCH_THRESHOLD - totalMembers} more to go!</div>
+    <div style="height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;max-width:300px;margin:0 auto 12px">
+      <div style="height:100%;width:${Math.round(totalMembers/INTRO_LAUNCH_THRESHOLD*100)}%;background:var(--green);border-radius:4px;transition:width 0.3s"></div>
+    </div>
+    <div style="font-size:11px;color:#64748b">Share the platform to unlock introductions sooner. Founding members get <strong style="color:var(--green)">10 intros/month</strong> permanently.</div>
+  </div>` : '';
+
   // Stat bar
-  const statsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px">
+  const statsHtml = `${launchBanner}<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
-      <div style="font-size:22px;font-weight:800;color:${remainingIntros > 0 ? 'var(--green)' : '#ef4444'}">${remainingIntros}</div>
-      <div style="font-size:11px;color:var(--text-muted);font-weight:600">Remaining Intros</div>
-      <div style="font-size:9px;color:var(--text-faint);margin-top:2px">${introCountThisMonth} of ${introLimit} used</div>
+      <div style="font-size:22px;font-weight:800;color:${remainingIntros > 0 ? 'var(--green)' : '#ef4444'}">${introNetworkLive ? remainingIntros : '🔒'}</div>
+      <div style="font-size:11px;color:var(--text-muted);font-weight:600">${introNetworkLive ? 'Remaining Intros' : 'Intros Locked'}</div>
+      <div style="font-size:9px;color:var(--text-faint);margin-top:2px">${introNetworkLive ? introCountThisMonth + ' of ' + introLimit + ' used' : 'Launches at ' + INTRO_LAUNCH_THRESHOLD + ' members'}</div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
       <div style="font-size:22px;font-weight:800;color:#f59e0b">${pendingBothAccept.length}</div>
@@ -11625,8 +13097,19 @@ function setOutcomeStars(introId, val) {
 }
 
 async function requestIntro(otherId, score, reasons) {
+  trackEvent('intro_requested', { target_id: otherId, match_score: score, reasons });
+
+  // Check if intro network has launched (member threshold gate)
+  const totalMembers = _allProfiles.length;
+  if (totalMembers < INTRO_LAUNCH_THRESHOLD) {
+    trackEvent('intro_blocked_threshold', { total_members: totalMembers, threshold: INTRO_LAUNCH_THRESHOLD });
+    const remaining = INTRO_LAUNCH_THRESHOLD - totalMembers;
+    toast(`🚀 Intro network launches at ${INTRO_LAUNCH_THRESHOLD} members — ${remaining} more to go! Invite others to unlock.`);
+    return;
+  }
+
   const pause = getIntroPauseStatus(_userProfile);
-  if (pause.paused) { toast('⏸️ Complete pending outcome reports first'); return; }
+  if (pause.paused) { trackEvent('intro_blocked_pause'); toast('⏸️ Complete pending outcome reports first'); return; }
 
   const other = _allProfiles.find(p => p.id === otherId);
   if (!other) return;
@@ -14204,7 +15687,7 @@ function pgEcosystemWorkspace() {
 
 const pages = {
   overview: pgOverview, segments: pgSegments, journey: pgJourney, glossary: pgGlossary,
-  documents: pgDocuments, media: pgMedia, ecosystem: pgEcosystem,
+  documents: pgDocuments, media: pgMedia, ecosystem: pgEcosystem, market_intel: pgMarketIntel,
   crops: pgCrops, mentors: pgMentors, accelerators: pgAccelerators, venture: pgVenture, resources: pgResources,
   admin: pgAdmin, profile: pgProfile, roadmap: pgRoadmapStandalone,
   connections: pgUserConnections, hub: pgCommunityHub, action: pgActionCenter,
@@ -14214,7 +15697,7 @@ const pages = {
 // Pages guests can see in full
 const GUEST_PAGES = ['overview'];
 // Pages guests get a teaser of (show top portion blurred)
-const TEASER_PAGES = ['ecosystem', 'journey', 'glossary'];
+const TEASER_PAGES = ['ecosystem', 'journey', 'glossary', 'market_intel'];
 
 function render(page){
   trackPage(page);
@@ -14250,7 +15733,7 @@ function render(page){
 }
 
 function guestGateCard(page) {
-  const pageNames = {overview:'Global AgTech Overview',journey:"Founder's Journey",glossary:'AgTech Glossary',documents:'Founder Toolkit',media:'Media & Influencers',ecosystem:'Ecosystem Overview',segments:'Industry Segments',crops:'Crop Markets',resources:'Resources & Support'};
+  const pageNames = {overview:'Global AgTech Overview',journey:"Founder's Journey",glossary:'AgTech Glossary',documents:'Founder Toolkit',media:'Media & Influencers',ecosystem:'Ecosystem Overview',market_intel:'Market Intelligence',segments:'Industry Segments',crops:'Crop Markets',resources:'Resources & Support'};
   const pageName = pageNames[page] || 'this section';
   return `<div style="text-align:center;padding:60px 24px;max-width:480px;margin:0 auto">
     <div style="width:64px;height:64px;background:var(--accent-bg);border:2px solid var(--green-mid);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px">🔒</div>
@@ -14274,7 +15757,7 @@ restoreTheme(); // Restore theme immediately before async auth check
     document.querySelector('.fab').style.display = '';
     applyUser(session.user, false);
     const savedPage = (() => { try { return localStorage.getItem('foc-page'); } catch(e){ return null; } })();
-    const validPages = ['overview','segments','resources','journey','documents','admin','roadmap','glossary','media','ecosystem','crops','mentors','accelerators','venture','profile','connections','hub','action','investor','ecosystem_ws'];
+    const validPages = ['overview','segments','resources','journey','documents','admin','roadmap','glossary','media','ecosystem','market_intel','crops','mentors','accelerators','venture','profile','connections','hub','action','investor','ecosystem_ws'];
     const startPage = savedPage && validPages.includes(savedPage) ? savedPage : 'overview';
     currentPage = startPage;
     render(startPage);
