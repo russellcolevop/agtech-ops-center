@@ -1373,6 +1373,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
     applyUser(session.user, event === 'SIGNED_IN');
   } else if (event === 'SIGNED_OUT') {
     currentUser = null; isAdmin = false; _userProfile = null; _allProfiles = [];
+    _userWorkspaces = []; _activeWorkspaceId = null;
     const btn = document.getElementById('topbar-user-btn');
     if (btn) { btn.textContent = '→ Sign In'; btn.onclick = () => openModal('signin-modal'); }
     // Hide profile/admin/roadmap nav buttons
@@ -1403,7 +1404,8 @@ function applyUser(user, isNew) {
   const name = user.user_metadata?.full_name || email.split('@')[0];
   const avatar = user.user_metadata?.avatar_url || null;
   currentUser = { id: user.id, email, name, avatar, method: 'google' };
-  isAdmin = isUserAdmin(email);
+  // isAdmin is determined from profiles.is_platform_admin, set after profile loads.
+  isAdmin = false;
 
   // Hide landing page if showing
   hideLanding();
@@ -1488,6 +1490,9 @@ function applyUser(user, isNew) {
     }
 
     _userProfile = profile;
+    isAdmin = !!(profile && profile.is_platform_admin === true);
+    // Load the workspaces this user is an active member of (Supabase source of truth).
+    await loadUserWorkspaces();
     if (profile && profile.blocked) {
       showBlockedScreen();
       return;
@@ -9457,18 +9462,85 @@ function toggleSeg(id){
   openModal('seg-modal');
 }
 
-// ── USER TRACKING (localStorage — swaps to Supabase on launch) ────
-const RUSSELL_EMAIL = 'russellcolevop@gmail.com';
-const ADMIN_EMAILS = ['russellcolevop@gmail.com'];
+// ── USER TRACKING ─────────────────────────
+// Platform admin state now lives in Supabase (profiles.is_platform_admin).
+// Workspaces live in public.workspaces + public.workspace_members.
+const RUSSELL_EMAIL = 'russellcolevop@gmail.com'; // root-owner protection only
 let currentUser = null;
 let isAdmin = false;
 let sessionPageViews = [];
 let _assumedUser = null; // admin impersonation state
+let _userWorkspaces = []; // [{id, slug, name, workspace_type, owner_id, role, status}]
+let _activeWorkspaceId = null;
 
 function getLogins(){ return JSON.parse(localStorage.getItem('agtech_logins')||'[]'); }
 function saveLogins(l){ localStorage.setItem('agtech_logins', JSON.stringify(l)); }
-function getApprovedAdmins(){ return [...ADMIN_EMAILS, ...JSON.parse(localStorage.getItem('agtech_admin_list')||'[]')]; }
-function isUserAdmin(email){ return getApprovedAdmins().includes(email); }
+
+// Platform-admin check reads from the current user's loaded profile.
+// Called synchronously across the UI, so it falls back to false when _userProfile
+// hasn't loaded yet; the login flow re-evaluates `isAdmin` after the profile fetch.
+function isUserAdmin(_emailIgnored){
+  if (_userProfile && _userProfile.is_platform_admin === true) return true;
+  // Legacy safety net: locally-approved admins (ops-only, persists across reloads).
+  try {
+    const legacy = JSON.parse(localStorage.getItem('agtech_admin_list')||'[]');
+    if (currentUser && legacy.includes(currentUser.email)) return true;
+  } catch(e){}
+  return false;
+}
+
+// Workspace helpers
+function hasWorkspaceAccess(workspaceType){
+  if (!_userWorkspaces || _userWorkspaces.length === 0) return false;
+  if (!workspaceType) return _userWorkspaces.some(w => w.status === 'active');
+  return _userWorkspaces.some(w => w.status === 'active' && w.workspace_type === workspaceType);
+}
+function isWorkspaceMember(workspaceId){
+  return !!(_userWorkspaces||[]).find(w => w.id === workspaceId && w.status === 'active');
+}
+function getActiveWorkspace(){
+  if (!_userWorkspaces || _userWorkspaces.length === 0) return null;
+  if (_activeWorkspaceId) {
+    const w = _userWorkspaces.find(x => x.id === _activeWorkspaceId);
+    if (w) return w;
+  }
+  // Default: first ecosystem workspace, else first workspace
+  return _userWorkspaces.find(w => w.workspace_type === 'ecosystem') || _userWorkspaces[0];
+}
+function getActiveWorkspaceId(){
+  const w = getActiveWorkspace();
+  return w ? w.id : null;
+}
+
+// Loads all workspaces the current user is an active member of.
+// Called from the login flow right after _userProfile is fetched.
+async function loadUserWorkspaces(){
+  _userWorkspaces = [];
+  _activeWorkspaceId = null;
+  if (!currentUser || !_supabase) return;
+  try {
+    const { data, error } = await _supabase
+      .from('workspace_members')
+      .select('role, status, workspace_id, workspaces:workspaces!inner(id, slug, name, workspace_type, owner_id, email_domain, description)')
+      .eq('user_id', currentUser.id)
+      .eq('status', 'active');
+    if (error) { console.warn('loadUserWorkspaces error', error); return; }
+    _userWorkspaces = (data||[]).map(row => ({
+      id: row.workspaces.id,
+      slug: row.workspaces.slug,
+      name: row.workspaces.name,
+      workspace_type: row.workspaces.workspace_type,
+      owner_id: row.workspaces.owner_id,
+      email_domain: row.workspaces.email_domain,
+      description: row.workspaces.description,
+      role: row.role,
+      status: row.status,
+    }));
+    if (_userWorkspaces.length > 0) _activeWorkspaceId = (getActiveWorkspace()||{}).id || null;
+  } catch(e) {
+    console.warn('loadUserWorkspaces threw', e);
+  }
+}
 
 // ── DYNAMIC ECOSYSTEM MANAGER ACCESS ─────────────────────────
 // Tracks which users have claimed/been approved as ecosystem managers
@@ -9970,8 +10042,21 @@ async function nukeTestUser() {
   const email = prompt('Enter the email of the test user to completely remove from the platform:\n\n(This deletes their profile row so they can sign up fresh)');
   if (!email || !email.trim()) return;
   const cleanEmail = email.trim().toLowerCase();
-  if (ADMIN_EMAILS.includes(cleanEmail) || isClaimedEcoManager(cleanEmail)) {
-    toast('❌ Cannot nuke protected accounts (admin or active ecosystem manager).');
+  // Root owner is always protected. Platform admins are checked via a DB lookup
+  // because isUserAdmin() only knows about the currently signed-in user.
+  if (cleanEmail === RUSSELL_EMAIL) {
+    toast('❌ Cannot nuke the root owner account.');
+    return;
+  }
+  try {
+    const { data: tgt } = await _supabase.from('profiles').select('is_platform_admin').eq('email', cleanEmail).maybeSingle();
+    if (tgt && tgt.is_platform_admin === true) {
+      toast('❌ Cannot nuke a platform admin. Revoke their admin flag first.');
+      return;
+    }
+  } catch(e){}
+  if (isClaimedEcoManager(cleanEmail)) {
+    toast('❌ Cannot nuke an active ecosystem manager.');
     return;
   }
   if (!confirm('⚠️ Delete the profile for ' + cleanEmail + '?\n\nThis removes their profile data from the platform. Their auth account remains (Supabase Auth) so they can sign in again and go through onboarding fresh.\n\nProceed?')) return;
@@ -11012,6 +11097,8 @@ async function wizSave() {
   _userProfile = data || profile;
   // Sync badges and tier for newly created profile
   _userProfile = await syncProfileMeta(_userProfile);
+  isAdmin = !!(_userProfile && _userProfile.is_platform_admin === true);
+  await loadUserWorkspaces();
   closeWizard();
   // Show ecosystem manager bridge if persona is ecosystem_manager
   const _isNewEcoManager = cleanProfile.persona === 'ecosystem_manager' && _wizPreviewMode !== 'preview' && _wizPreviewMode !== 'create';
@@ -17177,7 +17264,7 @@ function getEcoConfig() {
   if (raw) return JSON.parse(raw);
   // Admin bootstrap: return full validator preset for demo/admin users
   const userEcos = currentUser ? getUserEcosystems(currentUser.id) : [];
-  if (userEcos.some(e => e.ecoId === 'wks') || isUserAdmin(currentUser?.email)) {
+  if (hasWorkspaceAccess('ecosystem') || isUserAdmin()) {
     return { setupComplete: true, template: 'validator', features: ECO_TEMPLATES.validator.features, programName: '', programType: '', teamSize: '', roles: [] };
   }
   return null;
