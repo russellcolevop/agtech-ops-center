@@ -1491,6 +1491,23 @@ function applyUser(user, isNew) {
 
     _userProfile = profile;
     isAdmin = !!(profile && profile.is_platform_admin === true);
+    // Re-show admin-only top bar + sidebar buttons now that isAdmin is resolved.
+    // (applyUser() hid them earlier because isAdmin defaults to false until the
+    // profile row is fetched from Supabase.)
+    try {
+      const _adminBtnSide = document.getElementById('nav-admin-btn');
+      if (_adminBtnSide) _adminBtnSide.style.display = isAdmin ? 'block' : 'none';
+      const _udAdminBtn = document.getElementById('ud-admin-btn');
+      if (_udAdminBtn) _udAdminBtn.style.display = isAdmin ? 'flex' : 'none';
+      const _personaSwitcher = document.getElementById('admin-persona-switcher');
+      if (_personaSwitcher) _personaSwitcher.style.display = isAdmin ? 'inline-block' : 'none';
+      const _savePersonaBtn = document.getElementById('admin-save-persona-btn');
+      if (_savePersonaBtn) _savePersonaBtn.style.display = isAdmin ? 'inline-block' : 'none';
+      const _previewWizBtn = document.getElementById('admin-preview-wiz-btn');
+      if (_previewWizBtn) _previewWizBtn.style.display = isAdmin ? 'inline-block' : 'none';
+      const _roadmapSideBtn = document.getElementById('nav-roadmap-btn');
+      if (_roadmapSideBtn && isAdmin) _roadmapSideBtn.style.display = 'block';
+    } catch (_e) { /* non-fatal */ }
     // Load the workspaces this user is an active member of (Supabase source of truth).
     await loadUserWorkspaces();
     // Claim flow: if the user arrived via ?claim=<code>, redeem it now.
@@ -16498,6 +16515,80 @@ async function atPost(tableId, fields) {
     });
     return r.ok ? await r.json() : null;
   } catch(e) { console.error('AT post:', e); return null; }
+}
+
+// ── Airtable → Supabase bulk sync (admin importer) ──
+// Pulls every record from every WORKSPACE_TABLES table via the user's PAT and
+// mirrors it into public.ws_airtable_records via the upsert_ws_records RPC.
+// Returns { ok, totals, errors }.
+async function syncWorkspaceFromAirtable(workspaceId, pat) {
+  if (!workspaceId) return { ok:false, message:'Missing workspace id' };
+  if (!_supabase)   return { ok:false, message:'Supabase not initialized' };
+  const usePat = pat || _wksPAT || localStorage.getItem('wks_at_pat') || '';
+  if (!usePat) return { ok:false, message:'No Airtable PAT available. Save one in Settings → Integrations first.' };
+  // Temporarily swap _wksPAT so atFetch can be reused
+  const prevPat = _wksPAT; _wksPAT = usePat;
+  const totals = {}; const errors = [];
+  try {
+    for (const [tableKey, tableId] of Object.entries(WORKSPACE_TABLES)) {
+      let all = [], offset;
+      do {
+        const p = {}; if (offset) p.offset = offset;
+        const r = await atFetch(tableId, p);
+        if (!r) { errors.push(tableKey + ': fetch failed'); break; }
+        all = all.concat(r.records || []);
+        offset = r.offset;
+      } while (offset);
+      // Shape: [{source_id, fields}]
+      const payload = all.map(rec => ({ source_id: rec.id, fields: rec.fields || rec.cellValuesByFieldId || {} }));
+      const { data, error } = await _supabase.rpc('upsert_ws_records', {
+        p_workspace_id: workspaceId,
+        p_table_key: tableKey,
+        p_source_system: 'airtable',
+        p_records: payload
+      });
+      if (error) { errors.push(tableKey + ': ' + error.message); totals[tableKey] = 0; }
+      else { totals[tableKey] = data || payload.length; }
+      // log per-table
+      try {
+        await _supabase.rpc('log_ws_sync', {
+          p_workspace_id: workspaceId,
+          p_source_system: 'airtable',
+          p_table_key: tableKey,
+          p_records_count: payload.length,
+          p_status: error ? 'error' : 'success',
+          p_error: error ? error.message : null
+        });
+      } catch(e) { /* ignore log errors */ }
+    }
+  } finally {
+    _wksPAT = prevPat;
+  }
+  return { ok: errors.length === 0, totals, errors };
+}
+
+// Admin UI click handler — prompts for PAT if not saved, then syncs.
+async function handleSyncWorkspaceClick(workspaceId, workspaceName) {
+  if (!workspaceId) return;
+  let pat = localStorage.getItem('wks_at_pat') || _wksPAT || '';
+  if (!pat) {
+    pat = prompt('Paste your Airtable Personal Access Token to sync "' + (workspaceName||'this workspace') + '" from Airtable.\n\n(It will be saved locally as wks_at_pat.)');
+    if (!pat) return;
+    localStorage.setItem('wks_at_pat', pat.trim());
+    _wksPAT = pat.trim();
+  }
+  const btn = document.getElementById('sync-btn-'+workspaceId);
+  if (btn) { btn.disabled = true; btn.textContent = '🔄 Syncing…'; }
+  const res = await syncWorkspaceFromAirtable(workspaceId, pat);
+  if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync from Airtable'; }
+  if (res.ok) {
+    const summary = Object.entries(res.totals||{}).map(([k,v]) => k+':'+v).join('  ');
+    toast('✅ Synced ' + (workspaceName||'workspace') + ' — ' + summary);
+  } else {
+    const msg = res.message || (res.errors && res.errors.join('; ')) || 'Sync failed';
+    toast('⚠️ ' + msg);
+  }
+  renderWorkspacesAdmin();
 }
 
 // ── Parse Airtable records ──
