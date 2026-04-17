@@ -16,6 +16,8 @@ import {
   LifeBuoy,
   Phone,
   BarChart2,
+  Lightbulb,
+  GraduationCap,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -28,6 +30,8 @@ import { regions } from "@/data/content";
 const globalNavItems = [
   { href: "/", label: "Global AgTech Overview", icon: Globe },
   { href: "/market-intel", label: "Market Intelligence", icon: BarChart2 },
+  { href: "/venture", label: "Venture Studio", icon: Lightbulb },
+  { href: "/accelerators", label: "Accelerator Hub", icon: GraduationCap },
   { href: "/founders-journey", label: "Founder's Journey", icon: Rocket },
   { href: "/glossary", label: "AgTech Glossary", icon: BookOpen },
   { href: "/documents", label: "Documents", icon: FileText },
