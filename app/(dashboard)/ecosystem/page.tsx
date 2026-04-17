@@ -3,7 +3,7 @@
 import PageHeader from "@/components/PageHeader";
 import TrendBadge from "@/components/TrendBadge";
 import { regionData, regions } from "@/data/content";
-import { useSearchParams } from "next/navigation";
+import { useRegion } from "@/contexts/RegionContext";
 
 type BadgeColor = "green" | "blue" | "amber" | "teal" | "purple" | "orange" | "cyan" | "red";
 
@@ -15,8 +15,7 @@ const opportunityColors: Record<string, BadgeColor> = {
 };
 
 export default function EcosystemPage() {
-  // The region is managed in layout; we read it from the URL or default to CA
-  const region = "CA"; // In a full implementation, lift this from layout context
+  const region = useRegion();
   const data = regionData[region];
   const regionInfo = regions.find((r) => r.code === region)!;
 

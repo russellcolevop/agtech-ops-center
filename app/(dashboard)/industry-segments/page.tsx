@@ -1,6 +1,9 @@
+"use client";
+
 import PageHeader from "@/components/PageHeader";
 import TrendBadge from "@/components/TrendBadge";
 import { regionData, regions } from "@/data/content";
+import { useRegion } from "@/contexts/RegionContext";
 
 type BadgeColor = "green" | "blue" | "amber" | "teal" | "purple" | "orange" | "cyan" | "red";
 
@@ -20,7 +23,7 @@ const maturityColors: Record<string, BadgeColor> = {
 };
 
 export default function IndustrySegmentsPage() {
-  const region = "CA";
+  const region = useRegion();
   const data = regionData[region];
   const regionInfo = regions.find((r) => r.code === region)!;
 

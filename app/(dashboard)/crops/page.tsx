@@ -1,8 +1,11 @@
+"use client";
+
 import PageHeader from "@/components/PageHeader";
 import { regionData, regions } from "@/data/content";
+import { useRegion } from "@/contexts/RegionContext";
 
 export default function CropsPage() {
-  const region = "CA";
+  const region = useRegion();
   const data = regionData[region];
   const regionInfo = regions.find((r) => r.code === region)!;
 
