@@ -57,13 +57,12 @@ Russell Cole — russellcolevop@gmail.com. **Non-developer.** Explain before run
 - **Update copy on the site** → edit `index.html`, commit, push. Done.
 - **Add a new image** → drop it in `assets/`, reference it from `index.html`, commit, push.
 - **Add a database column or table** → write a migration in `supabase/migrations/`, run it in the Supabase SQL editor, then update `index.html` to use the new field.
-- **Admin actions that need a service-role key** (e.g., `auth.admin.deleteUser`) → build a Supabase Edge Function. These actions **cannot** run from the browser because the service-role key would leak. The HTML's current "Delete User" admin button fails for this reason.
+- **Admin actions that need a service-role key** (e.g., `auth.admin.deleteUser`) → build a Supabase Edge Function. These actions **cannot** run from the browser because the service-role key would leak. For now we avoid this by: (a) the admin "Delete" button does a soft-delete instead (wipe profile + block), and (b) true hard-deletes go through the Supabase SQL editor per `docs/admin-ops.md`.
 
 ## Known issues and tech debt
 
-- **Admin user delete is broken** from the UI. It calls `auth.admin.deleteUser()` from the browser, which can never work (needs service-role key). Needs an Edge Function. For now, user deletes must be done via SQL in the Supabase dashboard.
-- **FK cascade gaps.** Several tables reference `auth.users` or `public.profiles` without `ON DELETE CASCADE`, which blocks user deletion even via the dashboard. Specifically: `introductions.{requested_by, person_a, person_b}`, `workspaces.owner_id`, and several other `*_by` columns. A future migration should add CASCADE where appropriate.
-- **No staging environment.** Every change to `index.html` goes straight to production. A `staging` branch with a separate Supabase project would make iteration much safer.
+- **Admin "Delete" button is a soft delete, not a hard delete.** The `deleteUser()` function in `index.html` (around line 10142) wipes profile fields and sets `blocked: true, blocked_reason: 'DELETED_BY_ADMIN'`, but the `auth.users` row stays. That means the user can't sign in, but their email address is still taken. For a full hard delete (to re-register with the same email, or for a GDPR erase request), run the SQL in `docs/admin-ops.md`. An Edge Function could wrap this into a UI button if volume ever warrants it; not worth building until then.
+- **No permanent staging environment.** Staging is maintained on-demand per `docs/staging-playbook.md`: spin up during hardening pushes, tear down during steady-state copy/UI work. Free-tier cap is 2 projects per user, shared with `Tidy Tails`.
 - **The file is large.** 1.4 MB / ~18,900 lines. This makes diffs hard, merges risky, and tempts assistants to "rewrite" it (which loses fidelity). Edits should always be surgical — find and replace a specific block, never regenerate the whole file.
 - **Content is mixed with code.** Copy, lists, and structured data live inline as JS arrays/objects. Extracting them to JSON files would make content edits safer and non-technical.
 
