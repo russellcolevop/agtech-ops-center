@@ -238,18 +238,6 @@ export default function DocumentsPage() {
           ))}
         </div>
 
-        {/* Coming soon */}
-        <div className="border border-dashed border-gray-300 rounded-xl p-4">
-          <p className="text-xs font-semibold text-gray-500 mb-3">Coming soon</p>
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2">
-            {COMING_SOON.map(doc => (
-              <div key={doc.title} className="bg-gray-50 rounded-lg px-3 py-2.5">
-                <p className="text-xs font-semibold text-gray-600">{doc.title}</p>
-                <p className="text-xs text-gray-400 leading-relaxed mt-0.5">{doc.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* AI Tool Guide */}

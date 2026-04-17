@@ -25,6 +25,11 @@ import {
   ChevronDown,
   LogOut,
   User,
+  Zap,
+  TrendingUp,
+  Building2,
+  Shield,
+  Network,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { regions } from "@/data/content";
@@ -204,6 +209,49 @@ export default function Sidebar({ region, onRegionChange }: SidebarProps) {
             })}
           </ul>
         </div>
+
+        {/* My Tools — only when signed in */}
+        {session?.user && (
+          <div>
+            {!collapsed && (
+              <p className="px-4 mb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-heading">
+                My Tools
+              </p>
+            )}
+            <ul className="space-y-0.5">
+              {[
+                { href: "/profile", label: "My Profile", icon: User },
+                { href: "/connections", label: "Connections", icon: Network },
+                { href: "/action", label: "Action Center", icon: Zap },
+                { href: "/investor", label: "Investor Dashboard", icon: TrendingUp },
+                { href: "/ecosystem-ws", label: "Ecosystem Workspace", icon: Building2 },
+                ...(session.user.email === "russellcolevop@gmail.com"
+                  ? [{ href: "/admin", label: "Admin", icon: Shield }]
+                  : []),
+              ].map((item) => {
+                const Icon = item.icon;
+                const active = pathname === item.href;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      title={collapsed ? item.label : undefined}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-2",
+                        active
+                          ? "bg-sidebar-active text-white border-brand-500"
+                          : "text-sidebar-text hover:bg-sidebar-hover hover:text-white border-transparent"
+                      )}
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </nav>
 
       {/* Bottom section */}
