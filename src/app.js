@@ -402,7 +402,12 @@ function applyUser(user, isNew) {
         // Show a gentle reminder to complete their profile later
         setTimeout(() => toast('💡 After submitting your idea, complete your profile for full platform access.'), 2000);
       } else {
-        setTimeout(() => showWizard(), 800);
+        // F-16 defensive: if a profile already exists but onboarding_complete
+        // is falsy (data persistence bug, root cause TBD), route through
+        // editWizard so wizData pre-fills from _userProfile. Prevents the
+        // "re-signin wipes prior profile" data-loss symptom even if the
+        // onboarding_complete flag never gets written on first save.
+        setTimeout(() => profile ? editWizard() : showWizard(), 800);
       }
     } else if (profile.needs_review) {
       // Pre-created account — show edit wizard so they can review and confirm
@@ -8478,10 +8483,25 @@ function pgAdmin(){
     <p>Sign in with an authorized admin account to access the admin dashboard.</p>
     <button onclick="${currentUser?'goAdmin()':'openModal(\'signin-modal\')'}" style="padding:11px 24px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">${currentUser?'Check Admin Access':'Sign In First'}</button></div>`;
 
-  // Trigger async load of profiles
-  if (!_allProfiles.length) {
-    loadAllProfiles().then(profiles => { _allProfiles = profiles; render('admin'); });
-    return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1><p>Loading user profiles...</p></div><div class="card" style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Fetching profiles from Supabase...</p></div>`;
+  // Load profiles — F-10 sister fix. Same load-state pattern as pgUserConnections.
+  const adminLoadingHtml = `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1><p>Loading user profiles...</p></div><div class="card" style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Fetching profiles from Supabase...</p></div>`;
+  if (_adminProfilesLoadState === 'idle') {
+    _adminProfilesLoadState = 'loading';
+    loadAllProfiles().then(profiles => {
+      _allProfiles = profiles || [];
+      _adminProfilesLoadState = 'loaded';
+      render('admin');
+    }).catch(e => {
+      console.error('pgAdmin load error:', e);
+      _adminProfilesLoadState = 'error';
+      toast('⚠️ Could not load profiles');
+      render('admin');
+    });
+    return adminLoadingHtml;
+  }
+  if (_adminProfilesLoadState === 'loading') return adminLoadingHtml;
+  if (_adminProfilesLoadState === 'error') {
+    return `<div class="page-hdr"><h1>🔐 Admin Dashboard</h1></div><div class="card" style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⚠️</div><p>Could not load profiles.</p><button onclick="retryAdminProfiles()" style="margin-top:12px;padding:10px 20px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Try Again</button></div>`;
   }
 
   const profiles = _allProfiles.filter(p => p.blocked_reason !== 'DELETED_BY_ADMIN');
@@ -10124,9 +10144,28 @@ function scoreMatch(a, b) {
 
 // ── SMART CONNECTIONS PAGE (ADMIN MONITORING DASHBOARD) ──
 function pgConnections() {
-  if (!_allProfiles.length) {
-    loadAllProfiles().then(p => { _allProfiles = p; return loadIntroductions(); }).then(i => { _introductions = i; render('admin'); });
-    return `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Loading ecosystem connections...</p></div>`;
+  // F-10 sister fix. Loads profiles + introductions in sequence.
+  const smartConnLoadingHtml = `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Loading ecosystem connections...</p></div>`;
+  if (_smartConnLoadState === 'idle') {
+    _smartConnLoadState = 'loading';
+    loadAllProfiles()
+      .then(p => { _allProfiles = p || []; return loadIntroductions(); })
+      .then(i => {
+        _introductions = i || [];
+        _smartConnLoadState = 'loaded';
+        render('admin');
+      })
+      .catch(e => {
+        console.error('pgConnections load error:', e);
+        _smartConnLoadState = 'error';
+        toast('⚠️ Could not load ecosystem connections');
+        render('admin');
+      });
+    return smartConnLoadingHtml;
+  }
+  if (_smartConnLoadState === 'loading') return smartConnLoadingHtml;
+  if (_smartConnLoadState === 'error') {
+    return `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⚠️</div><p>Could not load ecosystem connections.</p><button onclick="retrySmartConn()" style="margin-top:12px;padding:10px 20px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Try Again</button></div>`;
   }
 
   const trackedIntros = _introductions;
@@ -10302,6 +10341,9 @@ async function saveIntroLater(aId, bId, score, reasons) {
 // ══════════════════════════════════════════════════════════════
 let _userIntros = []; // intros involving the current user
 let _connectionsLoadState = 'idle'; // idle | loading | loaded | error — gates the one-shot load in pgUserConnections (F-10 fix)
+let _adminProfilesLoadState = 'idle'; // F-10 sister: gates loadAllProfiles in pgAdmin
+let _investorProfilesLoadState = 'idle'; // F-10 sister: gates loadAllProfiles in pgInvestorDashboard
+let _smartConnLoadState = 'idle'; // F-10 sister: gates profiles+introductions load in pgConnections (admin smart-connections)
 let connTab = 'discover'; // 'discover' | 'active' | 'history'
 
 async function loadUserIntros() {
@@ -11722,10 +11764,25 @@ let investorDealFilter = '';
 function pgInvestorDashboard() {
   if (!currentUser) return guestGateCard('investor');
 
-  // Load profiles for pipeline if not yet loaded
-  if (!_allProfiles.length) {
-    loadAllProfiles().then(profiles => { _allProfiles = profiles; render('investor'); });
-    return `<div class="page-hdr"><h1>📈 Investor Dashboard</h1><p>Loading pipeline data...</p></div><div class="card" style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Loading deal flow...</p></div>`;
+  // Load profiles for pipeline — F-10 sister fix. Same load-state pattern.
+  const investorLoadingHtml = `<div class="page-hdr"><h1>📈 Investor Dashboard</h1><p>Loading pipeline data...</p></div><div class="card" style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>Loading deal flow...</p></div>`;
+  if (_investorProfilesLoadState === 'idle') {
+    _investorProfilesLoadState = 'loading';
+    loadAllProfiles().then(profiles => {
+      _allProfiles = profiles || [];
+      _investorProfilesLoadState = 'loaded';
+      render('investor');
+    }).catch(e => {
+      console.error('pgInvestorDashboard load error:', e);
+      _investorProfilesLoadState = 'error';
+      toast('⚠️ Could not load deal flow');
+      render('investor');
+    });
+    return investorLoadingHtml;
+  }
+  if (_investorProfilesLoadState === 'loading') return investorLoadingHtml;
+  if (_investorProfilesLoadState === 'error') {
+    return `<div class="page-hdr"><h1>📈 Investor Dashboard</h1></div><div class="card" style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⚠️</div><p>Could not load deal flow.</p><button onclick="retryInvestorProfiles()" style="margin-top:12px;padding:10px 20px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Try Again</button></div>`;
   }
 
   const allDeals = _supabaseDeals.length ? _supabaseDeals : INVESTOR_DEALS;
@@ -15797,6 +15854,9 @@ function setFqStep(n) { _fqStep = n; }
 
 // F-10 retry — resets load state and re-enters the one-shot load path.
 function retryConnections() { _connectionsLoadState = 'idle'; render('connections'); }
+function retryAdminProfiles() { _adminProfilesLoadState = 'idle'; render('admin'); }
+function retryInvestorProfiles() { _investorProfilesLoadState = 'idle'; render('investor'); }
+function retrySmartConn() { _smartConnLoadState = 'idle'; render('admin'); }
 
 // ── PHASE 2 SETTERS (replace the Object.defineProperty proxy block) ──
 // Non-rendering setters: caller handles render (matches the setFqStep pattern).
@@ -15947,7 +16007,10 @@ Object.assign(window, {
   requestIntro,
   requestMentorIntro,
   resetMyAccount,
+  retryAdminProfiles,
   retryConnections,
+  retryInvestorProfiles,
+  retrySmartConn,
   revokeInvestorAccess,
   revokeRoadmapAccess,
   saveNotes,
