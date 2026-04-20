@@ -8144,6 +8144,16 @@ async function wizSave() {
   let { data, error } = await upsertProfile(cleanProfile);
   // [probe] F-02/F-16 diagnosis: log what Supabase returned (data or error).
   console.log('[probe] wizSave upsert result:', { data, error });
+  // [probe] F-02/F-16 diagnosis: independent read-back from Supabase so we can
+  // compare `payload sent` vs `what server actually stored`. Uses module-scope
+  // _supabase + currentUser (not on window post-Phase 2, so can't be run from
+  // a vanilla console incantation — auto-running here instead).
+  try {
+    const rb = await _supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+    console.log('[probe] wizSave read-back:', { data: rb.data, error: rb.error });
+  } catch (e) {
+    console.log('[probe] wizSave read-back threw:', e);
+  }
 
   // If full upsert fails, try a minimal save with just core fields
   if (error) {
