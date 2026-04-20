@@ -7790,6 +7790,8 @@ function editWizard() {
     secondary_role: p.secondary_role || '',
     consent_accepted: !!p.consent_accepted
   };
+  // [probe] F-13 diagnosis: log what editWizard actually seeded from the profile.
+  console.log('[probe] editWizard seeded:', { fromProfile: !!_userProfile, seeded: { ...wizData } });
   // Always start at step 0 so users can change their persona if needed
   wizRender();
 }
@@ -8136,8 +8138,12 @@ async function wizSave() {
 
   console.log('wizSave cleanProfile keys:', Object.keys(cleanProfile));
   console.log('wizSave cleanProfile:', JSON.stringify(cleanProfile, null, 2));
+  // [probe] F-02/F-16 diagnosis: log the full payload headed for Supabase.
+  console.log('[probe] wizSave payload:', JSON.parse(JSON.stringify(cleanProfile)));
 
   let { data, error } = await upsertProfile(cleanProfile);
+  // [probe] F-02/F-16 diagnosis: log what Supabase returned (data or error).
+  console.log('[probe] wizSave upsert result:', { data, error });
 
   // If full upsert fails, try a minimal save with just core fields
   if (error) {
