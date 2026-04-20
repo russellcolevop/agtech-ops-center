@@ -8110,6 +8110,12 @@ async function wizSave() {
   if (!wizData.persona) { toast('⚠️ Please select who you are'); wizStep = 0; wizRender(); return; }
   if (!wizData.consent_accepted) { toast('⚠️ Please agree to the Terms of Participation to continue'); return; }
 
+  // #44: track whether we ended up on the minimal-retry path so we can (a)
+  // suppress the unconditional "🎉 Profile created!" toast below (which would
+  // otherwise clobber the warning toast emitted in the retry branch), and (b)
+  // differentiate the analytics event so Russell can see partial-save rate.
+  let partialSave = false;
+
   // Show saving state on the button
   const saveBtns = document.querySelectorAll('.wiz-btn.wiz-btn-primary');
   saveBtns.forEach(b => { b.disabled = true; b.textContent = '⏳ Saving...'; });
@@ -8179,6 +8185,7 @@ async function wizSave() {
     // the full upsert was rejected — see the 2026-04-20 audit).
     console.warn('Minimal save succeeded! Full save had extra columns that failed. Error was:', error.message, error.code, error.details);
     data = retry.data;
+    partialSave = true;
     toast(`⚠️ Save partial — server rejected some fields (${error.code || 'unknown'}). Details may need re-entry. Contact Russell if this persists.`);
   }
   _userProfile = data || profile;
@@ -8191,7 +8198,12 @@ async function wizSave() {
   closeWizard();
   // Show ecosystem manager bridge if persona is ecosystem_manager
   const _isNewEcoManager = cleanProfile.persona === 'ecosystem_manager' && _wizPreviewMode !== 'preview' && _wizPreviewMode !== 'create';
-  toast('🎉 Profile created! Russell will review and connect you with the right people.');
+  // Suppress the success toast on partial save — the warning toast emitted in
+  // the retry branch above would otherwise be clobbered by this success message
+  // ~2.8s later (same toast DOM element), silently swallowing the error signal.
+  if (!partialSave) {
+    toast('🎉 Profile created! Russell will review and connect you with the right people.');
+  }
   // Send persona-tailored welcome email after onboarding
   if (_wizPreviewMode !== 'preview' && _wizPreviewMode !== 'create') {
     const welName = _userProfile.full_name || currentUser.name || currentUser.email.split('@')[0];
@@ -8208,7 +8220,11 @@ async function wizSave() {
     setTimeout(() => { _fqStep = -1; openFoundingQuestionnaire(cleanProfile.persona); }, 1500);
   }
   // Track onboarding completion
-  trackEvent('onboarding_completed', { persona: cleanProfile.persona, location: cleanProfile.location });
+  trackEvent(partialSave ? 'onboarding_partial_save' : 'onboarding_completed', {
+    persona: cleanProfile.persona,
+    location: cleanProfile.location,
+    ...(partialSave ? { error_code: error.code, error_message: error.message } : {})
+  });
   // Show profile nav + My Tools section
   const pbtn = document.getElementById('nav-profile-btn');
   if (pbtn) pbtn.style.display = 'flex';
