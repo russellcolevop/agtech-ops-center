@@ -7790,8 +7790,6 @@ function editWizard() {
     secondary_role: p.secondary_role || '',
     consent_accepted: !!p.consent_accepted
   };
-  // [probe] F-13 diagnosis: log what editWizard actually seeded from the profile.
-  console.log('[probe] editWizard seeded:', { fromProfile: !!_userProfile, seeded: { ...wizData } });
   // Always start at step 0 so users can change their persona if needed
   wizRender();
 }
@@ -8149,22 +8147,8 @@ async function wizSave() {
 
   console.log('wizSave cleanProfile keys:', Object.keys(cleanProfile));
   console.log('wizSave cleanProfile:', JSON.stringify(cleanProfile, null, 2));
-  // [probe] F-02/F-16 diagnosis: log the full payload headed for Supabase.
-  console.log('[probe] wizSave payload:', JSON.parse(JSON.stringify(cleanProfile)));
 
   let { data, error } = await upsertProfile(cleanProfile);
-  // [probe] F-02/F-16 diagnosis: log what Supabase returned (data or error).
-  console.log('[probe] wizSave upsert result:', { data, error });
-  // [probe] F-02/F-16 diagnosis: independent read-back from Supabase so we can
-  // compare `payload sent` vs `what server actually stored`. Uses module-scope
-  // _supabase + currentUser (not on window post-Phase 2, so can't be run from
-  // a vanilla console incantation — auto-running here instead).
-  try {
-    const rb = await _supabase.from('profiles').select('*').eq('id', currentUser.id).single();
-    console.log('[probe] wizSave read-back:', { data: rb.data, error: rb.error });
-  } catch (e) {
-    console.log('[probe] wizSave read-back threw:', e);
-  }
 
   // If full upsert fails, try a minimal save with just core fields
   if (error) {
