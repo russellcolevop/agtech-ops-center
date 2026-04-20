@@ -471,7 +471,7 @@ More broadly, there's no page that says "here are founders with `biggest_needs` 
 
 #### M-08 · No advisor-specific Founding Q
 **Severity:** GAP
-**Location:** `FOUNDING_Q` object at [src/app.js:1425](src/app.js#L1425) has keys for `founder`, `investor`, `advisor`, `ecosystem_manager`, `researcher`, `farmer` — **so it DOES have an advisor key.** Correcting myself — advisors DO get a persona-tailored Founding Q (5 questions: motivation, match-preference, time-commit, platform-wish, compensation). This was my misread during the initial audit notes — flagging now as verified-present rather than gap.
+**Location:** `FOUNDING_Q` object at [src/app.js:1431](src/app.js#L1431) has keys for `founder`, `investor`, `advisor`, `ecosystem_manager`, `researcher`, `farmer` — **so it DOES have an advisor key.** Correcting myself — advisors DO get a persona-tailored Founding Q (5 questions: motivation, match-preference, time-commit, platform-wish, compensation). This was my misread during the initial audit notes — flagging now as verified-present rather than gap.
 
 **Severity reclassification:** POSITIVE — advisor Founding Q exists, 5 questions, substantive.
 
