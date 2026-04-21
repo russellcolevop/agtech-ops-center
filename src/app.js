@@ -14550,7 +14550,12 @@ function getEcoNetworkName() {
   return 'Ecosystem Network';
 }
 
-let _ecoSetupStep = 0;
+// Issue #5: initializes to -1 so pgEcosystemWorkspace()'s early-return gate at
+// `if (_ecoSetupStep >= 0) return renderEcoSetupWizard()` doesn't fire on the
+// FIRST hit and skip the seeding block that would populate _ecoSetupForm from
+// the user's profile. `_ecoSetupStep` is flipped to >= 0 when the user enters
+// the wizard, so the normal in-wizard rendering path is unaffected.
+let _ecoSetupStep = -1;
 let _ecoSetupForm = {};
 
 function ecoToggleConfigFeature(fid) {
@@ -15110,7 +15115,7 @@ function renderEcoSetupWizard() {
       <div style="display:grid;gap:16px;max-width:480px">
         <div>
           <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">PROGRAM NAME</label>
-          <input style="${inputStyle}" value="${f.programName}" onchange="ecoSetupField('programName',this.value)" placeholder="e.g. Grand Farm Innovation, VISTA Program">
+          <input style="${inputStyle}" value="${f.programName || ''}" onchange="ecoSetupField('programName',this.value)" placeholder="e.g. Grand Farm Innovation, VISTA Program">
         </div>
         <div>
           <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">PROGRAM TYPE</label>
@@ -15121,7 +15126,7 @@ function renderEcoSetupWizard() {
         </div>
         <div>
           <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">LOCATION</label>
-          <input style="${inputStyle}" value="${f.location}" onchange="ecoSetupField('location',this.value)" placeholder="e.g. Winnipeg, MB / Global">
+          <input style="${inputStyle}" value="${f.location || ''}" onchange="ecoSetupField('location',this.value)" placeholder="e.g. Winnipeg, MB / Global">
         </div>
         <div>
           <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">TEAM SIZE</label>
