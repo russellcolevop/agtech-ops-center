@@ -1,83 +1,47 @@
-# CLAUDE.md — Founder Ops Center
+# CLAUDE.md — context for Claude sessions working in agtech-ops-center (FounderOps Center)
 
-## What this project actually is
+If you are a Claude session (Claude Code, Cowork, or the VPS bot) that has just been handed this repo, read this first.
 
-**The live site is a single-file HTML app at `index.html` in the repo root.** It is served by **GitHub Pages** at **https://www.founderopscenter.com** (the `CNAME` file maps the custom domain).
+## What this is
 
-That one file (~1.2 MB, ~16,100 lines) contains:
-- Most of the HTML and JavaScript for the site
-- An embedded Supabase client for auth, data, and storage
-- Google OAuth + email magic-link sign-in
-- An admin area, profile editor, ecosystem workspace, mentors directory, market intel, etc.
+FounderOps Center — a web platform for ecosystem managers to operate their ecosystems: connecting founders with mentors, accelerators, and partner ecosystems. Russell built it to run his own day job as **ecosystem manager for AIVA Network** (https://www.aivanetwork.com), an AgTech ecosystem for investors and founders. The product brand is "FounderOps Center" and the live site is at https://www.founderopscenter.com. The repo is named `agtech-ops-center` — historical, from the AgTech lineage. Don't rename.
 
-Two kinds of content have been peeled out of `index.html` into sibling files and are loaded via `<link>` / `<script>` tags from the head:
-- **CSS** → `styles.css`
-- **Big data arrays** (mentors, accelerators, partner ecosystems) → `data/*.js`, each exposing a `window.XXX` global
+Russell is the design partner and the heaviest user. A couple of real external users have signed up; activity is currently low.
 
-More splits are planned — see `docs/monolith-split-handoff.md`.
+## Current state (as of 2026-04-21)
 
-**Edit `index.html` (or `styles.css`, or the relevant `data/*.js` file) and push to `main` → the live site updates.** There is no build step.
-
-## What this project is NOT
-
-- **Not a Next.js app.** A Next.js experiment exists in `_archive/nextjs-experiment/` (scaffolded as an attempt to break up the monolith). It is **not deployed, not current, and not the source of truth.** Do not edit it expecting changes to appear on the live site.
-- **Not a Vercel deployment.** The Vercel project, if any, is pointing at the abandoned Next.js app. The real site is on GitHub Pages.
-- **Not compartmentalized.** There is no component library, no data layer, no server. Everything is inside `index.html`.
-
-## Who the owner is
-
-Russell Cole — russellcolevop@gmail.com. **Non-developer.** Explain before running commands, ask before doing anything destructive, go one step at a time, and never try to "regenerate" `index.html` from scratch — it will be lossy. Always edit in place.
-
-## Local setup
-
-- **Working directory:** `~/Developer/founder-op-center/`
-- **GitHub repo:** https://github.com/russellcolevop/agtech-ops-center (branch: `main`)
-- **To preview locally:** open `index.html` directly in a browser, or run `python3 -m http.server` and visit `http://localhost:8000`
-- **To deploy:** commit changes to `index.html` (or assets) and push to `main`. GitHub Pages picks up the change within a minute or two.
-- **No `npm install`, no build step, no dev server.** Any `package.json` or `node_modules` in the archive folder is for the abandoned Next.js experiment only.
+- **Stage**: Launched (live, with users)
+- **Deployed**: https://www.founderopscenter.com (GitHub Pages, custom domain via `CNAME` in repo root, serves from root of `main`)
+- **Recent work**: Phase 1 of monolith split complete — `src/app.js` is now a single ES module (~16.1k lines), `index.html` is a 428-line shell. Phase 2/3 (breaking `src/app.js` into feature modules) is the current dev focus. Supabase RLS hardened on 2026-04-18 with two migrations: `20260418_fix_rls_gaps.sql` and `20260418_profiles_read_access.sql`.
 
 ## Stack
 
-- **Frontend:** hand-written HTML + vanilla JavaScript + some inline CSS inside `index.html`. Uses Supabase JS SDK loaded from a CDN `<script>` tag.
-- **Hosting:** GitHub Pages (static) from the repo root.
-- **Backend:** Supabase project `odvwxgxhacotiuyjyqtk` (PostgreSQL, Auth, Storage).
-  - URL: `https://odvwxgxhacotiuyjyqtk.supabase.co`
-  - Uses the anon key (embedded in HTML). Row Level Security controls access.
-- **Auth:** Supabase Auth — Google OAuth + email magic link. No NextAuth, no server session layer.
+- **Frontend**: hand-written HTML + vanilla JavaScript + CSS. No framework, no bundler, no build step. Served as static files from GitHub Pages.
+  - `index.html` — shell (head, nav, modal containers, one `<script type="module">` tag)
+  - `src/app.js` — the whole app, a single ES module
+  - `data/*.js` — static data as classic scripts, loaded before the module (mentors, accelerators, partner_ecosystems, etc.)
+  - `styles.css`
+- **Backend**: Supabase, project ID `odvwxgxhacotiuyjyqtk`
+  - Postgres for profiles, intros, venture submissions, workspaces, accelerator applications, etc.
+  - Supabase Auth — Google OAuth + email magic link
+  - Row Level Security on all tables; latest migrations in `supabase/migrations/`
+  - One Edge Function for transactional email (Resend API under the hood). Currently wired to: welcome emails, ecosystem-listing approvals. Not wired to: intros (those use manual `mailto:` today).
+- **Auth flow**: browser → Supabase Auth → redirects back to `/` → `onAuthStateChange('SIGNED_IN')` fires → `applyUser()` hydrates the profile client-side.
 
-## Files that matter at the repo root
+## How to be useful here
 
-| File / folder | Purpose |
-|---|---|
-| `index.html` | **THE SITE.** Most markup and client JS. Loads `styles.css` and the `data/*.js` files from the head. Edit here. |
-| `styles.css` | Site stylesheet. Loaded via `<link>` from `index.html`. |
-| `data/` | Big data arrays extracted from the monolith: `mentors.js`, `accelerators.js`, `partner_ecosystems.js`. Each sets a `window.XXX` global that the main script references. |
-| `CNAME` | Maps `www.founderopscenter.com` to GitHub Pages. Do not delete. |
-| `Russell.jpeg` | Profile image, referenced directly from the HTML. |
-| `assets/` | Images used by the site (og-image, headshot). Referenced by the HTML. |
-| `supabase/migrations/` | SQL migrations for the Supabase database. Still current, still useful. |
-| `supabase/functions-backup/` | Backup of Supabase Edge Functions. |
-| `docs/` | Project documentation, including `monolith-split-handoff.md`, `admin-ops.md`, and `staging-playbook.md`. |
-| `_archive/nextjs-experiment/` | Abandoned Next.js rewrite attempt. **Do not edit expecting changes to affect the live site.** |
+- **Deployment is push-to-main.** There is no CI, no build step. A push to `main` is a release. That means: don't push a half-broken working tree. Test in the browser first (GitHub Pages serves from root, so you can usually `python3 -m http.server` locally and hit `http://localhost:8000`).
+- **Supabase schema changes go in `supabase/migrations/`.** Name the file `YYYYMMDD_<what_it_does>.sql`. Apply via the Supabase dashboard SQL editor or the Supabase CLI. Don't edit Postgres out-of-band — the migration history is the source of truth.
+- **When editing `src/app.js`**, respect Phase 2/3 intent — if you're adding a new feature cluster, consider whether it belongs in its own module rather than growing the main one further.
+- **Don't touch `CNAME`.** It's what keeps `www.founderopscenter.com` pointing at this repo. Removing it breaks the custom domain.
+- **Secrets.** The Supabase anon key is fine in client JS (it's designed to be public). The service role key is NOT — it should never appear anywhere in the repo. The Edge Function's Resend API key lives in Supabase project env vars, not here.
 
-## Common tasks
+## Where the non-code context lives
 
-- **Update copy on the site** → edit `index.html`, commit, push. Done.
-- **Add a new image** → drop it in `assets/`, reference it from `index.html`, commit, push.
-- **Add a database column or table** → write a migration in `supabase/migrations/`, run it in the Supabase SQL editor, then update `index.html` to use the new field.
-- **Admin actions that need a service-role key** (e.g., `auth.admin.deleteUser`) → build a Supabase Edge Function. These actions **cannot** run from the browser because the service-role key would leak. For now we avoid this by: (a) the admin "Delete" button does a soft-delete instead (wipe profile + block), and (b) true hard-deletes go through the Supabase SQL editor per `docs/admin-ops.md`.
+- Google Drive: `Russell Labs/01_Active_Projects/agtech-ops-center/` (to be created — see studio runbook).
+- For venture-specific work (feature planning, user interviews, design), open a **FounderOps Center Cowork project** mounted at `~/Developer/founder-op-center/`. Don't mix venture threads with studio (`venture-ops`) threads.
 
-## Known issues and tech debt
+## History
 
-- **Admin "Delete" button is a soft delete, not a hard delete.** The `deleteUser()` function in `index.html` (around line 7337) wipes profile fields and sets `blocked: true, blocked_reason: 'DELETED_BY_ADMIN'`, but the `auth.users` row stays. That means the user can't sign in, but their email address is still taken. For a full hard delete (to re-register with the same email, or for a GDPR erase request), run the SQL in `docs/admin-ops.md`. An Edge Function could wrap this into a UI button if volume ever warrants it; not worth building until then.
-- **No permanent staging environment.** Staging is maintained on-demand per `docs/staging-playbook.md`: spin up during hardening pushes, tear down during steady-state copy/UI work. Free-tier cap is 2 projects per user, shared with `Tidy Tails`.
-- **The file is still large.** ~1.2 MB / ~16,100 lines after the CSS and data extractions. This makes diffs hard, merges risky, and tempts assistants to "rewrite" it (which loses fidelity). Edits should always be surgical — find and replace a specific block, never regenerate the whole file. The next planned reduction is splitting the main `<script>` block into ES modules; see `docs/monolith-split-handoff.md`.
-- **Content is still partially mixed with code.** The largest data arrays have been extracted to `data/*.js`, but smaller arrays (market intel, hub, badges) still live inline. Extracting the rest will make content edits safer and non-technical.
-
-## Guidance for assistants
-
-1. **Treat `index.html` as append-only / edit-in-place.** Never output a replacement file. Use targeted edits that find an exact string and replace it.
-2. **Before any destructive SQL or file operation, explain what you're about to do and ask.** Russell is a non-developer.
-3. **The Next.js folder is not the source of truth.** Ignore it unless explicitly told otherwise.
-4. **Prefer SQL migrations over in-HTML schema changes.** The HTML queries Supabase; the schema lives in Supabase.
-5. **Small commits, descriptive messages.** Russell reviews everything before push.
+- **2026-04-21** — Migrated from `russellcolevop/agtech-ops-center` into the `russell-labs` org as part of the studio rollup. Origin remote re-pointed on the existing local clone at `~/Developer/founder-op-center/`. Domain + Pages config survived the transfer (CNAME is in-repo).
+- **Earlier** — Pre-studio. Built by Russell over time as a live tool for his AIVA Network ecosystem work.
