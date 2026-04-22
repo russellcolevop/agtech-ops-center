@@ -30,11 +30,17 @@ Russell is the design partner and the heaviest user. A couple of real external u
 
 ## How to be useful here
 
-- **Deployment is push-to-main.** There is no CI, no build step. A push to `main` is a release. That means: don't push a half-broken working tree. Test in the browser first (GitHub Pages serves from root, so you can usually `python3 -m http.server` locally and hit `http://localhost:8000`).
-- **Supabase schema changes go in `supabase/migrations/`.** Name the file `YYYYMMDD_<what_it_does>.sql`. Apply via the Supabase dashboard SQL editor or the Supabase CLI. Don't edit Postgres out-of-band — the migration history is the source of truth.
-- **When editing `src/app.js`**, respect Phase 2/3 intent — if you're adding a new feature cluster, consider whether it belongs in its own module rather than growing the main one further.
-- **Don't touch `CNAME`.** It's what keeps `www.founderopscenter.com` pointing at this repo. Removing it breaks the custom domain.
-- **Secrets.** The Supabase anon key is fine in client JS (it's designed to be public). The service role key is NOT — it should never appear anywhere in the repo. The Edge Function's Resend API key lives in Supabase project env vars, not here.
+These are project-specific guardrails. Don't relax them without asking Russell.
+
+1. **Russell is non-developer. Before any destructive SQL or file operation, explain what you're about to do and ask first.** "Destructive" includes: dropping a column, deleting rows, rewriting a file from scratch, reverting a commit, force-pushing. If in doubt, ask.
+2. **Use surgical edits, not full-file replacements.** The two big files in this repo — `src/app.js` (~16.1k lines) and `index.html` (428 lines) — should be edited via find-and-replace on exact strings, never re-output wholesale. A "here's the new full file" output is almost always wrong and impossible to review.
+3. **The leftover Next.js folder is NOT the source of truth.** Some old Next.js scaffolding lives in this repo from an abandoned migration attempt. Ignore it unless Russell explicitly tells you to touch it. The real app is the static HTML + `src/app.js` + Supabase.
+4. **Small commits with descriptive messages.** Russell reviews everything before push. Don't bundle unrelated changes; don't write `WIP` or `fix stuff`.
+5. **Deployment is push-to-main.** No CI, no build step. A push to `main` is a release. Don't push a half-broken working tree. Test locally first — `python3 -m http.server` from the repo root, then hit `http://localhost:8000`.
+6. **Supabase schema changes go in `supabase/migrations/`.** Name the file `YYYYMMDD_<what_it_does>.sql`. Apply via the Supabase dashboard SQL editor or the Supabase CLI. Don't edit Postgres out-of-band — the migration history is the source of truth. Prefer SQL migrations over in-HTML schema assumptions.
+7. **When extending `src/app.js`**, respect Phase 2/3 intent — if you're adding a new feature cluster, consider whether it belongs in its own module rather than growing the main one further.
+8. **Don't touch `CNAME`.** It's what keeps `www.founderopscenter.com` pointing at this repo. Removing it breaks the custom domain.
+9. **Secrets.** The Supabase anon key is fine in client JS (it's designed to be public). The service role key is NOT — it should never appear anywhere in the repo. The Edge Function's Resend API key lives in Supabase project env vars, not here.
 
 ## Where the non-code context lives
 
@@ -43,5 +49,5 @@ Russell is the design partner and the heaviest user. A couple of real external u
 
 ## History
 
-- **2026-04-21** — Migrated from `russellcolevop/agtech-ops-center` into the `russell-labs` org as part of the studio rollup. Origin remote re-pointed on the existing local clone at `~/Developer/founder-op-center/`. Domain + Pages config survived the transfer (CNAME is in-repo).
+- **2026-04-21** — Migrated from `russellcolevop/agtech-ops-center` into the `russell-labs` org as part of the studio rollup. Origin remote re-pointed on the existing local clone at `~/Developer/founder-op-center/`. Domain + Pages config survived the transfer (CNAME is in-repo). Pre-existing project-specific guardrails (the "Guidance for assistants" rules) were briefly lost during the migration `cp` step and recovered into the "How to be useful here" section above.
 - **Earlier** — Pre-studio. Built by Russell over time as a live tool for his AIVA Network ecosystem work.
