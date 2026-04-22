@@ -8382,7 +8382,7 @@ function pgProfile() {
       ${p.avatar_url ? `<img src="${p.avatar_url}" class="profile-avatar">` : `<div class="profile-avatar-placeholder">${(p.full_name||'?')[0].toUpperCase()}</div>`}
       <div style="flex:1">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:18px;font-weight:800;color:var(--text)">${p.full_name || 'Anonymous'}</span>
+          <span style="font-size:18px;font-weight:800;color:#ff69b4">${p.full_name || 'Anonymous'}</span>
           ${tierHtml(tier)}
         </div>
         <div style="font-size:13px;color:var(--text-muted)">${p.email}</div>
